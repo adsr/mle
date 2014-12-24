@@ -5,7 +5,7 @@ int editor_init(editor_t* editor) {
 }
 
 int editor_loop(editor_t* editor) {
-    // TODO get input,
+    // TODO get input
     // get command from current keymap
     // exec command
     // redraw
