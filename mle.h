@@ -48,14 +48,16 @@ struct editor_s {
     int w;
     int h;
     bview_t* bviews;
-    bview_t* popup;
     bview_t* active;
+    bview_t* edit;
+    bview_t* status;
+    bview_t* popup;
+    bview_t* prompt;
+    bview_rect_t rect_edit;
     bview_rect_t rect_status;
-    bview_rect_t rect_prompt;
     bview_rect_t rect_popup;
+    bview_rect_t rect_prompt;
     syntax_t* syntax_map;
-    char* status;
-    size_t status_len;
     int is_display_disabled;
     kmacro_t* macro_map;
     kinput_t macro_toggle_key;
@@ -72,6 +74,7 @@ struct editor_s {
     kmap_t* kmap_fsearch;
     int tab_size;
     int tab_to_space;
+    int popup_h;
     char* syntax_override;
 };
 
@@ -101,11 +104,16 @@ struct syntax_s {
 
 // bview_t
 struct bview_s {
+#define MLE_BVIEW_TYPE_EDIT 0
+#define MLE_BVIEW_TYPE_POPUP 2
+#define MLE_BVIEW_TYPE_STATUS 3
+#define MLE_BVIEW_TYPE_PROMPT 1
+    editor_t* editor;
     int x;
     int y;
     int w;
     int h;
-    int is_chromeless;
+    int type;
     int line_num_width;
     bview_rect_t rect_caption;
     bview_rect_t rect_lines;
@@ -121,15 +129,12 @@ struct bview_s {
     bview_t* split_child;
     float split_factor;
     int split_is_vertical;
-    int is_prompt;
     char* prompt_key;
     char* prompt_label;
     kmap_node_t* kmap_stack;
     kmap_node_t* kmap_tail;
     cursor_t* cursors;
     cursor_t* active_cursor;
-    char* path;
-    size_t path_len;
     int tab_size;
     int tab_to_space;
     bview_t* next;
@@ -196,20 +201,31 @@ struct cmd_context_s {
 
 // loop_context_t
 struct loop_context_s {
-    int is_prompt;
+    bview_t* invoker;
+    bview_t** active;
     int should_exit;
     char* prompt_answer;
 };
 
 // editor functions
 int editor_init(editor_t* editor, int argc, char** argv);
-int editor_run(editor_t* editor);
 int editor_deinit(editor_t* editor);
-int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer);
+int editor_run(editor_t* editor);
 int editor_open_bview(editor_t* editor, char* path, size_t path_len, int make_active, bview_t* opt_before, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview);
 int editor_set_active_bview(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
+int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer);
+
+// bview functions
+bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len);
+int bview_destroy(bview_t* self);
+int bview_open(bview_t* self, char* path, int path_len);
+int bview_resize(bview_t* self, int x, int y, int w, int h);
+int bview_draw(bview_t* self);
+int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
+int bview_push_kmap(bview_t* bview, kmap_t* kmap);
+int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
 
 // cmd functions
 int cmd_insert_data(cmd_context_t* ctx);
@@ -242,9 +258,6 @@ int cmd_save(cmd_context_t* ctx);
 int cmd_open(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 
-// bview functions
-int bview_push_kmap(bview_t* bview, kmap_t* kmap);
-
 // util functions
 int util_file_exists(char* path, size_t path_len);
 
@@ -252,14 +265,28 @@ int util_file_exists(char* path, size_t path_len);
 // Macros
 #define MLE_VERSION "0.1"
 
-#define MLE_RC_OK 0
-#define MLE_RC_ERR 1
+#define MLE_OK 0
+#define MLE_ERR 1
 
 #define MLE_DEFAULT_TAB_SIZE 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "C-x"
 
 #define MLE_CURSOR_APPLY_MARK_FN(cursor, mark_fn, ...)
+
+#define MLE_LOG_ERR(fmt, ...) do { \
+    fprintf(stderr, (fmt), __VA_ARGS__); \
+} while (0)
+
+#define MLE_RETURN_ERR(fmt, ...) do { \
+    MLE_LOG_ERR((fmt), __VA_ARGS__); \
+    return MLE_ERR; \
+} while (0)
+
+#define MLE_BVIEW_IS_EDIT(bview) ((bview)->type == MLE_BVIEW_TYPE_EDIT)
+#define MLE_BVIEW_IS_POPUP(bview) ((bview)->type == MLE_BVIEW_TYPE_POPUP)
+#define MLE_BVIEW_IS_STATUS(bview) ((bview)->type == MLE_BVIEW_TYPE_STATUS)
+#define MLE_BVIEW_IS_PROMPT(bview) ((bview)->type == MLE_BVIEW_TYPE_PROMPT)
 
 /*
 Features

@@ -42,7 +42,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
                 printf("Usage: mle [options] [file]...\n\n");
-                printf("    -A           Disable tab-to-space (default: enabled)\n");
+                printf("    -A           Allow tabs (disable tab-to-space)\n");
                 printf("    -h           Show this message\n");
                 printf("    -m <key>     Set macro toggle key (default: C-x)");
                 printf("    -s <syntax>  Specify override syntax\n");
@@ -55,8 +55,8 @@ int editor_init(editor_t* editor, int argc, char** argv) {
                 editor->tab_to_space = 1;
                 break;
             case 'm':
-                if (editor_set_macro_toggle_key(editor, optarg) != MLE_RC_OK) {
-                    fprintf(stderr, "Could not set macro key to %s\n", optarg);
+                if (editor_set_macro_toggle_key(editor, optarg) != MLE_OK) {
+                    MLE_LOG_ERR("Could not set macro key to %s\n", optarg);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -97,41 +97,38 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         }
     }
 
-    return MLE_RC_OK;
+    return MLE_OK;
 }
 
 // Run editor
 int editor_run(editor_t* editor) {
     loop_context_t loop_ctx;
-    loop_ctx.is_prompt = 0;
     loop_ctx.should_exit = 0;
     _editor_resize(editor);
     _editor_loop(editor, &loop_ctx);
-    return MLE_RC_OK;
+    return MLE_OK;
 }
 
 
 // Deinit editor
 int editor_deinit(editor_t* editor) {
     // TODO free stuff
-    return MLE_RC_OK;
+    return MLE_OK;
 }
 
 // Prompt user for input
 int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer) {
-    bview_t* invoker;
-    bview_t* prompt;
     loop_context_t loop_ctx;
+    bview_t* prompt;
 
     // Init loop_ctx
-    loop_ctx.is_prompt = 1;
+    loop_ctx.invoker = editor->active;
     loop_ctx.should_exit = 0;
     loop_ctx.prompt_answer = NULL;
 
     // Init prompt
-    invoker = editor->active;
     editor_open_bview(editor, NULL, 0, 1, NULL, &prompt);
-    prompt->is_prompt = 1;
+    prompt->type = MLE_BVIEW_TYPE_PROMPT;
     prompt->prompt_key = key;
     prompt->prompt_label = label;
     bview_push_kmap(prompt, editor->kmap_prompt);
@@ -145,33 +142,74 @@ int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer
     }
 
     // Restore previous focus
-    editor_set_active_bview(editor, invoker);
+    editor_set_active_bview(editor, loop_ctx.invoker);
     editor_close_bview(editor, prompt);
 
-    return MLE_RC_OK;
+    return MLE_OK;
 }
 
 // Open a bview
 int editor_open_bview(editor_t* editor, char* path, size_t path_len, int make_active, bview_t* opt_before, bview_t** optret_bview) {
-    // TODO
-    return MLE_RC_OK;
+    bview_t* bview;
+    int rc;
+    bview = bview_new(editor, path, path_len);
+    if (opt_before) {
+        if (!editor_bview_exists(editor, opt_before)) {
+            MLE_RETURN_ERR("No bview %p in editor->bviews\n", opt_before);
+        }
+        DL_PREPEND_ELEM(editor->bviews, opt_before, bview);
+    } else {
+        DL_APPEND(editor->bviews, bview);
+    }
+    if (make_active) {
+        editor_set_active(bview);
+    }
+    if (optret_bview) {
+        *optret_bview = bview;
+    }
+    return MLE_OK;
 }
 
 // Close a bview
 int editor_close_bview(editor_t* editor, bview_t* bview) {
-    // TODO
-    return MLE_RC_OK;
+    bview_t* prev;
+    prev = bview->prev;
+    if (!editor_bview_exists(editor, bview)) {
+        MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
+    }
+    DL_DELETE(editor->bviews, bview);
+    bview_destroy(bview);
+    if (prev) {
+        editor_set_active(prev);
+    } else {
+        editor_open_bview(editor, NULL, 0, 1, NULL, NULL);
+    }
+    return MLE_OK;
 }
 
 // Set the active bview
 int editor_set_active_bview(editor_t* editor, bview_t* bview) {
-    // TODO
-    return MLE_RC_OK;
+    if (!editor_bview_exists(editor, bview)) {
+        MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
+    }
+    editor->active = bview;
+    return MLE_OK;
 }
 
 // Set macro toggle key
 int editor_set_macro_toggle_key(editor_t* editor, char* key) {
     return _editor_key_to_input(key, &editor->macro_toggle_key);
+}
+
+// Return 1 if bview exists in editor, else return 0
+int editor_bview_exists(editor_t* editor, bview_t* bview) {
+    bview_t* tmp;
+    DL_FOREACH(editor->bviews, tmp) {
+        if (tmp == bview) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 // Run editor loop
@@ -230,12 +268,55 @@ static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
 
 // Resize the editor
 static void _editor_resize(editor_t* editor) {
-    // TODO
+    bview_t* bview;
+    bview_rect_t* bounds;
+
+    editor->w = tb_width();
+    editor->h = tb_height();
+
+    editor->rect_edit.x = 0;
+    editor->rect_edit.y = 0;
+    editor->rect_edit.w = editor->w;
+    editor->rect_edit.h = editor->h - 2;
+
+    editor->rect_status.x = 0;
+    editor->rect_status.y = editor->h - 2;
+    editor->rect_status.w = editor->w;
+    editor->rect_status.h = 1;
+
+    editor->rect_prompt.x = 0;
+    editor->rect_prompt.y = editor->h - 1;
+    editor->rect_prompt.w = editor->w;
+    editor->rect_prompt.h = 1;
+
+    editor->rect_popup.x = 0;
+    editor->rect_popup.y = editor->h - 2 - (editor->popup_h);
+    editor->rect_popup.w = editor->w;
+    editor->rect_popup.h = editor->popup_h;
+
+    DL_FOREACH(editor->bviews, bview) {
+        if (MLE_BVIEW_IS_PROMPT(bview)) {
+            bounds = &editor->rect_prompt;
+        } else if (MLE_BVIEW_IS_POPUP(bview)) {
+            bounds = &editor->rect_popup;
+        } else if (MLE_BVIEW_IS_STATUS(bview)) {
+            bounds = &editor->rect_status;
+        } else {
+            bounds = &editor->rect_edit;
+        }
+        bview_resize(bview, bounds->x, bounds->y, bounds->w, bounds->h);
+    }
 }
 
 // Display the editor
 static void _editor_display(editor_t* editor) {
     // TODO
+    tb_clear();
+    bview_draw(editor->edit);
+    bview_draw(editor->status);
+    if (editor->popup) bview_draw(editor->popup);
+    if (editor->prompt) bview_draw(editor->prompt);
+    tb_present();
 }
 
 // Get input from either macro or user
@@ -294,7 +375,7 @@ static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input) {
 // Return a kinput_t given a key name
 static int _editor_key_to_input(char* key, kinput_t* ret_input) {
     // TODO
-    return MLE_RC_OK;
+    return MLE_OK;
 }
 
 // Init built-in kmaps
@@ -348,7 +429,7 @@ static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t defa
     while (defs && defs->func) {
         binding = calloc(1, sizeof(kbinding_t));
         binding->func = defs->func;
-        if (_editor_key_to_input(defs->key, &binding->input) != MLE_RC_OK) {
+        if (_editor_key_to_input(defs->key, &binding->input) != MLE_OK) {
             // TODO log error
             free(binding);
             defs++;
@@ -402,6 +483,7 @@ static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern
             node->srule = srule_new_single(defs->re, strlen(defs->re), defs->fg, defs->bg);
         }
         DL_APPEND(syntax->srules, node);
+        defs++;
     }
 
     HASH_ADD_STR(editor->syntax_map, name, syntax);
