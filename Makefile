@@ -4,7 +4,7 @@ CC=colorgcc
 all: mle
 
 mle: mlbuf.a
-	$(CC) -g -Wall -I./mlbuf/ -L./mlbuf/ *.c -o $@ ./mlbuf/libmlbuf.a -ltermbox -lpcre
+	$(CC) -g -Wall -I./mlbuf/ -L./mlbuf/ *.c -o $@ ./mlbuf/libmlbuf.a -ltermbox -lpcre -lm
 
 mlbuf.a:
 	make -C mlbuf

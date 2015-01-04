@@ -72,10 +72,12 @@ struct editor_s {
     kmap_t* kmap_quit;
     kmap_t* kmap_isearch;
     kmap_t* kmap_fsearch;
+    char* syntax_override;
     int tab_size;
     int tab_to_space;
-    int popup_h;
-    char* syntax_override;
+    int popup_h; // TODO cli option
+    int viewport_scope_x; // TODO cli option
+    int viewport_scope_y; // TODO cli option
 };
 
 // syntax_def_t
@@ -131,6 +133,7 @@ struct bview_s {
     int split_is_vertical;
     char* prompt_key;
     char* prompt_label;
+    char* path;
     kmap_node_t* kmap_stack;
     kmap_node_t* kmap_tail;
     cursor_t* cursors;
@@ -211,21 +214,22 @@ struct loop_context_s {
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
 int editor_run(editor_t* editor);
-int editor_open_bview(editor_t* editor, char* path, size_t path_len, int make_active, bview_t* opt_before, bview_t** optret_bview);
+int editor_open_bview(editor_t* editor, char* opt_path, size_t opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview);
 int editor_set_active_bview(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer);
 
 // bview functions
-bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len);
-int bview_destroy(bview_t* self);
+bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
 int bview_open(bview_t* self, char* path, int path_len);
+int bview_destroy(bview_t* self);
 int bview_resize(bview_t* self, int x, int y, int w, int h);
 int bview_draw(bview_t* self);
-int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
 int bview_push_kmap(bview_t* bview, kmap_t* kmap);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
+int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
+int bview_unsplit(bview_t* self);
 
 // cmd functions
 int cmd_insert_data(cmd_context_t* ctx);
@@ -272,7 +276,7 @@ int util_file_exists(char* path, size_t path_len);
 #define MLE_DEFAULT_TAB_TO_SPACE 1
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "C-x"
 
-#define MLE_CURSOR_APPLY_MARK_FN(cursor, mark_fn, ...)
+#define MLE_CURSOR_APPLY_MARK_FN(cursor, mark_fn, ...) // TODO
 
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \
@@ -282,6 +286,9 @@ int util_file_exists(char* path, size_t path_len);
     MLE_LOG_ERR((fmt), __VA_ARGS__); \
     return MLE_ERR; \
 } while (0)
+
+#define MLE_MIN(a,b) (((a)<(b)) ? (a) : (b))
+#define MLE_MAX(a,b) (((a)>(b)) ? (a) : (b))
 
 #define MLE_BVIEW_IS_EDIT(bview) ((bview)->type == MLE_BVIEW_TYPE_EDIT)
 #define MLE_BVIEW_IS_POPUP(bview) ((bview)->type == MLE_BVIEW_TYPE_POPUP)

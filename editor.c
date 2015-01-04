@@ -109,7 +109,6 @@ int editor_run(editor_t* editor) {
     return MLE_OK;
 }
 
-
 // Deinit editor
 int editor_deinit(editor_t* editor) {
     // TODO free stuff
@@ -142,27 +141,20 @@ int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer
     }
 
     // Restore previous focus
-    editor_set_active_bview(editor, loop_ctx.invoker);
+    editor_set_active(editor, loop_ctx.invoker);
     editor_close_bview(editor, prompt);
 
     return MLE_OK;
 }
 
 // Open a bview
-int editor_open_bview(editor_t* editor, char* path, size_t path_len, int make_active, bview_t* opt_before, bview_t** optret_bview) {
+int editor_open_bview(editor_t* editor, char* opt_path, size_t opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
     int rc;
-    bview = bview_new(editor, path, path_len);
-    if (opt_before) {
-        if (!editor_bview_exists(editor, opt_before)) {
-            MLE_RETURN_ERR("No bview %p in editor->bviews\n", opt_before);
-        }
-        DL_PREPEND_ELEM(editor->bviews, opt_before, bview);
-    } else {
-        DL_APPEND(editor->bviews, bview);
-    }
+    bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
+    DL_APPEND(editor->bviews, bview);
     if (make_active) {
-        editor_set_active(bview);
+        editor_set_active(editor, bview);
     }
     if (optret_bview) {
         *optret_bview = bview;
@@ -180,7 +172,7 @@ int editor_close_bview(editor_t* editor, bview_t* bview) {
     DL_DELETE(editor->bviews, bview);
     bview_destroy(bview);
     if (prev) {
-        editor_set_active(prev);
+        editor_set_active(editor, prev);
     } else {
         editor_open_bview(editor, NULL, 0, 1, NULL, NULL);
     }
@@ -188,7 +180,7 @@ int editor_close_bview(editor_t* editor, bview_t* bview) {
 }
 
 // Set the active bview
-int editor_set_active_bview(editor_t* editor, bview_t* bview) {
+int editor_set_active(editor_t* editor, bview_t* bview) {
     if (!editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
     }
