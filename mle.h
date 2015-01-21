@@ -49,7 +49,8 @@ struct editor_s {
     int h;
     bview_t* bviews;
     bview_t* active;
-    bview_t* edit;
+    bview_t* active_edit;
+    bview_t* active_edit_root;
     bview_t* status;
     bview_t* popup;
     bview_t* prompt;
@@ -216,8 +217,9 @@ int editor_deinit(editor_t* editor);
 int editor_run(editor_t* editor);
 int editor_open_bview(editor_t* editor, char* opt_path, size_t opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview);
-int editor_set_active_bview(editor_t* editor, bview_t* bview);
+int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
+int editor_bview_exists(editor_t* editor, bview_t* bview);
 int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer);
 
 // bview functions

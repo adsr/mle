@@ -89,7 +89,6 @@ int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer
 // Open a bview
 int editor_open_bview(editor_t* editor, char* opt_path, size_t opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
-    int rc;
     bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
     DL_APPEND(editor->bviews, bview);
     if (make_active) {
@@ -104,7 +103,9 @@ int editor_open_bview(editor_t* editor, char* opt_path, size_t opt_path_len, int
 // Close a bview
 int editor_close_bview(editor_t* editor, bview_t* bview) {
     bview_t* prev;
+    bview_t* next;
     prev = bview->prev;
+    next = bview->prev;
     if (!editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
     }
@@ -112,6 +113,8 @@ int editor_close_bview(editor_t* editor, bview_t* bview) {
     bview_destroy(bview);
     if (prev) {
         editor_set_active(editor, prev);
+    } else if (next) {
+        editor_set_active(editor, next);
     } else {
         editor_open_bview(editor, NULL, 0, 1, NULL, NULL);
     }
@@ -120,10 +123,19 @@ int editor_close_bview(editor_t* editor, bview_t* bview) {
 
 // Set the active bview
 int editor_set_active(editor_t* editor, bview_t* bview) {
+    bview_t* tmp;
     if (!editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
     }
     editor->active = bview;
+    if (MLE_BVIEW_IS_EDIT(bview)) {
+        tmp = bview;
+        while (tmp->split_parent) {
+            tmp = tmp->split_parent;
+        }
+        editor->active_edit = bview;
+        editor->active_edit_root = tmp;
+    }
     return MLE_OK;
 }
 
@@ -243,7 +255,7 @@ static void _editor_resize(editor_t* editor) {
 static void _editor_display(editor_t* editor) {
     // TODO
     tb_clear();
-    bview_draw(editor->edit);
+    bview_draw(editor->active_edit_root);
     bview_draw(editor->status);
     if (editor->popup) bview_draw(editor->popup);
     if (editor->prompt) bview_draw(editor->prompt);
