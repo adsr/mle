@@ -18,17 +18,11 @@ static void _editor_init_kmaps(editor_t* editor);
 static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t default_func, int allow_fallthru, kmap_def_t* defs);
 static void _editor_init_syntaxes(editor_t* editor);
 static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern, syntax_def_t* defs);
+static void _editor_init_cli_args(editor_t* editor, int argc, char** argv);
+static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
-    int c;
-    int i;
-    char* colon;
-    size_t linenum;
-    bview_t* bview;
-    char *path;
-    size_t path_len;
-
     // Set editor defaults
     editor->tab_size = MLE_DEFAULT_TAB_SIZE;
     editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
@@ -37,65 +31,10 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     _editor_init_syntaxes(editor);
 
     // Parse cli args
-    while ((c = getopt(argc, argv, "hAms:t:v")) != -1) {
-        switch (c) {
-            case 'h':
-                printf("mle version %s\n\n", MLE_VERSION);
-                printf("Usage: mle [options] [file]...\n\n");
-                printf("    -A           Allow tabs (disable tab-to-space)\n");
-                printf("    -h           Show this message\n");
-                printf("    -m <key>     Set macro toggle key (default: C-x)");
-                printf("    -s <syntax>  Specify override syntax\n");
-                printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_SIZE);
-                printf("    -v           Print version and exit\n");
-                printf("    file         Open file at start up\n");
-                printf("    file:line    Open file at line at start up\n");
-                exit(EXIT_SUCCESS);
-            case 'A':
-                editor->tab_to_space = 1;
-                break;
-            case 'm':
-                if (editor_set_macro_toggle_key(editor, optarg) != MLE_OK) {
-                    MLE_LOG_ERR("Could not set macro key to %s\n", optarg);
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case 's':
-                editor->syntax_override = optarg;
-                break;
-            case 't':
-                editor->tab_size = atoi(optarg);
-                break;
-            case 'v':
-                printf("mle version %s\n", MLE_VERSION);
-                exit(EXIT_SUCCESS);
-        }
-    }
+    _editor_init_cli_args(editor, argc, argv);
 
-    // Open bviews
-    if (optind >= argc) {
-        // Open blank
-        editor_open_bview(editor, NULL, 0, 1, NULL, NULL);
-    } else {
-        // Open files
-        for (i = optind; i < argc; i++) {
-            path = argv[i];
-            path_len = strlen(argv[i]);
-            if (util_file_exists(path, path_len)) {
-                editor_open_bview(editor, path, path_len, 1, NULL, NULL);
-            } else if ((colon = strstr(path, ":")) != NULL) {
-                path_len -= (size_t)(colon - path);
-                linenum = strtoul(colon + 1, NULL, 10);
-                if (linenum > 0) {
-                    linenum -= 1;
-                }
-                editor_open_bview(editor, path, path_len, 1, NULL, &bview);
-                MLE_CURSOR_APPLY_MARK_FN(bview->active_cursor, mark_move_to, linenum, 0);
-            } else {
-                editor_open_bview(editor, path, path_len, 1, NULL, NULL);
-            }
-        }
-    }
+    // Init bviews
+    _editor_init_bviews(editor, argc, argv);
 
     return MLE_OK;
 }
@@ -386,8 +325,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_move_right, "right" },
         { cmd_move_up, "up" },
         { cmd_move_down, "down" },
-        { cmd_move_page_up, "page_up" },
-        { cmd_move_page_up, "page_down" },
+        { cmd_move_page_up, "page-up" },
+        { cmd_move_page_up, "page-down" },
         { cmd_move_to_line, "M-g" },
         { cmd_move_word_forward, "M-f" },
         { cmd_move_word_back, "M-b" },
@@ -436,26 +375,47 @@ static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t defa
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, "php", "\\.php$", (syntax_def_t[]){
-        { "\\$[a-zA-Z_0-9$]*|[=!<>-]", NULL, TB_GREEN, TB_DEFAULT },
-        { "\\b(class|var|const|static|final|private|public|protected|function|"
-          "switch|case|default|endswitch|if|else|elseif|endif|for|foreach|"
-          "endfor|endforeach|while|endwhile|new|die|exit|echo|continue|break|"
-          "include|require|include_once|require_once|return|abstract|"
-          "interface)\\b", NULL, TB_YELLOW, TB_DEFAULT },
-        { "[(){}.,;:?!+=/%-\\[\\]]", NULL, TB_RED | TB_BOLD, TB_DEFAULT },
-        { "\\b(-?[0-9]+|true|false|null)\\b", NULL, TB_BLUE | TB_BOLD, TB_DEFAULT },
-        { "(\\$|=>|->|::)", NULL, TB_GREEN | TB_BOLD, TB_DEFAULT },
+    _editor_init_syntax(editor, "generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go)$", (syntax_def_t[]){
+        { "(?<![\\w%@$])("
+          "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
+          "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
+          "callable|case|catch|chan|char|checked|class|clone|cmp|compl|const|"
+          "const_cast|constexpr|continue|debugger|decimal|declare|decltype|"
+          "def|default|defer|defined|del|delegate|delete|die|do|done|double|"
+          "dynamic_cast|echo|elif|else|elseif|elsif|empty|end|enddeclare|"
+          "endfor|endforeach|endif|endswitch|endwhile|ensure|enum|eq|esac|"
+          "eval|event|except|exec|exit|exp|explicit|export|extends|extern|"
+          "fallthrough|false|fi|final|finally|fixed|float|for|foreach|friend|"
+          "from|func|function|ge|global|go|goto|gt|if|implements|implicit|"
+          "import|in|include|include_once|inline|instanceof|insteadof|int|"
+          "interface|internal|is|isset|lambda|le|let|list|lock|long|lt|m|map|"
+          "module|mutable|namespace|native|ne|new|next|nil|no|noexcept|not|"
+          "not_eq|null|nullptr|object|operator|or|or_eq|out|override|package|"
+          "params|pass|print|private|protected|public|q|qq|qr|qw|qx|raise|"
+          "range|readonly|redo|ref|register|reinterpret_cast|require|"
+          "require_once|rescue|retry|return|s|sbyte|sealed|select|self|short|"
+          "signed|sizeof|stackalloc|static|static_assert|static_cast|"
+          "strictfp|string|struct|sub|super|switch|synchronized|template|"
+          "then|this|thread_local|throw|throws|time|tr|trait|transient|true|"
+          "try|type|typedef|typeid|typename|typeof|uint|ulong|unchecked|"
+          "undef|union|unless|unsafe|unset|unsigned|until|use|ushort|using|"
+          "var|virtual|void|volatile|when|while|with|xor|xor_eq|y|yield"
+          ")\\b", NULL, TB_GREEN, TB_DEFAULT },
+        { "\\b\\$[a-zA-Z_0-9$]+\\b", NULL, TB_GREEN, TB_DEFAULT },
+        { "\\b[A-Z_][A-Z0-9_]*\\b", NULL, TB_RED | TB_BOLD, TB_DEFAULT },
+        { "\\b(-?(0x)?[0-9]+|true|false|null)\\b", NULL, TB_BLUE | TB_BOLD, TB_DEFAULT },
+        { "[(){}<>.,;:?!+=/%\\[\\]$*-]", NULL, TB_RED | TB_BOLD, TB_DEFAULT },
         { "'([^']|\\')*'", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
         { "\"([^\"]|\\\")*\"", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
-        { "//.*$", NULL, TB_CYAN, TB_DEFAULT },
+        { "/([^/]|/)*/", NULL, TB_YELLOW, TB_DEFAULT },
+        { "/" "/.*$", NULL, TB_CYAN, TB_DEFAULT },
         { "/\\*", "\\*/", TB_CYAN, TB_DEFAULT },
         { "<\\?(php)?|\\?>", NULL, TB_GREEN, TB_DEFAULT },
         { "\\?>", "<\\?(php)?", TB_WHITE, TB_DEFAULT },
+        { "\"\"\"", "\"\"\"", TB_YELLOW | TB_BOLD, TB_DEFAULT },
         { "\\s+$", NULL, TB_DEFAULT, TB_GREEN },
         { NULL, NULL, 0, 0 }
     });
-    // TODO
 }
 
 // Init a single syntax
@@ -479,4 +439,78 @@ static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern
     }
 
     HASH_ADD_STR(editor->syntax_map, name, syntax);
+}
+
+// Parse cli args
+static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
+    int c;
+    while ((c = getopt(argc, argv, "hAms:t:v")) != -1) {
+        switch (c) {
+            case 'h':
+                printf("mle version %s\n\n", MLE_VERSION);
+                printf("Usage: mle [options] [file]...\n\n");
+                printf("    -A           Allow tabs (disable tab-to-space)\n");
+                printf("    -h           Show this message\n");
+                printf("    -m <key>     Set macro toggle key (default: C-x)");
+                printf("    -s <syntax>  Specify override syntax\n");
+                printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_SIZE);
+                printf("    -v           Print version and exit\n");
+                printf("    file         At start up, open file\n");
+                printf("    file:line    At start up, open file at line\n");
+                exit(EXIT_SUCCESS);
+            case 'A':
+                editor->tab_to_space = 1;
+                break;
+            case 'm':
+                if (editor_set_macro_toggle_key(editor, optarg) != MLE_OK) {
+                    MLE_LOG_ERR("Could not set macro key to %s\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 's':
+                editor->syntax_override = optarg;
+                break;
+            case 't':
+                editor->tab_size = atoi(optarg);
+                break;
+            case 'v':
+                printf("mle version %s\n", MLE_VERSION);
+                exit(EXIT_SUCCESS);
+        }
+    }
+}
+
+// Init bviews
+static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
+    int i;
+    char* colon;
+    size_t linenum;
+    bview_t* bview;
+    char *path;
+    size_t path_len;
+
+    // Open bviews
+    if (optind >= argc) {
+        // Open blank
+        editor_open_bview(editor, NULL, 0, 1, NULL, NULL);
+    } else {
+        // Open files
+        for (i = optind; i < argc; i++) {
+            path = argv[i];
+            path_len = strlen(argv[i]);
+            if (util_file_exists(path, path_len)) {
+                editor_open_bview(editor, path, path_len, 1, NULL, NULL);
+            } else if ((colon = strstr(path, ":")) != NULL) {
+                path_len -= (size_t)(colon - path);
+                linenum = strtoul(colon + 1, NULL, 10);
+                if (linenum > 0) {
+                    linenum -= 1;
+                }
+                editor_open_bview(editor, path, path_len, 1, NULL, &bview);
+                MLE_CURSOR_APPLY_MARK_FN(bview->active_cursor, mark_move_to, linenum, 0);
+            } else {
+                editor_open_bview(editor, path, path_len, 1, NULL, NULL);
+            }
+        }
+    }
 }
