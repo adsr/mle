@@ -253,7 +253,6 @@ static void _editor_resize(editor_t* editor) {
 
 // Display the editor
 static void _editor_display(editor_t* editor) {
-    // TODO
     tb_clear();
     bview_draw(editor->active_edit_root);
     bview_draw(editor->status);
@@ -290,7 +289,19 @@ static void _editor_get_input(editor_t* editor, kinput_t* ret_input) {
 
 // Get user input
 static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input) {
-    // TODO tb_poll_event
+    int rc;
+    tb_event_t ev;
+    while (1) {
+        rc = tb_poll_event(&ev);
+        if (rc == -1) {
+            continue;
+        } else if (rc == TB_EVENT_RESIZE) {
+            _editor_resize(editor);
+            continue;
+        }
+        *ret_input = (kinput_t){ ev.mod, ev.ch, ev.key };
+        break;
+    }
 }
 
 // Copy input into macro buffer
