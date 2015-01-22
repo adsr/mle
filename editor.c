@@ -311,13 +311,56 @@ static void _editor_record_macro_input(editor_t* editor, kinput_t* input) {
 
 // Return command for input
 static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input) {
-    // TODO
+    kmap_node_t* tmp;
+    kbinding_t* binding;
+    tmp = editor->active->kmap_tail;
+    binding = NULL;
+    while (tmp) {
+        HASH_FIND(hh, tmp->kmap->bindings, &input, sizeof(kinput_t), binding);
+        if (binding) {
+            return binding->func;
+        } else if (tmp->kmap->default_func) {
+            return tmp->kmap->default_func;
+        }
+        if (tmp->kmap->allow_fallthru) {
+            tmp = tmp->prev;
+        } else {
+            tmp = NULL;
+        }
+    }
     return NULL;
 }
 
 // Return a kinput_t given a key name
 static int _editor_key_to_input(char* key, kinput_t* ret_input) {
-    // TODO
+    int keylen;
+    int mod;
+    uint32_t ch;
+    keylen = strlen(key);
+
+    // Check for special key
+#define MLE_KEY_DEF(pckey, pmod, pch, pkey) \
+    } else if (!strncmp((pckey), key, keylen)) { \
+        *ret_input = (kinput_t){ (pmod), (pch), (pkey) }; \
+        return MLE_OK;
+    if (keylen < 1) {
+        MLE_RETURN_ERR("key has length %d\n", keylen);
+#include "keys.h"
+    }
+#undef MLE_KEY_DEF
+
+    // Check for character, with potential ALT modifier
+    mod = 0;
+    ch = 0;
+    if (keylen > 2 && !strncmp("M-", key, 2)) {
+        mod = TB_MOD_ALT;
+        key += 2;
+    }
+    utf8_char_to_unicode(&ch, key);
+    if (ch < 1) {
+        return MLE_ERR;
+    }
+    *ret_input = (kinput_t){ mod, ch, 0 };
     return MLE_OK;
 }
 

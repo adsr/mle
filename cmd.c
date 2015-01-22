@@ -1,7 +1,12 @@
 #include "mle.h"
 
 int cmd_insert_data(cmd_context_t* ctx) {
-return MLE_OK; }
+    char data[6];
+    size_t data_len;
+    data_len = utf8_unicode_to_char(data, ctx->input.ch);
+    return mark_insert_after(ctx->cursor->mark, data, data_len); // TODO mult cursors
+}
+
 int cmd_insert_tab(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_delete_before(cmd_context_t* ctx) {
