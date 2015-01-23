@@ -1,16 +1,45 @@
 #include "mle.h"
 
+#define MLE_MULTI_CURSOR_MARK_FN(pcursor, ptmp, pfn, ...) do { \
+    DL_FOREACH((pcursor)->bview->cursors, (ptmp)) { \
+        if ((ptmp)->is_asleep) continue; \
+        pfn((ptmp)->mark, __VA_ARGS__); \
+    } \
+} while(0)
+
+// Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
     char data[6];
     size_t data_len;
+    cursor_t* cursor;
     data_len = utf8_unicode_to_char(data, ctx->input.ch);
-    return mark_insert_after(ctx->cursor->mark, data, data_len); // TODO mult cursors
+    if (data_len < 1) {
+        return MLE_OK;
+    }
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, cursor, mark_insert_before, data, data_len);
+    return MLE_OK;
 }
 
+// Insert tab
 int cmd_insert_tab(cmd_context_t* ctx) {
-return MLE_OK; }
+    int num_spaces;
+    char* data;
+    cursor_t* cursor;
+    if (ctx->bview->tab_to_space) {
+        num_spaces = ctx->bview->tab_size - (ctx->cursor->mark->col % ctx->bview->tab_size);
+        data = malloc(num_spaces);
+        memset(data, ' ', num_spaces);
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, cursor, mark_insert_before, data, (size_t)num_spaces);
+        free(data);
+    } else {
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, cursor, mark_insert_before, (char*)"\t", (size_t)1);
+    }
+    return MLE_OK;
+}
+
 int cmd_delete_before(cmd_context_t* ctx) {
-return MLE_OK; }
+    return MLE_OK;
+}
 int cmd_delete_after(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_move_bol(cmd_context_t* ctx) {

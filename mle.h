@@ -152,6 +152,7 @@ struct cursor_s {
     mark_t* sel_bound;
     int is_sel_bound_anchored;
     int is_asleep;
+    srule_t* sel_rule;
     cursor_t* next;
     cursor_t* prev;
 };
@@ -198,6 +199,7 @@ struct kmap_s {
 // cmd_context_t
 struct cmd_context_s {
     editor_t* editor;
+    bview_t* bview;
     cursor_t* cursor;
     kinput_t input;
     loop_context_t* loop_ctx;
