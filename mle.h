@@ -126,6 +126,7 @@ struct bview_s {
     buffer_t* buffer;
     int viewport_x;
     int viewport_y;
+    bline_t* viewport_bline;
     int viewport_scope_x;
     int viewport_scope_y;
     bview_t* split_parent;
@@ -135,6 +136,7 @@ struct bview_s {
     char* prompt_key;
     char* prompt_label;
     char* path;
+    int is_unsaved;
     kmap_node_t* kmap_stack;
     kmap_node_t* kmap_tail;
     cursor_t* cursors;
@@ -176,7 +178,7 @@ struct kbinding_s {
 // kmap_node_t
 struct kmap_node_s {
     kmap_t* kmap;
-    bview_t* src;
+    bview_t* bview;
     kmap_node_t* next;
     kmap_node_t* prev;
 };
@@ -268,7 +270,8 @@ int cmd_quit(cmd_context_t* ctx);
 
 // util functions
 int util_file_exists(char* path, size_t path_len);
-
+void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
+void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 
 // Macros
 #define MLE_VERSION "0.1"

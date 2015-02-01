@@ -20,6 +20,7 @@ static void _editor_init_syntaxes(editor_t* editor);
 static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern, syntax_def_t* defs);
 static void _editor_init_cli_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
+static void _editor_init_status(editor_t* editor);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -32,6 +33,9 @@ int editor_init(editor_t* editor, int argc, char** argv) {
 
     // Parse cli args
     _editor_init_cli_args(editor, argc, argv);
+
+    // Init status bar
+    _editor_init_status(editor);
 
     // Init bviews
     _editor_init_bviews(editor, argc, argv);
@@ -183,6 +187,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         // Execute command
         if ((cmd_fn = _editor_get_command(editor, cmd_ctx.input)) != NULL) {
             cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
+            cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
             cmd_fn(&cmd_ctx);
         } else {
             // TODO log error
@@ -441,7 +446,7 @@ static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t defa
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, "generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go)$", (syntax_def_t[]){
+    _editor_init_syntax(editor, "generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (syntax_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
@@ -544,6 +549,11 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
                 exit(EXIT_SUCCESS);
         }
     }
+}
+
+// Init status bar
+static void _editor_init_status(editor_t* editor) {
+    editor->status = bview_new(editor, NULL, 0, NULL);
 }
 
 // Init bviews

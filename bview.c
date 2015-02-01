@@ -4,6 +4,11 @@
 static void _bview_init(bview_t* self, buffer_t* buffer);
 static void _bview_deinit(bview_t* self);
 static buffer_t* _bview_open_buffer(char* path, int path_len);
+static void _bview_draw_prompt(bview_t* self);
+static void _bview_draw_popup(bview_t* self);
+static void _bview_draw_status(bview_t* self);
+static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
+static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y);
 
 // Create a new bview
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
@@ -21,7 +26,7 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
     self = calloc(1, sizeof(bview_t));
     self->editor = editor;
     self->path = strndup(opt_path, opt_path_len);
-    self->rect_caption.bg = TB_REVERSE;
+    self->rect_caption.bg = TB_REVERSE; // TODO configurable
     self->rect_lines.fg = TB_YELLOW;
     self->rect_margin_left.fg = TB_RED;
     self->rect_margin_right.fg = TB_RED;
@@ -120,15 +125,42 @@ int bview_resize(bview_t* self, int x, int y, int w, int h) {
 
 // Draw bview to screen
 int bview_draw(bview_t* self) {
-    // TODO
+    if (MLE_BVIEW_IS_PROMPT(self)) {
+        _bview_draw_prompt(self);
+    } else if (MLE_BVIEW_IS_POPUP(self)) {
+        _bview_draw_popup(self);
+    } else if (MLE_BVIEW_IS_STATUS(self)) {
+        _bview_draw_status(self);
+    }
+    _bview_draw_edit(self, self->x, self->y, self->w, self->h);
+    return MLE_OK;
 }
 
+// Push a kmap
 int bview_push_kmap(bview_t* bview, kmap_t* kmap) {
-    // TODO
+    kmap_node_t* node;
+    node = calloc(1, sizeof(kmap_node_t));
+    node->kmap = kmap;
+    node->bview = bview;
+    DL_APPEND(bview->kmap_stack, node);
+    bview->kmap_tail = node;
+    return MLE_OK;
 }
 
+// Pop a kmap
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap) {
-    // TODO
+    kmap_node_t* node_to_pop;
+    node_to_pop = bview->kmap_tail;
+    if (!node_to_pop) {
+        return MLE_ERR;
+    }
+    if (optret_kmap) {
+        *optret_kmap = node_to_pop->kmap;
+    }
+    bview->kmap_tail = node_to_pop->prev;
+    DL_DELETE(bview->kmap_stack, node_to_pop);
+    free(node_to_pop);
+    return MLE_OK;
 }
 
 // Split a bview
@@ -259,4 +291,77 @@ static buffer_t* _bview_open_buffer(char* opt_path, int opt_path_len) {
         buffer = buffer_new();
     }
     return buffer;
+}
+
+static void _bview_draw_prompt(bview_t* self) {
+}
+
+static void _bview_draw_popup(bview_t* self) {
+}
+
+static void _bview_draw_status(bview_t* self) {
+}
+
+static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
+    int split_w;
+    int split_h;
+    int min_w;
+    int min_h;
+    int rect_y;
+    bline_t* bline;
+
+    // Handle split
+    if (self->split_child) {
+        if (self->split_is_vertical) {
+            split_w = w;
+            split_h = h - (int)((float)h * self->split_factor);
+        } else {
+            split_w = w - (int)((float)w * self->split_factor);
+            split_h = h;
+        }
+        _bview_draw_edit(self, x, y, w - split_w, h - split_h);
+        _bview_draw_edit(self->split_child, x + (w - split_w), y + (h - split_h), split_w, split_h);
+        return;
+    }
+
+    // Calc min dimensions
+    min_w = self->line_num_width + 3;
+    min_h = 2;
+
+    // Ensure renderable
+    if (w < min_w || h < min_h
+        || x + w >= self->editor->w
+        || y + h >= self->editor->h
+    ) {
+        return;
+    }
+
+    // Render caption
+    if (self->buffer->path) {
+        tb_printf(self->rect_caption, 0, 0, 0, 0, "%s %c",
+            self->buffer->path, self->is_unsaved ? '*' : ' ');
+    } else {
+        tb_printf(self->rect_caption, 0, 0, 0, 0, "<buffer-%p> %c",
+            self->buffer, self->is_unsaved ? '*' : ' ');
+    }
+
+    // Render lines and margins
+    if (!self->viewport_bline) {
+        buffer_get_bline(self->buffer, MLE_MAX(0, self->viewport_y), &self->viewport_bline);
+    }
+    bline = self->viewport_bline;
+    for (rect_y = 0; rect_y < self->rect_buffer.h; rect_y++) {
+        if (self->viewport_y + rect_y < 0) {
+            // Draw pre blank
+        } else if (self->viewport_y + rect_y >= self->buffer->line_count) { // TODO viewport_* as ssize_t
+            // Draw post blank
+        } else {
+            // Draw bline at self->rect_buffer self->viewport_y + rect_y
+            _bview_draw_bline(self, bline, rect_y);
+            bline = bline->next;
+        }
+    }
+}
+
+static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
 }
