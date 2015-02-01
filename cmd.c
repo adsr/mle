@@ -20,6 +20,11 @@ int cmd_insert_data(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Insert newline
+int cmd_insert_newline(cmd_context_t* ctx) {
+    return cmd_insert_data(ctx);
+}
+
 // Insert tab
 int cmd_insert_tab(cmd_context_t* ctx) {
     int num_spaces;
@@ -90,5 +95,9 @@ int cmd_save(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_open(cmd_context_t* ctx) {
 return MLE_OK; }
+
+// Quit
 int cmd_quit(cmd_context_t* ctx) {
-return MLE_OK; }
+    ctx->loop_ctx->should_exit = 1; // TODO prompt for changes
+    return MLE_OK;
+}

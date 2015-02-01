@@ -384,6 +384,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
 static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(&editor->kmap_normal, "normal", cmd_insert_data, 0, (kmap_def_t[]){
         { cmd_insert_tab, "tab" },
+        { cmd_insert_newline, "enter", },
         { cmd_delete_before, "backspace" },
         { cmd_delete_after, "delete" },
         { cmd_move_bol, "C-a" },
@@ -554,6 +555,7 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
 // Init status bar
 static void _editor_init_status(editor_t* editor) {
     editor->status = bview_new(editor, NULL, 0, NULL);
+    editor->status->type = MLE_BVIEW_TYPE_STATUS;
 }
 
 // Init bviews

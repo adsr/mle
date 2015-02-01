@@ -294,12 +294,18 @@ static buffer_t* _bview_open_buffer(char* opt_path, int opt_path_len) {
 }
 
 static void _bview_draw_prompt(bview_t* self) {
+    // TODO
+    tb_printf(self->editor->rect_prompt, 0, 0, 0, 0, "prompt");
 }
 
 static void _bview_draw_popup(bview_t* self) {
+    // TODO
+    tb_printf(self->editor->rect_popup, 0, 0, 0, 0, "popup");
 }
 
 static void _bview_draw_status(bview_t* self) {
+    // TODO
+    tb_printf(self->editor->rect_status, 0, 0, 0, 0, "status");
 }
 
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
@@ -330,8 +336,8 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
 
     // Ensure renderable
     if (w < min_w || h < min_h
-        || x + w >= self->editor->w
-        || y + h >= self->editor->h
+        || x + w > self->editor->w
+        || y + h > self->editor->h
     ) {
         return;
     }
@@ -364,4 +370,6 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
 }
 
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
+    // TODO
+    tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, bline->data_len, bline->data);
 }

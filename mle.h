@@ -239,6 +239,7 @@ int bview_unsplit(bview_t* self);
 
 // cmd functions
 int cmd_insert_data(cmd_context_t* ctx);
+int cmd_insert_newline(cmd_context_t* ctx);
 int cmd_insert_tab(cmd_context_t* ctx);
 int cmd_delete_before(cmd_context_t* ctx);
 int cmd_delete_after(cmd_context_t* ctx);
