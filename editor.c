@@ -362,7 +362,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
     // Check for special key
 #define MLE_KEY_DEF(pckey, pmod, pch, pkey) \
     } else if (!strncmp((pckey), key, keylen)) { \
-        *ret_input = (kinput_t){ (pmod), (pch), (pkey) }; \
+        *ret_input = (kinput_t){ (pmod), 0, (pkey) }; \
         return MLE_OK;
     if (keylen < 1) {
         MLE_RETURN_ERR("key has length %d\n", keylen);
@@ -388,10 +388,10 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
 // Init built-in kmaps
 static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(&editor->kmap_normal, "normal", cmd_insert_data, 0, (kmap_def_t[]){
-        { cmd_quit, "C-q" },
         { cmd_insert_tab, "tab" },
         { cmd_insert_newline, "enter", },
         { cmd_delete_before, "backspace" },
+        { cmd_delete_before, "backspace2" },
         { cmd_delete_after, "delete" },
         { cmd_move_bol, "C-a" },
         { cmd_move_bol, "home" },
@@ -419,6 +419,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_uncut, "C-u" },
         { cmd_save, "C-o" },
         { cmd_open, "C-e" },
+        { cmd_quit, "C-q" },
         { NULL, "" }
     });
     // TODO
