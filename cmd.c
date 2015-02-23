@@ -12,7 +12,15 @@ int cmd_insert_data(cmd_context_t* ctx) {
     char data[6];
     size_t data_len;
     cursor_t* cursor;
-    data_len = utf8_unicode_to_char(data, ctx->input.ch);
+    if (ctx->input.ch) {
+        data_len = utf8_unicode_to_char(data, ctx->input.ch);
+    } else if (ctx->input.key == TB_KEY_ENTER) {
+        data_len = sprintf(data, "\n");
+    } else if (ctx->input.key) {
+        data_len = sprintf(data, "%c", ctx->input.key);
+    } else {
+        data_len = 0;
+    }
     if (data_len < 1) {
         return MLE_OK;
     }

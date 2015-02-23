@@ -165,6 +165,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
     cmd_function_t cmd_fn;
 
     // Init cmd_context
+    memset(&cmd_ctx, 0, sizeof(cmd_context_t));
     cmd_ctx.editor = editor;
     cmd_ctx.loop_ctx = loop_ctx;
 
@@ -327,21 +328,25 @@ static void _editor_record_macro_input(editor_t* editor, kinput_t* input) {
 
 // Return command for input
 static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input) {
-    kmap_node_t* tmp;
+    kmap_node_t* kmap_node;
+    kbinding_t tmp_binding;
     kbinding_t* binding;
-    tmp = editor->active->kmap_tail;
+
+    kmap_node = editor->active->kmap_tail;
+    memset(&tmp_binding, 0, sizeof(kbinding_t));
+    tmp_binding.input = input;
     binding = NULL;
-    while (tmp) {
-        HASH_FIND(hh, tmp->kmap->bindings, &input, sizeof(kinput_t), binding);
+    while (kmap_node) {
+        HASH_FIND(hh, kmap_node->kmap->bindings, &tmp_binding.input, sizeof(kinput_t), binding);
         if (binding) {
             return binding->func;
-        } else if (tmp->kmap->default_func) {
-            return tmp->kmap->default_func;
+        } else if (kmap_node->kmap->default_func) {
+            return kmap_node->kmap->default_func;
         }
-        if (tmp->kmap->allow_fallthru) {
-            tmp = tmp->prev;
+        if (kmap_node->kmap->allow_fallthru) {
+            kmap_node = kmap_node->prev;
         } else {
-            tmp = NULL;
+            kmap_node = NULL;
         }
     }
     return NULL;
@@ -383,6 +388,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
 // Init built-in kmaps
 static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(&editor->kmap_normal, "normal", cmd_insert_data, 0, (kmap_def_t[]){
+        { cmd_quit, "C-q" },
         { cmd_insert_tab, "tab" },
         { cmd_insert_newline, "enter", },
         { cmd_delete_before, "backspace" },
@@ -413,7 +419,6 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_uncut, "C-u" },
         { cmd_save, "C-o" },
         { cmd_open, "C-e" },
-        { cmd_quit, "C-q" },
         { NULL, "" }
     });
     // TODO
