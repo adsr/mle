@@ -259,6 +259,17 @@ static void _editor_resize(editor_t* editor) {
 
 // Display the editor
 static void _editor_display(editor_t* editor) {
+    bview_t* bview;
+    mark_t* mark;
+    int buf_x;
+    int buf_y;
+
+    bview = editor->active;
+    mark = bview->active_cursor->mark;
+    buf_x = mark->col - bview->viewport_x;
+    buf_y = mark->bline->line_index - bview->viewport_y;
+    tb_set_cursor(bview->rect_buffer.x + buf_x, bview->rect_buffer.y + buf_y);
+
     tb_clear();
     bview_draw(editor->active_edit_root);
     bview_draw(editor->status);
@@ -418,7 +429,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_cut, "C-k" },
         { cmd_uncut, "C-u" },
         { cmd_save, "C-o" },
-        { cmd_open, "C-e" },
+        { cmd_open, "C-r" },
         { cmd_quit, "C-q" },
         { NULL, "" }
     });
