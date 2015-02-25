@@ -101,6 +101,7 @@ int cmd_move_right(cmd_context_t* ctx) {
 
 // Move cursor up one line
 int cmd_move_up(cmd_context_t* ctx) {
+    // TODO rectify viewport on cursor movement
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1);
     return MLE_OK;
 }

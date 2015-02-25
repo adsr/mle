@@ -464,6 +464,7 @@ static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t defa
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
+    // TODO mlbuf still has style bugs :(
     _editor_init_syntax(editor, "generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (syntax_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"

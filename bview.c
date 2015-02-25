@@ -9,6 +9,8 @@ static void _bview_draw_popup(bview_t* self);
 static void _bview_draw_status(bview_t* self);
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y);
+static void _bview_set_syntax(bview_t* self);
+static int _bview_set_line_num_width(bview_t* self);
 
 // Create a new bview
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
@@ -250,13 +252,24 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
     // Reference buffer
     self->buffer = buffer;
     self->buffer->ref_count += 1;
-    self->line_num_width = MLE_MAX(1, (int)log10((double)self->buffer->line_count));
+    _bview_set_line_num_width(self);
 
     // Push normal mode
     bview_push_kmap(self, self->editor->kmap_normal);
 
+    // Set syntax
+    _bview_set_syntax(self);
+
     // Add a cursor
     bview_add_cursor(self, self->buffer->first_line, 0, &cursor_tmp);
+}
+
+// Set line_num_width and return 1 if changed
+static int _bview_set_line_num_width(bview_t* self) {
+    int orig;
+    orig = self->line_num_width;
+    self->line_num_width = MLE_MAX(1, (int)(floor(log10((double)self->buffer->line_count))) + 1);
+    return orig == self->line_num_width ? 0 : 1;
 }
 
 // Deinit a bview
@@ -274,9 +287,31 @@ static void _bview_deinit(bview_t* self) {
         bview_pop_kmap(self, NULL);
     }
 
+    // Remove all syntax rules
+    if (self->syntax) {
+        srule_node_t* srule_node;
+        DL_FOREACH(self->syntax->srules, srule_node) {
+            buffer_remove_srule(self->buffer, srule_node->srule);
+        }
+    }
+
     // Remove all cursors
     while (self->active_cursor) {
         bview_remove_cursor(self, self->active_cursor);
+    }
+}
+
+static void _bview_set_syntax(bview_t* self) {
+    // TODO set by self->buffer->path pattern
+    syntax_t* syntax;
+    syntax_t* syntax_tmp;
+    srule_node_t* srule_node;
+    HASH_ITER(hh, self->editor->syntax_map, syntax, syntax_tmp) {
+        self->syntax = syntax;
+        DL_FOREACH(syntax->srules, srule_node) {
+            buffer_add_srule(self->buffer, srule_node->srule);
+        }
+        break;
     }
 }
 
@@ -331,6 +366,9 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
 
     // Calc min dimensions
+    if (_bview_set_line_num_width(self)) { // TODO blistener callback / not this
+        bview_resize(self, self->x, self->y, self->w, self->h);
+    }
     min_w = self->line_num_width + 3;
     min_h = 2;
 
@@ -370,6 +408,26 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
 }
 
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
-    // TODO
-    tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, bline->data_len, bline->data);
+    tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%d", (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
+    tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", self->viewport_x > 0 ? '^' : ' ');
+    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_count - self->viewport_x > self->rect_buffer.w ? '$' : ' ');
+    //tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, bline->data_len, bline->data);
+
+    int rect_x;
+    size_t char_pos;
+    int fg;
+    int bg;
+    uint32_t ch;
+    for (rect_x = 0, char_pos = self->viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_pos++) {
+        if (char_pos < bline->char_count) {
+            tb_utf8_char_to_unicode(&ch, bline->data + bline->char_indexes[char_pos]);
+            fg = bline->char_styles[char_pos].fg;
+            bg = bline->char_styles[char_pos].bg;
+        } else {
+            tb_utf8_char_to_unicode(&ch, " ");
+            fg = 0;
+            bg = 0;
+        }
+        tb_change_cell(self->rect_buffer.x + rect_x, self->rect_buffer.y + rect_y, ch, fg, bg);
+    }
 }

@@ -143,6 +143,7 @@ struct bview_s {
     cursor_t* active_cursor;
     int tab_size;
     int tab_to_space;
+    syntax_t* syntax;
     bview_t* next;
     bview_t* prev;
 };
