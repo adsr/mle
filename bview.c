@@ -408,7 +408,7 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
 }
 
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
-    tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%d", (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
+    tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->line_num_width, (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
     tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", self->viewport_x > 0 ? '^' : ' ');
     tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_count - self->viewport_x > self->rect_buffer.w ? '$' : ' ');
     //tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, bline->data_len, bline->data);

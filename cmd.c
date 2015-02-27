@@ -53,6 +53,9 @@ int cmd_insert_tab(cmd_context_t* ctx) {
 
 // Delete char before cursor mark
 int cmd_delete_before(cmd_context_t* ctx) {
+    size_t offset;
+    mark_get_offset(ctx->cursor->mark, &offset);
+    if (offset < 1) return MLE_OK;
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_delete_before, 1);
     return MLE_OK;
 }
