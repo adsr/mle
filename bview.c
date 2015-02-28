@@ -124,6 +124,8 @@ int bview_resize(bview_t* self, int x, int y, int w, int h) {
         );
     }
 
+    bview_rectify_viewport(self);
+
     return MLE_OK;
 }
 

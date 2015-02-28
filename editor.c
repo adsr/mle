@@ -8,7 +8,7 @@
 static void _editor_startup(editor_t* editor);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
-static void _editor_resize(editor_t* editor);
+static void _editor_resize(editor_t* editor, int w, int h);
 static void _editor_display(editor_t* editor);
 static void _editor_get_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
@@ -51,7 +51,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
 int editor_run(editor_t* editor) {
     loop_context_t loop_ctx;
     loop_ctx.should_exit = 0;
-    _editor_resize(editor);
+    _editor_resize(editor, -1, -1);
     _editor_startup(editor);
     _editor_loop(editor, &loop_ctx);
     return MLE_OK;
@@ -230,12 +230,12 @@ static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
 }
 
 // Resize the editor
-static void _editor_resize(editor_t* editor) {
+static void _editor_resize(editor_t* editor, int w, int h) {
     bview_t* bview;
     bview_rect_t* bounds;
 
-    editor->w = tb_width();
-    editor->h = tb_height();
+    editor->w = w >= 0 ? w : tb_width();
+    editor->h = h >= 0 ? h : tb_height();
 
     editor->rect_edit.x = 0;
     editor->rect_edit.y = 0;
@@ -327,7 +327,8 @@ static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input) {
         if (rc == -1) {
             continue;
         } else if (rc == TB_EVENT_RESIZE) {
-            _editor_resize(editor);
+            _editor_resize(editor, ev.w, ev.h);
+            _editor_display(editor);
             continue;
         }
         *ret_input = (kinput_t){ ev.mod, ev.ch, ev.key };

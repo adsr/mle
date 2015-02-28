@@ -332,8 +332,9 @@ Features
 [ ] code folding
 
 TODO
-[ ] resize is not triggering
+[ ] char display width
 [ ] implement remaining cmd_* functions
+[ ] error messages?
 [ ] prompt bar
 [ ] status bar
 [ ] consider changing all size_t to ssize_t for consistency
