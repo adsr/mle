@@ -3,13 +3,15 @@
 
 static void _bview_init(bview_t* self, buffer_t* buffer);
 static void _bview_deinit(bview_t* self);
-static buffer_t* _bview_open_buffer(char* path, int path_len);
+static buffer_t* _bview_open_buffer(char* path, int path_len, editor_t* editor);
 static void _bview_draw_prompt(bview_t* self);
 static void _bview_draw_popup(bview_t* self);
 static void _bview_draw_status(bview_t* self);
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y);
 static void _bview_set_syntax(bview_t* self);
+static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
+static void _bview_rectify_viewport_dim(size_t buf_pos, int view_scope, int view_size, size_t* buf_cur);
 static int _bview_set_line_num_width(bview_t* self);
 
 // Create a new bview
@@ -21,7 +23,7 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
     if (opt_buffer) {
         buffer = opt_buffer;
     } else {
-        buffer = _bview_open_buffer(opt_path, opt_path_len);
+        buffer = _bview_open_buffer(opt_path, opt_path_len, editor);
     }
 
     // Allocate and init bview
@@ -44,7 +46,7 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
 // Open a buffer in an existing bview
 int bview_open(bview_t* self, char* path, int path_len) {
     buffer_t* buffer;
-    buffer = _bview_open_buffer(path, path_len);
+    buffer = _bview_open_buffer(path, path_len, self->editor);
     if (self->path) free(self->path);
     self->path = strndup(path, path_len);
     _bview_init(self, buffer);
@@ -243,6 +245,41 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     return MLE_ERR;
 }
 
+// Rectify the viewport
+int bview_rectify_viewport(bview_t* self) {
+    // TODO screen_col (e.g., tabs occupy >1 screen col)
+    // TODO screen_line (e.g., soft-wrapped lines occupy >1 screen lines)
+    _bview_rectify_viewport_dim(self->active_cursor->mark->col,               self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x);
+    _bview_rectify_viewport_dim(self->active_cursor->mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y);
+    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+    return MLE_OK;
+}
+
+// Rectify a viewport dimension
+static void _bview_rectify_viewport_dim(size_t buf_pos, int view_scope, int view_size, size_t* buf_cur) {
+    ssize_t buf_scope_start;
+    ssize_t buf_scope_stop;
+
+    if (view_scope < 0) {
+        // Keep cursor at least `view_scope` cells away from edge
+        view_scope = MLE_MAX(view_scope, ((view_size / 2) * -1));
+        // Remember view_scope is negative here
+        buf_scope_start = (ssize_t)*buf_cur - view_scope; // N in from left edge
+        buf_scope_stop = ((ssize_t)*buf_cur + view_size) + view_scope; // N in from right edge
+    } else {
+        // Keep cursor within `view_scope/2` cells of midpoint
+        view_scope = MLE_MIN(view_scope, view_size);
+        buf_scope_start = (*buf_cur + (view_size / 2)) - (int)floorf((float)view_scope * 0.5); // -N/2 from midpoint
+        buf_scope_stop = (*buf_cur + (view_size / 2)) + (int)ceilf((float)view_scope * 0.5); // +N/2 from midpoint
+    }
+
+    if (buf_pos < buf_scope_start) {
+        *buf_cur = *buf_cur - MLE_MIN(*buf_cur, buf_scope_start - buf_pos);
+    } else if (buf_pos >= buf_scope_stop) {
+        *buf_cur = *buf_cur + ((buf_pos - buf_scope_stop) + 1);
+    }
+}
+
 // Init a bview with a buffer
 static void _bview_init(bview_t* self, buffer_t* buffer) {
     cursor_t* cursor_tmp;
@@ -262,6 +299,36 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
 
     // Add a cursor
     bview_add_cursor(self, self->buffer->first_line, 0, &cursor_tmp);
+}
+
+// Called by mlbuf after edits
+static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata) {
+    editor_t* editor;
+    bview_t* bview;
+    bview_t* bview_tmp;
+
+    editor = (editor_t*)udata;
+    bview = editor->active;
+
+    // Rectify viewport if edit was on active bview
+    if (bview->buffer == buffer) {
+        bview_rectify_viewport(bview);
+    }
+
+    #define BVIEW_ITERATE_FOR_BUFFER(tmp) \
+        for (tmp = editor->bviews; tmp; tmp = bview_tmp->next) \
+            if (tmp->buffer == buffer)
+
+    // Adjust line_num_width
+    if (action && action->line_delta != 0) {
+        BVIEW_ITERATE_FOR_BUFFER(bview_tmp) {
+            if (_bview_set_line_num_width(bview)) {
+                bview_resize(bview_tmp, bview_tmp->x, bview_tmp->y, bview_tmp->w, bview_tmp->h);
+            }
+        }
+    }
+
+    #undef BVIEW_ITERATE_FOR_BUFFER
 }
 
 // Set line_num_width and return 1 if changed
@@ -316,7 +383,7 @@ static void _bview_set_syntax(bview_t* self) {
 }
 
 // Open a buffer with an optional path to load, otherwise empty
-static buffer_t* _bview_open_buffer(char* opt_path, int opt_path_len) {
+static buffer_t* _bview_open_buffer(char* opt_path, int opt_path_len, editor_t* editor) {
     buffer_t* buffer;
     buffer = NULL;
     if (opt_path && opt_path_len > 0) {
@@ -325,6 +392,7 @@ static buffer_t* _bview_open_buffer(char* opt_path, int opt_path_len) {
     if (!buffer) {
         buffer = buffer_new();
     }
+    buffer_set_callback(buffer, _bview_buffer_callback, editor);
     return buffer;
 }
 
@@ -366,9 +434,6 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
 
     // Calc min dimensions
-    if (_bview_set_line_num_width(self)) { // TODO blistener callback / not this
-        bview_resize(self, self->x, self->y, self->w, self->h);
-    }
     min_w = self->line_num_width + 3;
     min_h = 2;
 
@@ -395,10 +460,12 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
     bline = self->viewport_bline;
     for (rect_y = 0; rect_y < self->rect_buffer.h; rect_y++) {
-        if (self->viewport_y + rect_y < 0) {
-            // Draw pre blank
-        } else if (self->viewport_y + rect_y >= self->buffer->line_count) { // TODO viewport_* as ssize_t
-            // Draw post blank
+        if (self->viewport_y + rect_y < 0 || self->viewport_y + rect_y >= self->buffer->line_count) {
+            // Draw pre/post blank
+            tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*c", self->line_num_width, '~');
+            tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", ' ');
+            tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", ' ');
+            tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, self->rect_buffer.w, " ");
         } else {
             // Draw bline at self->rect_buffer self->viewport_y + rect_y
             _bview_draw_bline(self, bline, rect_y);

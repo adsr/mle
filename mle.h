@@ -124,8 +124,8 @@ struct bview_s {
     bview_rect_t rect_buffer;
     bview_rect_t rect_margin_right;
     buffer_t* buffer;
-    int viewport_x;
-    int viewport_y;
+    size_t viewport_x;
+    size_t viewport_y;
     bline_t* viewport_bline;
     int viewport_scope_x;
     int viewport_scope_y;
@@ -233,6 +233,7 @@ int bview_open(bview_t* self, char* path, int path_len);
 int bview_destroy(bview_t* self);
 int bview_resize(bview_t* self, int x, int y, int w, int h);
 int bview_draw(bview_t* self);
+int bview_rectify_viewport(bview_t* self);
 int bview_push_kmap(bview_t* bview, kmap_t* kmap);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);

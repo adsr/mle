@@ -69,36 +69,42 @@ int cmd_delete_after(cmd_context_t* ctx) {
 // Move cursor to beginning of line
 int cmd_move_bol(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_bol);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of line
 int cmd_move_eol(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_eol);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to beginning of buffer
 int cmd_move_beginning(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_beginning);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of buffer
 int cmd_move_end(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_end);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor left one char
 int cmd_move_left(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_by, -1);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor right one char
 int cmd_move_right(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_by, 1);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
@@ -106,12 +112,14 @@ int cmd_move_right(cmd_context_t* ctx) {
 int cmd_move_up(cmd_context_t* ctx) {
     // TODO rectify viewport on cursor movement
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor down one line
 int cmd_move_down(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, 1);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 

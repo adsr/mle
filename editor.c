@@ -27,6 +27,8 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     // Set editor defaults
     editor->tab_size = MLE_DEFAULT_TAB_SIZE;
     editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
+    editor->viewport_scope_x = -4;
+    editor->viewport_scope_y = -4;
     editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
     _editor_init_kmaps(editor);
     _editor_init_syntaxes(editor);
