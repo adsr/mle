@@ -332,8 +332,12 @@ Features
 [ ] code folding
 
 TODO
-[ ] Consider changing all size_t to ssize_t for consistency
-[ ] Fix bugs in mlbuf styling (pcre_exec inf loop on binary file)
+[ ] resize is not triggering
+[ ] implement remaining cmd_* functions
+[ ] prompt bar
+[ ] status bar
+[ ] consider changing all size_t to ssize_t for consistency
+[ ] hunt bug in mlbuf styling (pcre_exec inf loop on binary file)
 */
 
 #endif
