@@ -26,7 +26,7 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
     // Set editor defaults
-    editor->tab_size = MLE_DEFAULT_TAB_SIZE;
+    editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
     editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
     editor->viewport_scope_x = -4;
     editor->viewport_scope_y = -4;
@@ -273,17 +273,7 @@ static void _editor_resize(editor_t* editor, int w, int h) {
 
 // Display the editor
 static void _editor_display(editor_t* editor) {
-    bview_t* bview;
-    mark_t* mark;
-    int buf_x;
-    int buf_y;
-
-    bview = editor->active;
-    mark = bview->active_cursor->mark;
-    buf_x = mark->col - bview->viewport_x;
-    buf_y = mark->bline->line_index - bview->viewport_y;
-    tb_set_cursor(bview->rect_buffer.x + buf_x, bview->rect_buffer.y + buf_y);
-
+    bview_draw_cursor(editor->active);
     tb_clear();
     bview_draw(editor->active_edit_root);
     bview_draw(editor->status);
@@ -518,6 +508,7 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "<\\?(php)?|\\?>", NULL, TB_GREEN, TB_DEFAULT },
         { "\\?>", "<\\?(php)?", TB_WHITE, TB_DEFAULT },
         { "\"\"\"", "\"\"\"", TB_YELLOW | TB_BOLD, TB_DEFAULT },
+        { "\\t+", NULL, TB_DEFAULT, TB_RED },
         { "\\s+$", NULL, TB_DEFAULT, TB_GREEN },
         { NULL, NULL, 0, 0 }
     });
@@ -558,13 +549,13 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
                 printf("    -h           Show this message\n");
                 printf("    -m <key>     Set macro toggle key (default: C-x)\n");
                 printf("    -s <syntax>  Specify override syntax\n");
-                printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_SIZE);
+                printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
                 printf("    file         At start up, open file\n");
                 printf("    file:line    At start up, open file at line\n");
                 exit(EXIT_SUCCESS);
             case 'A':
-                editor->tab_to_space = 1;
+                editor->tab_to_space = 0;
                 break;
             case 'm':
                 if (editor_set_macro_toggle_key(editor, optarg) != MLE_OK) {
@@ -576,7 +567,7 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
                 editor->syntax_override = optarg;
                 break;
             case 't':
-                editor->tab_size = atoi(optarg);
+                editor->tab_width = atoi(optarg);
                 break;
             case 'v':
                 printf("mle version %s\n", MLE_VERSION);

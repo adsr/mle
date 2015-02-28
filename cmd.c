@@ -32,7 +32,7 @@ int cmd_insert_tab(cmd_context_t* ctx) {
     int num_spaces;
     char* data;
     if (ctx->bview->tab_to_space) {
-        num_spaces = ctx->bview->tab_size - (ctx->cursor->mark->col % ctx->bview->tab_size);
+        num_spaces = ctx->bview->buffer->tab_width - (ctx->cursor->mark->col % ctx->bview->buffer->tab_width);
         data = malloc(num_spaces);
         memset(data, ' ', num_spaces);
         MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, data, (size_t)num_spaces);

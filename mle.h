@@ -74,7 +74,7 @@ struct editor_s {
     kmap_t* kmap_isearch;
     kmap_t* kmap_fsearch;
     char* syntax_override;
-    int tab_size;
+    int tab_width;
     int tab_to_space;
     int popup_h; // TODO cli option
     int viewport_scope_x; // TODO cli option
@@ -142,7 +142,6 @@ struct bview_s {
     kmap_node_t* kmap_tail;
     cursor_t* cursors;
     cursor_t* active_cursor;
-    int tab_size;
     int tab_to_space;
     syntax_t* syntax;
     bview_t* next;
@@ -234,6 +233,7 @@ int bview_open(bview_t* self, char* path, int path_len);
 int bview_destroy(bview_t* self);
 int bview_resize(bview_t* self, int x, int y, int w, int h);
 int bview_draw(bview_t* self);
+int bview_draw_cursor(bview_t* self);
 int bview_rectify_viewport(bview_t* self);
 int bview_center_viewport_y(bview_t* self);
 int bview_push_kmap(bview_t* bview, kmap_t* kmap);
@@ -284,7 +284,7 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 #define MLE_OK 0
 #define MLE_ERR 1
 
-#define MLE_DEFAULT_TAB_SIZE 4
+#define MLE_DEFAULT_TAB_WIDTH 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "C-x"
 
@@ -312,6 +312,12 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
         pfn(_cursor->mark, ##__VA_ARGS__); \
     } \
 } while(0)
+
+#define MLE_MARK_COL_TO_POS(pmark) ( \
+    (pmark)->col >= (pmark)->bline->char_count \
+    ? (pmark)->bline->char_width \
+    : ( (pmark)->col < 0 ? 0 : (pmark)->bline->char_pos[(pmark)->col] ) \
+)
 
 /*
 Features
