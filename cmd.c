@@ -1,13 +1,5 @@
 #include "mle.h"
 
-#define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do { \
-    cursor_t* _cursor; \
-    DL_FOREACH((pcursor)->bview->cursors, _cursor) { \
-        if (_cursor->is_asleep) continue; \
-        pfn(_cursor->mark, ##__VA_ARGS__); \
-    } \
-} while(0)
-
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
     char data[6];

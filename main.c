@@ -6,9 +6,9 @@
 #include "mlbuf/mlbuf.h"
 #include "mle.h"
 
-editor_t editor;
 
 int main(int argc, char** argv) {
+    editor_t editor;
     memset(&editor, 0, sizeof(editor_t));
     editor_init(&editor, argc, argv);
     tb_init();

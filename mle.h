@@ -79,6 +79,7 @@ struct editor_s {
     int popup_h; // TODO cli option
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
+    ssize_t startup_linenum;
 };
 
 // syntax_def_t
@@ -234,6 +235,7 @@ int bview_destroy(bview_t* self);
 int bview_resize(bview_t* self, int x, int y, int w, int h);
 int bview_draw(bview_t* self);
 int bview_rectify_viewport(bview_t* self);
+int bview_center_viewport_y(bview_t* self);
 int bview_push_kmap(bview_t* bview, kmap_t* kmap);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
@@ -286,8 +288,6 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 #define MLE_DEFAULT_TAB_TO_SPACE 1
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "C-x"
 
-#define MLE_CURSOR_APPLY_MARK_FN(cursor, mark_fn, ...) // TODO
-
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \
 } while (0)
@@ -305,13 +305,20 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 #define MLE_BVIEW_IS_STATUS(bview) ((bview)->type == MLE_BVIEW_TYPE_STATUS)
 #define MLE_BVIEW_IS_PROMPT(bview) ((bview)->type == MLE_BVIEW_TYPE_PROMPT)
 
+#define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do { \
+    cursor_t* _cursor; \
+    DL_FOREACH((pcursor)->bview->cursors, _cursor) { \
+        if (_cursor->is_asleep) continue; \
+        pfn(_cursor->mark, ##__VA_ARGS__); \
+    } \
+} while(0)
+
 /*
 Features
-[ ] tab stops
-[ ] tab to space
-[ ] file:line#(s) to open
+[x] tab stops
+[x] tab to space
 [ ] char display width (for tabs)
-[ ] code folding
+[x] file:line#(s) to open // TODO fix
 [ ] window splits
 [ ] run selection thru cmd
 [ ] macros
@@ -320,21 +327,13 @@ Features
 [ ] named marks
 [ ] named registers
 [ ] modes (push/pop kmap on kmap_stack)
-[ ] cli options
+[x] cli options
 [ ] rc file
+[ ] code folding
 
-
-mode:
-- name
-- bindings
-- fallthrough?
-- default fn?
-
-mode instance:
-- mode
-- s
-
-
+TODO
+[ ] Consider changing all size_t to ssize_t for consistency
+[ ] Fix bugs in mlbuf styling (pcre_exec inf loop on binary file)
 */
 
 #endif

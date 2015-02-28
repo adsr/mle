@@ -5,6 +5,7 @@
 #include "mle.h"
 #include "mlbuf.h"
 
+static void _editor_startup(editor_t* editor);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
 static void _editor_resize(editor_t* editor);
@@ -19,8 +20,8 @@ static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t defa
 static void _editor_init_syntaxes(editor_t* editor);
 static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern, syntax_def_t* defs);
 static void _editor_init_cli_args(editor_t* editor, int argc, char** argv);
-static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
+static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -29,6 +30,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
     editor->viewport_scope_x = -4;
     editor->viewport_scope_y = -4;
+    editor->startup_linenum = -1;
     editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
     _editor_init_kmaps(editor);
     _editor_init_syntaxes(editor);
@@ -50,6 +52,7 @@ int editor_run(editor_t* editor) {
     loop_context_t loop_ctx;
     loop_ctx.should_exit = 0;
     _editor_resize(editor);
+    _editor_startup(editor);
     _editor_loop(editor, &loop_ctx);
     return MLE_OK;
 }
@@ -159,6 +162,15 @@ int editor_bview_exists(editor_t* editor, bview_t* bview) {
         }
     }
     return 0;
+}
+
+// Run startup actions. This is before any user-input is processed.
+static void _editor_startup(editor_t* editor) {
+    // Jump to line in current bview if specified
+    if (editor->startup_linenum >= 0) {
+        mark_move_to(editor->active_edit->active_cursor->mark, editor->startup_linenum, 0);
+        bview_center_viewport_y(editor->active_edit);
+    }
 }
 
 // Run editor loop
@@ -543,7 +555,7 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
                 printf("Usage: mle [options] [file]...\n\n");
                 printf("    -A           Allow tabs (disable tab-to-space)\n");
                 printf("    -h           Show this message\n");
-                printf("    -m <key>     Set macro toggle key (default: C-x)");
+                printf("    -m <key>     Set macro toggle key (default: C-x)\n");
                 printf("    -s <syntax>  Specify override syntax\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_SIZE);
                 printf("    -v           Print version and exit\n");
@@ -582,7 +594,6 @@ static void _editor_init_status(editor_t* editor) {
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
     int i;
     char* colon;
-    size_t linenum;
     bview_t* bview;
     char *path;
     size_t path_len;
@@ -598,14 +609,11 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
             path_len = strlen(argv[i]);
             if (util_file_exists(path, path_len)) {
                 editor_open_bview(editor, path, path_len, 1, NULL, NULL);
-            } else if ((colon = strstr(path, ":")) != NULL) {
-                path_len -= (size_t)(colon - path);
-                linenum = strtoul(colon + 1, NULL, 10);
-                if (linenum > 0) {
-                    linenum -= 1;
-                }
+            } else if ((colon = strrchr(path, ':')) != NULL) {
+                path_len = (size_t)(colon - path);
+                editor->startup_linenum = strtoul(colon + 1, NULL, 10);
+                if (editor->startup_linenum > 0) editor->startup_linenum -= 1;
                 editor_open_bview(editor, path, path_len, 1, NULL, &bview);
-                MLE_CURSOR_APPLY_MARK_FN(bview->active_cursor, mark_move_to, linenum, 0);
             } else {
                 editor_open_bview(editor, path, path_len, 1, NULL, NULL);
             }

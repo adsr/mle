@@ -223,7 +223,9 @@ int bview_add_cursor(bview_t* self, bline_t* bline, size_t col, cursor_t** optre
     cursor->bview = self;
     cursor->mark = buffer_add_mark(self->buffer, bline, col);
     DL_APPEND(self->cursors, cursor);
-    if (!self->active_cursor) self->active_cursor = cursor;
+    if (!self->active_cursor) {
+        self->active_cursor = cursor;
+    }
     if (optret_cursor) {
         *optret_cursor = cursor;
     }
@@ -252,6 +254,17 @@ int bview_rectify_viewport(bview_t* self) {
     _bview_rectify_viewport_dim(self->active_cursor->mark->col,               self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x);
     _bview_rectify_viewport_dim(self->active_cursor->mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y);
     buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+    return MLE_OK;
+}
+
+// Center the viewport vertically
+int bview_center_viewport_y(bview_t* self) {
+    ssize_t center;
+    center = self->active_cursor->mark->bline->line_index - self->rect_buffer.h/2;
+    if (center < 0) {
+        center = 0;
+    }
+    self->viewport_y = center;
     return MLE_OK;
 }
 
