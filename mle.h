@@ -126,6 +126,7 @@ struct bview_s {
     bview_rect_t rect_margin_right;
     buffer_t* buffer;
     size_t viewport_x;
+    size_t viewport_x_vcol;
     size_t viewport_y;
     bline_t* viewport_bline;
     int viewport_scope_x;
@@ -315,8 +316,8 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 
 #define MLE_MARK_COL_TO_POS(pmark) ( \
     (pmark)->col >= (pmark)->bline->char_count \
-    ? (pmark)->bline->char_width \
-    : ( (pmark)->col < 0 ? 0 : (pmark)->bline->char_pos[(pmark)->col] ) \
+    ? (pmark)->bline->char_vwidth \
+    : ( (pmark)->col < 0 ? 0 : (pmark)->bline->char_vcol[(pmark)->col] ) \
 )
 
 /*

@@ -262,17 +262,6 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     return MLE_ERR;
 }
 
-// Rectify the viewport
-int bview_rectify_viewport(bview_t* self) {
-    mark_t* mark;
-    mark = self->active_cursor->mark;
-    // TODO screen_line (e.g., soft-wrapped lines occupy >1 screen lines)
-    _bview_rectify_viewport_dim(MLE_MARK_COL_TO_POS(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x);
-    _bview_rectify_viewport_dim(mark->bline->line_index,   self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y);
-    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
-    return MLE_OK;
-}
-
 // Center the viewport vertically
 int bview_center_viewport_y(bview_t* self) {
     ssize_t center;
@@ -281,6 +270,17 @@ int bview_center_viewport_y(bview_t* self) {
         center = 0;
     }
     self->viewport_y = center;
+    return MLE_OK;
+}
+
+// Rectify the viewport
+int bview_rectify_viewport(bview_t* self) {
+    mark_t* mark;
+    mark = self->active_cursor->mark;
+    // TODO screen_line (e.g., soft-wrapped lines occupy >1 screen lines)
+    _bview_rectify_viewport_dim(mark->col,               self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x);
+    _bview_rectify_viewport_dim(mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y);
+    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
     return MLE_OK;
 }
 
@@ -445,13 +445,13 @@ static void _bview_draw_status(bview_t* self) {
     mark = active->active_cursor->mark;
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
-        "line %lu/%lu, char %lu/%lu, col %lu/%lu, view %dx%d, rect %dx%d",
+        "line %lu/%lu, col %lu/%lu, pos %lu/%lu, view %dx%d, rect %dx%d",
         mark->bline->line_index,
         active->buffer->line_count,
         mark->col,
         mark->bline->char_count,
         MLE_MARK_COL_TO_POS(mark),
-        mark->bline->char_width,
+        mark->bline->char_vwidth,
         active->viewport_x,
         active->viewport_y,
         active->rect_buffer.w,
@@ -528,7 +528,7 @@ static size_t _bview_get_col_from_viewport(bview_t* self, bline_t* bline) {
     // Find first visible char from viewport_x
     col = bline->char_count;
     for (i = 0; i < bline->char_count; i++) {
-        if (self->viewport_x <= bline->char_pos[i]) {
+        if (self->viewport_x <= bline->char_vcol[i]) {
             col = i;
             break;
         }
@@ -547,7 +547,7 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
 
     tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->line_num_width, (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
     tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", self->viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
-    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_width - self->viewport_x > self->rect_buffer.w ? '$' : ' ');
+    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - self->viewport_x > self->rect_buffer.w ? '$' : ' ');
 
     // Render 0 thru rect_buffer.w cell by cell
     char_col = _bview_get_col_from_viewport(self, bline);
@@ -558,8 +558,8 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             fg = bline->char_styles[char_col].fg;
             bg = bline->char_styles[char_col].bg;
             char_w = char_col == bline->char_count - 1
-                ? bline->char_width - bline->char_pos[char_col]
-                : bline->char_pos[char_col + 1] - bline->char_pos[char_col];
+                ? bline->char_vwidth - bline->char_vcol[char_col]
+                : bline->char_vcol[char_col + 1] - bline->char_vcol[char_col];
             if (ch == '\t') {
                 ch = ' ';
             } else if (!iswprint(ch)) {
