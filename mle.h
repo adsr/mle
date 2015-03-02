@@ -331,8 +331,9 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 Features
 [x] tab stops
 [x] tab to space
-[ ] char display width (for tabs)
-[x] file:line#(s) to open // TODO fix
+[x] utf8 support
+[x] visual character width (e.g., for tabs and wcwidth(3))
+[x] file:line#(s) to open
 [ ] window splits
 [ ] run selection thru cmd
 [ ] macros
@@ -343,16 +344,14 @@ Features
 [ ] modes (push/pop kmap on kmap_stack)
 [x] cli options
 [ ] rc file
-[ ] code folding
+[ ] soft line wrap, code folding
 
 TODO
-[ ] char display width
 [ ] implement remaining cmd_* functions
 [ ] error messages?
 [ ] prompt bar
 [ ] status bar
-[ ] consider changing all size_t to ssize_t for consistency
-[ ] hunt bug in mlbuf styling (pcre_exec inf loop on binary file)
+[ ] hunt for bug in mlbuf styling (pcre_exec inf loop on binary file)
 */
 
 #endif
