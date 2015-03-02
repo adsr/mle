@@ -96,7 +96,7 @@ int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer
 }
 
 // Open a bview
-int editor_open_bview(editor_t* editor, char* opt_path, size_t opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview) {
+int editor_open_bview(editor_t* editor, char* opt_path, int opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
     bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
     DL_APPEND(editor->bviews, bview);
@@ -588,7 +588,7 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
     char* colon;
     bview_t* bview;
     char *path;
-    size_t path_len;
+    int path_len;
 
     // Open bviews
     if (optind >= argc) {
@@ -602,7 +602,7 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
             if (util_file_exists(path, path_len)) {
                 editor_open_bview(editor, path, path_len, 1, NULL, NULL);
             } else if ((colon = strrchr(path, ':')) != NULL) {
-                path_len = (size_t)(colon - path);
+                path_len = colon - path;
                 editor->startup_linenum = strtoul(colon + 1, NULL, 10);
                 if (editor->startup_linenum > 0) editor->startup_linenum -= 1;
                 editor_open_bview(editor, path, path_len, 1, NULL, &bview);

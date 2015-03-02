@@ -79,7 +79,7 @@ struct editor_s {
     int popup_h; // TODO cli option
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
-    ssize_t startup_linenum;
+    bint_t startup_linenum;
 };
 
 // syntax_def_t
@@ -125,9 +125,9 @@ struct bview_s {
     bview_rect_t rect_buffer;
     bview_rect_t rect_margin_right;
     buffer_t* buffer;
-    size_t viewport_x;
-    size_t viewport_x_vcol;
-    size_t viewport_y;
+    bint_t viewport_x;
+    bint_t viewport_x_vcol;
+    bint_t viewport_y;
     bline_t* viewport_bline;
     int viewport_scope_x;
     int viewport_scope_y;
@@ -221,7 +221,7 @@ struct loop_context_s {
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
 int editor_run(editor_t* editor);
-int editor_open_bview(editor_t* editor, char* opt_path, size_t opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview);
+int editor_open_bview(editor_t* editor, char* opt_path, int opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview);
 int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
@@ -275,7 +275,7 @@ int cmd_open(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 
 // util functions
-int util_file_exists(char* path, size_t path_len);
+int util_file_exists(char* path, int path_len);
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 

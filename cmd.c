@@ -3,7 +3,7 @@
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
     char data[6];
-    size_t data_len;
+    bint_t data_len;
     if (ctx->input.ch) {
         data_len = utf8_unicode_to_char(data, ctx->input.ch);
     } else if (ctx->input.key == TB_KEY_ENTER || ctx->input.key == TB_KEY_CTRL_J) {
@@ -35,17 +35,17 @@ int cmd_insert_tab(cmd_context_t* ctx) {
         num_spaces = ctx->bview->buffer->tab_width - (ctx->cursor->mark->col % ctx->bview->buffer->tab_width);
         data = malloc(num_spaces);
         memset(data, ' ', num_spaces);
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, data, (size_t)num_spaces);
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, data, (bint_t)num_spaces);
         free(data);
     } else {
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, (char*)"\t", (size_t)1);
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, (char*)"\t", (bint_t)1);
     }
     return MLE_OK;
 }
 
 // Delete char before cursor mark
 int cmd_delete_before(cmd_context_t* ctx) {
-    size_t offset;
+    bint_t offset;
     mark_get_offset(ctx->cursor->mark, &offset);
     if (offset < 1) return MLE_OK;
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_delete_before, 1);
@@ -102,7 +102,6 @@ int cmd_move_right(cmd_context_t* ctx) {
 
 // Move cursor up one line
 int cmd_move_up(cmd_context_t* ctx) {
-    // TODO rectify viewport on cursor movement
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
