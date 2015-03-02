@@ -270,7 +270,15 @@ int bview_center_viewport_y(bview_t* self) {
         center = 0;
     }
     self->viewport_y = center;
-    // Refresh viewport_bline
+    bview_rectify_viewport(self);
+    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+    return MLE_OK;
+}
+
+// Zero the viewport vertically
+int bview_zero_viewport_y(bview_t* self) {
+    self->viewport_y = self->active_cursor->mark->bline->line_index;
+    bview_rectify_viewport(self);
     buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
     return MLE_OK;
 }
@@ -281,9 +289,7 @@ int bview_rectify_viewport(bview_t* self) {
     mark = self->active_cursor->mark;
 
     // Rectify each dimension of the viewport
-    if (_bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x_vcol)) {
-        // Update viewport_x because viewport_x_vcol changed
-    }
+    _bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x_vcol);
     self->viewport_x = _bview_get_col_from_vcol(self, mark->bline, self->viewport_x_vcol);
 
     if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y)) {
@@ -560,13 +566,23 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     uint32_t ch;
     int char_w;
     bint_t i;
+    bint_t viewport_x;
+    bint_t viewport_x_vcol;
+
+    // Use viewport_x only for current line
+    viewport_x = 0;
+    viewport_x_vcol = 0;
+    if (self->active_cursor->mark->bline == bline) {
+        viewport_x = self->viewport_x;
+        viewport_x_vcol = self->viewport_x_vcol;
+    }
 
     tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->line_num_width, (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
-    tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", self->viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
-    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - self->viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');
+    tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
+    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');
 
     // Render 0 thru rect_buffer.w cell by cell
-    for (rect_x = 0, char_col = self->viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
+    for (rect_x = 0, char_col = viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
         char_w = 1;
         if (char_col < bline->char_count) {
             tb_utf8_char_to_unicode(&ch, bline->data + bline->char_indexes[char_col]);

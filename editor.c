@@ -420,7 +420,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_move_up, "up" },
         { cmd_move_down, "down" },
         { cmd_move_page_up, "page-up" },
-        { cmd_move_page_up, "page-down" },
+        { cmd_move_page_down, "page-down" },
         { cmd_move_to_line, "M-g" },
         { cmd_move_word_forward, "M-f" },
         { cmd_move_word_back, "M-b" },

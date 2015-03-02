@@ -114,10 +114,20 @@ int cmd_move_down(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Move cursor one page up
 int cmd_move_page_up(cmd_context_t* ctx) {
-return MLE_OK; }
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1 * ctx->bview->rect_buffer.h);
+    bview_zero_viewport_y(ctx->bview);
+    return MLE_OK;
+}
+
+// Move cursor one page down
 int cmd_move_page_down(cmd_context_t* ctx) {
-return MLE_OK; }
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, ctx->bview->rect_buffer.h);
+    bview_zero_viewport_y(ctx->bview);
+    return MLE_OK;
+}
+
 int cmd_move_to_line(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_move_word_forward(cmd_context_t* ctx) {

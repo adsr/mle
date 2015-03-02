@@ -237,6 +237,7 @@ int bview_draw(bview_t* self);
 int bview_draw_cursor(bview_t* self);
 int bview_rectify_viewport(bview_t* self);
 int bview_center_viewport_y(bview_t* self);
+int bview_zero_viewport_y(bview_t* self);
 int bview_push_kmap(bview_t* bview, kmap_t* kmap);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
