@@ -12,8 +12,8 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y);
 static void _bview_set_syntax(bview_t* self);
 static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
-static void _bview_rectify_viewport_dim(size_t buf_pos, int view_scope, int view_size, size_t* buf_cur);
-static size_t _bview_get_col_from_viewport(bview_t* self, bline_t* bline);
+static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, size_t vpos, int dim_scope, int dim_size, size_t *view_vpos);
+static size_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, size_t vcol);
 static int _bview_set_line_num_width(bview_t* self);
 
 // Create a new bview
@@ -146,12 +146,12 @@ int bview_draw(bview_t* self) {
 // Set cursor to screen
 int bview_draw_cursor(bview_t* self) {
     mark_t* mark;
-    int screen_x;
-    int screen_y;
+    int rect_x;
+    int rect_y;
     mark = self->active_cursor->mark;
-    screen_x = MLE_MARK_COL_TO_POS(mark) - _bview_get_col_from_viewport(self, mark->bline);
-    screen_y = mark->bline->line_index - self->viewport_y;
-    tb_set_cursor(self->rect_buffer.x + screen_x, self->rect_buffer.y + screen_y);
+    rect_x = MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
+    rect_y = mark->bline->line_index - self->viewport_y;
+    tb_set_cursor(self->rect_buffer.x + rect_x, self->rect_buffer.y + rect_y);
     return MLE_OK;
 }
 
@@ -270,6 +270,8 @@ int bview_center_viewport_y(bview_t* self) {
         center = 0;
     }
     self->viewport_y = center;
+    // Refresh viewport_bline
+    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
     return MLE_OK;
 }
 
@@ -277,36 +279,64 @@ int bview_center_viewport_y(bview_t* self) {
 int bview_rectify_viewport(bview_t* self) {
     mark_t* mark;
     mark = self->active_cursor->mark;
-    // TODO screen_line (e.g., soft-wrapped lines occupy >1 screen lines)
-    _bview_rectify_viewport_dim(mark->col,               self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x);
-    _bview_rectify_viewport_dim(mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y);
-    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+
+    // Rectify each dimension of the viewport
+    if (_bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x_vcol)) {
+        // Update viewport_x because viewport_x_vcol changed
+        self->viewport_x = _bview_get_col_from_vcol(self, mark->bline, self->viewport_x_vcol);
+    }
+
+    if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y)) {
+        // TODO viewport_y_vrow (soft-wrapped lines, code folding, etc)
+        // Refresh viewport_bline
+        buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+    }
+
     return MLE_OK;
 }
 
-// Rectify a viewport dimension
-static void _bview_rectify_viewport_dim(size_t view_pos, int dim_scope, int dim_size, size_t* view_cur) {
-    ssize_t view_scope_start;
-    ssize_t view_scope_stop;
+// Rectify a viewport dimension. Return 1 if changed, else 0.
+static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, size_t vpos, int dim_scope, int dim_size, size_t *view_vpos) {
+    int rc;
+    ssize_t vpos_start;
+    ssize_t vpos_stop;
 
+    // Find bounds
     if (dim_scope < 0) {
         // Keep cursor at least `dim_scope` cells away from edge
-        dim_scope = MLE_MAX(dim_scope, ((dim_size / 2) * -1));
         // Remember dim_scope is negative here
-        view_scope_start = (ssize_t)*view_cur - dim_scope; // N in from left edge
-        view_scope_stop = ((ssize_t)*view_cur + dim_size) + dim_scope; // N in from right edge
+        dim_scope = MLE_MAX(dim_scope, ((dim_size / 2) * -1));
+        vpos_start = (ssize_t)*view_vpos - dim_scope; // N in from left edge
+        vpos_stop = ((ssize_t)*view_vpos + dim_size) + dim_scope; // N in from right edge
     } else {
         // Keep cursor within `dim_scope/2` cells of midpoint
         dim_scope = MLE_MIN(dim_scope, dim_size);
-        view_scope_start = (*view_cur + (dim_size / 2)) - (int)floorf((float)dim_scope * 0.5); // -N/2 from midpoint
-        view_scope_stop = (*view_cur + (dim_size / 2)) + (int)ceilf((float)dim_scope * 0.5); // +N/2 from midpoint
+        vpos_start = (*view_vpos + (dim_size / 2)) - (int)floorf((float)dim_scope * 0.5); // -N/2 from midpoint
+        vpos_stop = (*view_vpos + (dim_size / 2)) + (int)ceilf((float)dim_scope * 0.5); // +N/2 from midpoint
     }
 
-    if (view_pos < view_scope_start) {
-        *view_cur = *view_cur - MLE_MIN(*view_cur, view_scope_start - view_pos);
-    } else if (view_pos >= view_scope_stop) {
-        *view_cur = *view_cur + ((view_pos - view_scope_stop) + 1);
+    // Rectify
+    rc = 1;
+    if (vpos < vpos_start) {
+        *view_vpos -= MLE_MIN(*view_vpos, vpos_start - vpos);
+    } else if (vpos >= vpos_stop) {
+        *view_vpos += ((vpos - vpos_stop) + 1);
+    } else {
+        rc = 0;
     }
+
+    return rc;
+}
+
+// Convert a vcol to a col
+static size_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, size_t vcol) {
+    size_t i;
+    for (i = 0; i < bline->char_count; i++) {
+        if (vcol <= bline->char_vcol[i]) {
+            return i;
+        }
+    }
+    return bline->char_count;
 }
 
 // Init a bview with a buffer
@@ -445,12 +475,12 @@ static void _bview_draw_status(bview_t* self) {
     mark = active->active_cursor->mark;
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
-        "line %lu/%lu, col %lu/%lu, pos %lu/%lu, view %dx%d, rect %dx%d",
+        "line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d",
         mark->bline->line_index,
         active->buffer->line_count,
         mark->col,
         mark->bline->char_count,
-        MLE_MARK_COL_TO_POS(mark),
+        MLE_MARK_COL_TO_VCOL(mark),
         mark->bline->char_vwidth,
         active->viewport_x,
         active->viewport_y,
@@ -522,20 +552,6 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
 }
 
-static size_t _bview_get_col_from_viewport(bview_t* self, bline_t* bline) {
-    size_t col;
-    size_t i;
-    // Find first visible char from viewport_x
-    col = bline->char_count;
-    for (i = 0; i < bline->char_count; i++) {
-        if (self->viewport_x <= bline->char_vcol[i]) {
-            col = i;
-            break;
-        }
-    }
-    return col;
-}
-
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     int rect_x;
     size_t char_col;
@@ -547,11 +563,10 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
 
     tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->line_num_width, (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
     tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", self->viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
-    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - self->viewport_x > self->rect_buffer.w ? '$' : ' ');
+    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", (ssize_t)bline->char_vwidth - (ssize_t)self->viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');
 
     // Render 0 thru rect_buffer.w cell by cell
-    char_col = _bview_get_col_from_viewport(self, bline);
-    for (rect_x = 0; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
+    for (rect_x = 0, char_col = self->viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
         char_w = 1;
         if (char_col < bline->char_count) {
             tb_utf8_char_to_unicode(&ch, bline->data + bline->char_indexes[char_col]);
