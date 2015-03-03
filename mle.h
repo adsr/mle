@@ -221,7 +221,7 @@ struct loop_context_s {
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
 int editor_run(editor_t* editor);
-int editor_open_bview(editor_t* editor, char* opt_path, int opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview);
+int editor_open_bview(editor_t* editor, int type, char* opt_path, int opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview);
 int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);

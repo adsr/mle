@@ -22,6 +22,7 @@ static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern
 static void _editor_init_cli_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
+static int _editor_prompt_end(cmd_context_t* ctx);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -66,7 +67,6 @@ int editor_deinit(editor_t* editor) {
 // Prompt user for input
 int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer) {
     loop_context_t loop_ctx;
-    bview_t* prompt;
 
     // Init loop_ctx
     loop_ctx.invoker = editor->active;
@@ -74,11 +74,11 @@ int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer
     loop_ctx.prompt_answer = NULL;
 
     // Init prompt
-    editor_open_bview(editor, NULL, 0, 1, NULL, &prompt);
-    prompt->type = MLE_BVIEW_TYPE_PROMPT;
-    prompt->prompt_key = key;
-    prompt->prompt_label = label;
-    bview_push_kmap(prompt, editor->kmap_prompt);
+    editor_open_bview(editor, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, NULL, &editor->prompt);
+    bview_resize(editor->prompt, editor->rect_prompt.x, editor->rect_prompt.y, editor->rect_prompt.w, editor->rect_prompt.h);
+    editor->prompt->prompt_key = key;
+    editor->prompt->prompt_label = label;
+    bview_push_kmap(editor->prompt, editor->kmap_prompt);
 
     // Loop inside prompt
     _editor_loop(editor, &loop_ctx);
@@ -90,15 +90,17 @@ int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer
 
     // Restore previous focus
     editor_set_active(editor, loop_ctx.invoker);
-    editor_close_bview(editor, prompt);
+    editor_close_bview(editor, editor->prompt); // TODO nested prompts
+    editor->prompt = NULL;
 
     return MLE_OK;
 }
 
 // Open a bview
-int editor_open_bview(editor_t* editor, char* opt_path, int opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview) {
+int editor_open_bview(editor_t* editor, int type, char* opt_path, int opt_path_len, int make_active, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
     bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
+    bview->type = type;
     DL_APPEND(editor->bviews, bview);
     if (make_active) {
         editor_set_active(editor, bview);
@@ -125,7 +127,7 @@ int editor_close_bview(editor_t* editor, bview_t* bview) {
     } else if (next) {
         editor_set_active(editor, next);
     } else {
-        editor_open_bview(editor, NULL, 0, 1, NULL, NULL);
+        editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, NULL, NULL);
     }
     return MLE_OK;
 }
@@ -162,6 +164,16 @@ int editor_bview_exists(editor_t* editor, bview_t* bview) {
         }
     }
     return 0;
+}
+
+// Invoked when user hits enter in prompt
+static int _editor_prompt_end(cmd_context_t* ctx) {
+    bint_t answer_len;
+    char* answer;
+    buffer_get(ctx->bview->buffer, &answer, &answer_len);
+    ctx->loop_ctx->prompt_answer = strndup(answer, answer_len);
+    ctx->loop_ctx->should_exit = 1;
+    return MLE_OK;
 }
 
 // Run startup actions. This is before any user-input is processed.
@@ -434,8 +446,12 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_cut, "C-k" },
         { cmd_uncut, "C-u" },
         { cmd_save, "C-o" },
-        { cmd_open, "C-r" },
+        { cmd_open, "C-p" },
         { cmd_quit, "C-q" },
+        { NULL, "" }
+    });
+    _editor_init_kmap(&editor->kmap_prompt, "prompt", NULL, 1, (kmap_def_t[]){
+        { _editor_prompt_end, "enter" },
         { NULL, "" }
     });
     // TODO
@@ -580,6 +596,8 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
 static void _editor_init_status(editor_t* editor) {
     editor->status = bview_new(editor, NULL, 0, NULL);
     editor->status->type = MLE_BVIEW_TYPE_STATUS;
+    editor->rect_status.fg = TB_WHITE;
+    editor->rect_status.bg = TB_BLACK | TB_BOLD;
 }
 
 // Init bviews
@@ -593,21 +611,21 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
     // Open bviews
     if (optind >= argc) {
         // Open blank
-        editor_open_bview(editor, NULL, 0, 1, NULL, NULL);
+        editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, NULL, NULL);
     } else {
         // Open files
         for (i = optind; i < argc; i++) {
             path = argv[i];
             path_len = strlen(argv[i]);
             if (util_file_exists(path, path_len)) {
-                editor_open_bview(editor, path, path_len, 1, NULL, NULL);
+                editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, NULL, NULL);
             } else if ((colon = strrchr(path, ':')) != NULL) {
                 path_len = colon - path;
                 editor->startup_linenum = strtoul(colon + 1, NULL, 10);
                 if (editor->startup_linenum > 0) editor->startup_linenum -= 1;
-                editor_open_bview(editor, path, path_len, 1, NULL, &bview);
+                editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, NULL, &bview);
             } else {
-                editor_open_bview(editor, path, path_len, 1, NULL, NULL);
+                editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, NULL, NULL);
             }
         }
     }

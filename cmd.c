@@ -128,8 +128,18 @@ int cmd_move_page_down(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Move to specific line
 int cmd_move_to_line(cmd_context_t* ctx) {
-return MLE_OK; }
+    char* linestr;
+    bint_t line;
+    editor_prompt(ctx->editor, "cmd_move_to_line", "Line?", &linestr);
+    line = strtoll(linestr, NULL, 10);
+    if (line < 1) line = 1;
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_to, line - 1, 0);
+    bview_center_viewport_y(ctx->bview);
+    return MLE_OK;
+}
+
 int cmd_move_word_forward(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_move_word_back(cmd_context_t* ctx) {
@@ -137,7 +147,8 @@ return MLE_OK; }
 int cmd_anchor_sel_bound(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_search(cmd_context_t* ctx) {
-return MLE_OK; }
+    return MLE_OK;
+}
 int cmd_search_next(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_replace(cmd_context_t* ctx) {

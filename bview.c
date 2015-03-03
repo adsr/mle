@@ -176,7 +176,7 @@ int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap) {
     if (optret_kmap) {
         *optret_kmap = node_to_pop->kmap;
     }
-    bview->kmap_tail = node_to_pop->prev;
+    bview->kmap_tail = node_to_pop->prev != node_to_pop ? node_to_pop->prev : NULL;
     DL_DELETE(bview->kmap_stack, node_to_pop);
     free(node_to_pop);
     return MLE_OK;
@@ -193,7 +193,7 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     }
 
     // Make child
-    editor_open_bview(self->editor, NULL, 0, 1, self->buffer, &child);
+    editor_open_bview(self->editor, self->type, NULL, 0, 1, self->buffer, &child);
     self->split_child = child;
     self->split_factor = factor;
     self->split_is_vertical = is_vertical;
@@ -253,7 +253,7 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     cursor_t* tmp;
     DL_FOREACH_SAFE(self->cursors, el, tmp) {
         if (el == cursor) {
-            self->active_cursor = el->prev ? el->prev : el->next;
+            self->active_cursor = el->prev && el->prev != el ? el->prev : el->next;
             DL_DELETE(self->cursors, el);
             free(el);
             return MLE_OK;
@@ -406,14 +406,6 @@ static int _bview_set_line_num_width(bview_t* self) {
 
 // Deinit a bview
 static void _bview_deinit(bview_t* self) {
-    // Dereference/free buffer
-    if (self->buffer) {
-        self->buffer->ref_count -= 1;
-        if (self->buffer->ref_count < 1) {
-            buffer_destroy(self->buffer);
-        }
-    }
-
     // Remove all kmaps
     while (self->kmap_tail) {
         bview_pop_kmap(self, NULL);
@@ -431,6 +423,14 @@ static void _bview_deinit(bview_t* self) {
     while (self->active_cursor) {
         bview_remove_cursor(self, self->active_cursor);
     }
+
+    // Dereference/free buffer
+    if (self->buffer) {
+        self->buffer->ref_count -= 1;
+        if (self->buffer->ref_count < 1) {
+            buffer_destroy(self->buffer);
+        }
+    }
 }
 
 static void _bview_set_syntax(bview_t* self) {
@@ -438,6 +438,9 @@ static void _bview_set_syntax(bview_t* self) {
     syntax_t* syntax;
     syntax_t* syntax_tmp;
     srule_node_t* srule_node;
+    if (!MLE_BVIEW_IS_EDIT(self)) {
+        return;
+    }
     HASH_ITER(hh, self->editor->syntax_map, syntax, syntax_tmp) {
         self->syntax = syntax;
         DL_FOREACH(syntax->srules, srule_node) {
@@ -465,8 +468,7 @@ static buffer_t* _bview_open_buffer(char* opt_path, int opt_path_len, editor_t* 
 }
 
 static void _bview_draw_prompt(bview_t* self) {
-    // TODO
-    tb_printf(self->editor->rect_prompt, 0, 0, 0, 0, "prompt");
+    _bview_draw_bline(self, self->buffer->first_line, 0);
 }
 
 static void _bview_draw_popup(bview_t* self) {
@@ -481,7 +483,8 @@ static void _bview_draw_status(bview_t* self) {
     mark = active->active_cursor->mark;
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
-        "line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d",
+        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d",
+        self->editor->active == self->editor->prompt ? self->editor->prompt->prompt_label : "",
         mark->bline->line_index,
         active->buffer->line_count,
         mark->col,
@@ -577,9 +580,11 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
         viewport_x_vcol = self->viewport_x_vcol;
     }
 
-    tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->line_num_width, (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
-    tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
-    tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');
+    if (MLE_BVIEW_IS_EDIT(self)) {
+        tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->line_num_width, (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
+        tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
+        tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');
+    }
 
     // Render 0 thru rect_buffer.w cell by cell
     for (rect_x = 0, char_col = viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
