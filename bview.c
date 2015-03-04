@@ -67,6 +67,11 @@ int bview_destroy(bview_t* self) {
 int bview_resize(bview_t* self, int x, int y, int w, int h) {
     int aw, ah;
 
+    self->x = x;
+    self->y = y;
+    self->w = w;
+    self->h = h;
+
     aw = w;
     ah = h;
 
@@ -77,11 +82,6 @@ int bview_resize(bview_t* self, int x, int y, int w, int h) {
             ah = MLE_MAX(1, (int)((float)ah * self->split_factor));
         }
     }
-
-    self->x = x;
-    self->y = y;
-    self->w = aw;
-    self->h = ah;
 
     if (MLE_BVIEW_IS_EDIT(self)) {
         self->rect_caption.x = x;
@@ -194,10 +194,14 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
 
     // Make child
     editor_open_bview(self->editor, self->type, NULL, 0, 1, self->buffer, &child);
+    child->split_parent = self;
     self->split_child = child;
     self->split_factor = factor;
     self->split_is_vertical = is_vertical;
-    // TODO copy viewport and cursor position
+
+    // Move cursor to same position
+    mark_move_to(child->active_cursor->mark, self->active_cursor->mark->bline->line_index, self->active_cursor->mark->col);
+    bview_center_viewport_y(child);
 
     // Resize self
     bview_resize(self, self->x, self->y, self->w, self->h);
@@ -205,29 +209,6 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     if (optret_bview) {
         *optret_bview = child;
     }
-    return MLE_OK;
-}
-
-// Unsplit a bview
-int bview_unsplit(bview_t* self) {
-    if (!self->split_child) {
-        MLE_RETURN_ERR("bview %p is not split\n", self);
-    }
-
-    // Unsplit children first
-    if (self->split_child->split_child) {
-        bview_unsplit(self->split_child);
-    }
-
-    // Close child
-    editor_close_bview(self->editor, self->split_child);
-    self->split_child = NULL;
-    self->split_factor = (float)0;
-    self->split_is_vertical = 0;
-
-    // Resize self
-    bview_resize(self, self->x, self->y, self->w, self->h);
-
     return MLE_OK;
 }
 
@@ -508,16 +489,21 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
 
     // Handle split
     if (self->split_child) {
+        // Calc split dimensions
         if (self->split_is_vertical) {
-            split_w = w;
-            split_h = h - (int)((float)h * self->split_factor);
-        } else {
             split_w = w - (int)((float)w * self->split_factor);
             split_h = h;
+        } else {
+            split_w = w;
+            split_h = h - (int)((float)h * self->split_factor);
         }
-        _bview_draw_edit(self, x, y, w - split_w, h - split_h);
+
+        // Draw child
         _bview_draw_edit(self->split_child, x + (w - split_w), y + (h - split_h), split_w, split_h);
-        return;
+
+        // Continue drawing self minus split dimensions
+        w -= (w - split_w);
+        h -= (h - split_h);
     }
 
     // Calc min dimensions

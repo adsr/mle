@@ -23,6 +23,7 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 static int _editor_prompt_end(cmd_context_t* ctx);
+static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -113,23 +114,11 @@ int editor_open_bview(editor_t* editor, int type, char* opt_path, int opt_path_l
 
 // Close a bview
 int editor_close_bview(editor_t* editor, bview_t* bview) {
-    bview_t* prev;
-    bview_t* next;
-    prev = bview->prev;
-    next = bview->prev;
-    if (!editor_bview_exists(editor, bview)) {
-        MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
+    int rc;
+    if ((rc = _editor_close_bview_inner(editor, bview)) == MLE_OK) {
+        _editor_resize(editor, editor->w, editor->h);
     }
-    DL_DELETE(editor->bviews, bview);
-    bview_destroy(bview);
-    if (prev) {
-        editor_set_active(editor, prev);
-    } else if (next) {
-        editor_set_active(editor, next);
-    } else {
-        editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, NULL, NULL);
-    }
-    return MLE_OK;
+    return rc;
 }
 
 // Set the active bview
@@ -164,6 +153,35 @@ int editor_bview_exists(editor_t* editor, bview_t* bview) {
         }
     }
     return 0;
+}
+
+// Close a bview
+static int _editor_close_bview_inner(editor_t* editor, bview_t* bview) {
+    bview_t* prev;
+    bview_t* next;
+    if (!editor_bview_exists(editor, bview)) {
+        MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
+    }
+    if (bview->split_child) {
+        editor_close_bview(editor, bview->split_child);
+    }
+    DL_DELETE(editor->bviews, bview);
+    if (bview->split_parent) {
+        bview->split_parent->split_child = NULL;
+        editor_set_active(editor, bview->split_parent);
+    } else { 
+        prev = bview->prev;
+        next = bview->prev;
+        if (prev) {
+            editor_set_active(editor, prev);
+        } else if (next) {
+            editor_set_active(editor, next);
+        } else {
+            editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, NULL, NULL);
+        }
+    }
+    bview_destroy(bview);
+    return MLE_OK;
 }
 
 // Invoked when user hits enter in prompt
@@ -277,6 +295,7 @@ static void _editor_resize(editor_t* editor, int w, int h) {
         } else if (MLE_BVIEW_IS_STATUS(bview)) {
             bounds = &editor->rect_status;
         } else {
+            if (bview->split_parent) continue;
             bounds = &editor->rect_edit;
         }
         bview_resize(bview, bounds->x, bounds->y, bounds->w, bounds->h);
@@ -445,8 +464,10 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_delete_word_after, "M-d" },
         { cmd_cut, "C-k" },
         { cmd_uncut, "C-u" },
+        { cmd_split, "M-l" },
         { cmd_save, "C-o" },
         { cmd_open, "C-p" },
+        { cmd_close, "M-c" },
         { cmd_quit, "C-q" },
         { NULL, "" }
     });

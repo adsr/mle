@@ -163,10 +163,28 @@ int cmd_cut(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_uncut(cmd_context_t* ctx) {
 return MLE_OK; }
+
+// Split a bview
+int cmd_split(cmd_context_t* ctx) {
+    bview_t* child;
+    if (bview_split(ctx->bview, 1, 0.5, &child) == MLE_OK) {
+        editor_set_active(ctx->editor, child);
+    }
+    return MLE_OK;
+}
+
 int cmd_save(cmd_context_t* ctx) {
-return MLE_OK; }
+    return MLE_OK;
+}
+
 int cmd_open(cmd_context_t* ctx) {
-return MLE_OK; }
+    return MLE_OK;
+}
+
+int cmd_close(cmd_context_t* ctx) {
+    editor_close_bview(ctx->editor, ctx->bview);
+    return MLE_OK;
+}
 
 // Quit
 int cmd_quit(cmd_context_t* ctx) {

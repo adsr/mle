@@ -241,7 +241,7 @@ int bview_zero_viewport_y(bview_t* self);
 int bview_push_kmap(bview_t* bview, kmap_t* kmap);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
-int bview_unsplit(bview_t* self);
+int bview_unsplit(bview_t* parent, bview_t* child);
 
 // cmd functions
 int cmd_insert_data(cmd_context_t* ctx);
@@ -271,6 +271,8 @@ int cmd_delete_word_before(cmd_context_t* ctx);
 int cmd_delete_word_after(cmd_context_t* ctx);
 int cmd_cut(cmd_context_t* ctx);
 int cmd_uncut(cmd_context_t* ctx);
+int cmd_split(cmd_context_t* ctx);
+int cmd_close(cmd_context_t* ctx);
 int cmd_save(cmd_context_t* ctx);
 int cmd_open(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
@@ -334,8 +336,8 @@ Features
 [x] utf8 support
 [x] visual character width (e.g., for tabs and wcwidth(3))
 [x] file:line#(s) to open
-[ ] window splits
-[ ] run selection thru cmd
+[x] prompts are buffers
+[x] bview splits
 [ ] macros
 [ ] multiple cursors
 [ ] command prompt
@@ -345,13 +347,17 @@ Features
 [x] cli options
 [ ] rc file
 [ ] soft line wrap, code folding
+[ ] run selection thru cmd
 
 TODO
+[ ] close bview when it's the only one is broken
+[ ] cmd_open,save file io
+[ ] prompt when closing unsaved
+[ ] cmd_next,prev for switching bview focus
 [ ] implement remaining cmd_* functions
-[ ] error messages?
-[ ] prompt bar
+[ ] error messages MLE_RETURN_ERR
 [ ] status bar
-[ ] hunt for bug in mlbuf styling (pcre_exec inf loop on binary file)
+[x] hunt for bug in mlbuf styling ( http://bugs.exim.org/show_bug.cgi?id=1595 )
 */
 
 #endif
