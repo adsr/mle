@@ -424,7 +424,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
         mod = TB_MOD_ALT;
         key += 2;
     }
-    utf8_char_to_unicode(&ch, key);
+    utf8_char_to_unicode(&ch, key, NULL);
     if (ch < 1) {
         return MLE_ERR;
     }
@@ -506,7 +506,6 @@ static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t defa
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    // TODO mlbuf still has style bugs :(
     _editor_init_syntax(editor, "generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (syntax_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
@@ -539,7 +538,7 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "\\b(-?(0x)?[0-9]+|true|false|null)\\b", NULL, TB_BLUE | TB_BOLD, TB_DEFAULT },
         { "'([^']|\\')*'", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
         { "\"([^\"]|\\\")*\"", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
-        { "/([^/]|/)*/", NULL, TB_YELLOW, TB_DEFAULT },
+        { "/([^/]|/)*" "/", NULL, TB_YELLOW, TB_DEFAULT },
         { "/" "/.*$", NULL, TB_CYAN, TB_DEFAULT },
         { "/\\" "*", "\\*" "/", TB_CYAN, TB_DEFAULT },
         { "<\\?(php)?|\\?>", NULL, TB_GREEN, TB_DEFAULT },

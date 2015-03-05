@@ -10,7 +10,7 @@ void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str) {
     // Adapted from termbox src/demo/keyboard.c
     uint32_t uni;
     while (*str) {
-        str += tb_utf8_char_to_unicode(&uni, str);
+        str += utf8_char_to_unicode(&uni, str, NULL);
         tb_change_cell(x, y, uni, fg, bg);
         x++;
     }

@@ -576,7 +576,7 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     for (rect_x = 0, char_col = viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
         char_w = 1;
         if (char_col < bline->char_count) {
-            tb_utf8_char_to_unicode(&ch, bline->data + bline->char_indexes[char_col]);
+            utf8_char_to_unicode(&ch, bline->data + bline->char_indexes[char_col], MLBUF_BLINE_DATA_STOP(bline));
             fg = bline->char_styles[char_col].fg;
             bg = bline->char_styles[char_col].bg;
             char_w = char_col == bline->char_count - 1
@@ -588,7 +588,7 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
                 ch = '?';
             }
         } else {
-            tb_utf8_char_to_unicode(&ch, " ");
+            utf8_char_to_unicode(&ch, " ", NULL);
             fg = 0;
             bg = 0;
             char_w = 1;
