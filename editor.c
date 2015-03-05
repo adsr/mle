@@ -24,6 +24,8 @@ static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 static int _editor_prompt_end(cmd_context_t* ctx);
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
+static void _editor_destroy_kmap(kmap_t* kmap);
+static void _editor_destroy_syntax_map(syntax_t* map);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -62,6 +64,16 @@ int editor_run(editor_t* editor) {
 // Deinit editor
 int editor_deinit(editor_t* editor) {
     // TODO free stuff
+    bview_t* bview;
+    bview_t* tmp;
+    bview_destroy(editor->status);
+    DL_FOREACH_SAFE(editor->bviews, bview, tmp) {
+        DL_DELETE(editor->bviews, bview);
+        bview_destroy(bview);
+    }
+    _editor_destroy_kmap(editor->kmap_normal);
+    _editor_destroy_kmap(editor->kmap_prompt);
+    _editor_destroy_syntax_map(editor->syntax_map);
     return MLE_OK;
 }
 
@@ -157,25 +169,21 @@ int editor_bview_exists(editor_t* editor, bview_t* bview) {
 
 // Close a bview
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview) {
-    bview_t* prev;
-    bview_t* next;
     if (!editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
     }
     if (bview->split_child) {
-        editor_close_bview(editor, bview->split_child);
+        _editor_close_bview_inner(editor, bview->split_child);
     }
     DL_DELETE(editor->bviews, bview);
     if (bview->split_parent) {
         bview->split_parent->split_child = NULL;
         editor_set_active(editor, bview->split_parent);
     } else { 
-        prev = bview->prev;
-        next = bview->prev;
-        if (prev) {
-            editor_set_active(editor, prev);
-        } else if (next) {
-            editor_set_active(editor, next);
+        if (bview->prev && bview->prev != bview && MLE_BVIEW_IS_EDIT(bview->prev)) {
+            editor_set_active(editor, bview->prev);
+        } else if (bview->next && MLE_BVIEW_IS_EDIT(bview->next)) {
+            editor_set_active(editor, bview->next);
         } else {
             editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, NULL, NULL);
         }
@@ -504,6 +512,17 @@ static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t defa
     *ret_kmap = kmap;
 }
 
+// Destroy a kmap
+static void _editor_destroy_kmap(kmap_t* kmap) {
+    kbinding_t* binding;
+    kbinding_t* binding_tmp;
+    HASH_ITER(hh, kmap->bindings, binding, binding_tmp) {
+        HASH_DELETE(hh, kmap->bindings, binding);
+        free(binding);
+    }
+    free(kmap);
+}
+
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
     _editor_init_syntax(editor, "generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (syntax_def_t[]){
@@ -571,6 +590,23 @@ static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern
     }
 
     HASH_ADD_STR(editor->syntax_map, name, syntax);
+}
+
+// Destroy a syntax
+static void _editor_destroy_syntax_map(syntax_t* map) {
+    syntax_t* syntax;
+    syntax_t* syntax_tmp;
+    srule_node_t* srule;
+    srule_node_t* srule_tmp;
+    HASH_ITER(hh, map, syntax, syntax_tmp) {
+        HASH_DELETE(hh, map, syntax);
+        DL_FOREACH_SAFE(syntax->srules, srule, srule_tmp) {
+            DL_DELETE(syntax->srules, srule);
+            srule_destroy(srule->srule);
+            free(srule);
+        }
+        free(syntax);
+    }
 }
 
 // Parse cli args
