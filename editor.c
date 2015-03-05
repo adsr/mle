@@ -102,8 +102,8 @@ int editor_prompt(editor_t* editor, char* key, char* label, char** optret_answer
     }
 
     // Restore previous focus
+    editor_close_bview(editor, editor->prompt); // TODO nested prompts / editor->prompt as LL
     editor_set_active(editor, loop_ctx.invoker);
-    editor_close_bview(editor, editor->prompt); // TODO nested prompts
     editor->prompt = NULL;
 
     return MLE_OK;
@@ -115,6 +115,7 @@ int editor_open_bview(editor_t* editor, int type, char* opt_path, int opt_path_l
     bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
     bview->type = type;
     DL_APPEND(editor->bviews, bview);
+    editor->bviews_tail = bview;
     if (make_active) {
         editor_set_active(editor, bview);
     }
@@ -472,6 +473,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_delete_word_after, "M-d" },
         { cmd_cut, "C-k" },
         { cmd_uncut, "C-u" },
+        { cmd_next, "M-n" },
+        { cmd_prev, "M-p" },
         { cmd_split, "M-l" },
         { cmd_save, "C-o" },
         { cmd_open, "C-p" },

@@ -350,25 +350,25 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
 // Called by mlbuf after edits
 static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata) {
     editor_t* editor;
-    bview_t* bview;
+    bview_t* active;
     bview_t* bview_tmp;
 
     editor = (editor_t*)udata;
-    bview = editor->active;
+    active = editor->active;
 
     // Rectify viewport if edit was on active bview
-    if (bview->buffer == buffer) {
-        bview_rectify_viewport(bview);
+    if (active->buffer == buffer) {
+        bview_rectify_viewport(active);
     }
 
-    #define BVIEW_ITERATE_FOR_BUFFER(tmp) \
-        for (tmp = editor->bviews; tmp; tmp = bview_tmp->next) \
-            if (tmp->buffer == buffer)
+    #define BVIEW_ITERATE_FOR_BUFFER(bview_tmp) \
+        for (bview_tmp = editor->bviews; bview_tmp; bview_tmp = bview_tmp->next) \
+            if (bview_tmp->buffer == buffer)
 
     // Adjust line_num_width
     if (action && action->line_delta != 0) {
         BVIEW_ITERATE_FOR_BUFFER(bview_tmp) {
-            if (_bview_set_line_num_width(bview)) {
+            if (_bview_set_line_num_width(bview_tmp)) {
                 bview_resize(bview_tmp, bview_tmp->x, bview_tmp->y, bview_tmp->w, bview_tmp->h);
             }
         }
@@ -464,7 +464,7 @@ static void _bview_draw_status(bview_t* self) {
     mark = active->active_cursor->mark;
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
-        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d",
+        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer %p",
         self->editor->active == self->editor->prompt ? self->editor->prompt->prompt_label : "",
         mark->bline->line_index,
         active->buffer->line_count,
@@ -475,7 +475,10 @@ static void _bview_draw_status(bview_t* self) {
         active->viewport_x,
         active->viewport_y,
         active->rect_buffer.w,
-        active->rect_buffer.h
+        active->rect_buffer.h,
+        self->editor->active,
+        self->editor->active_edit,
+        self->editor->active_edit_root
     );
 }
 
@@ -533,7 +536,7 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
     bline = self->viewport_bline;
     for (rect_y = 0; rect_y < self->rect_buffer.h; rect_y++) {
-        if (self->viewport_y + rect_y < 0 || self->viewport_y + rect_y >= self->buffer->line_count) {
+        if (self->viewport_y + rect_y < 0 || self->viewport_y + rect_y >= self->buffer->line_count || !bline) { // "|| !bline" See TODOs below
             // Draw pre/post blank
             tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*c", self->line_num_width, '~');
             tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", ' ');
@@ -541,6 +544,8 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
             tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, self->rect_buffer.w, " ");
         } else {
             // Draw bline at self->rect_buffer self->viewport_y + rect_y
+            // TODO How can bline be NULL here?
+            // TODO How can self->viewport_y != self->viewport_bline->line_index ?
             _bview_draw_bline(self, bline, rect_y);
             bline = bline->next;
         }

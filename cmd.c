@@ -164,6 +164,26 @@ return MLE_OK; }
 int cmd_uncut(cmd_context_t* ctx) {
 return MLE_OK; }
 
+// Switch focus to next/prev bview (cmd_next, cmd_prev)
+#define MLE_IMPL_CMD_NEXTPREV(pthis, pend) \
+int cmd_ ## pthis (cmd_context_t* ctx) { \
+    bview_t* tmp; \
+    for (tmp = ctx->bview->pthis; tmp != ctx->bview; tmp = tmp->pthis) { \
+        if (tmp == NULL) { \
+            tmp = (pend); \
+            if (tmp == NULL) break; \
+        } \
+        if (MLE_BVIEW_IS_EDIT(tmp)) { \
+            editor_set_active(ctx->editor, tmp); \
+            break; \
+        } \
+    } \
+    return MLE_OK; \
+}
+MLE_IMPL_CMD_NEXTPREV(next, ctx->editor->bviews)
+MLE_IMPL_CMD_NEXTPREV(prev, ctx->editor->bviews_tail)
+#undef MLE_IMPL_CMD_NEXTPREV
+
 // Split a bview
 int cmd_split(cmd_context_t* ctx) {
     bview_t* child;

@@ -48,6 +48,7 @@ struct editor_s {
     int w;
     int h;
     bview_t* bviews;
+    bview_t* bviews_tail;
     bview_t* active;
     bview_t* active_edit;
     bview_t* active_edit_root;
@@ -271,6 +272,8 @@ int cmd_delete_word_before(cmd_context_t* ctx);
 int cmd_delete_word_after(cmd_context_t* ctx);
 int cmd_cut(cmd_context_t* ctx);
 int cmd_uncut(cmd_context_t* ctx);
+int cmd_next(cmd_context_t* ctx);
+int cmd_prev(cmd_context_t* ctx);
 int cmd_split(cmd_context_t* ctx);
 int cmd_close(cmd_context_t* ctx);
 int cmd_save(cmd_context_t* ctx);
@@ -350,14 +353,13 @@ Features
 [ ] run selection thru cmd
 
 TODO
-[ ] close bview when it's the only one is broken
+[ ] cursor screwery on splitting
 [ ] cmd_open,save file io
 [ ] prompt when closing unsaved
 [ ] cmd_next,prev for switching bview focus
 [ ] implement remaining cmd_* functions
 [ ] error messages MLE_RETURN_ERR
 [ ] status bar
-[x] hunt for bug in mlbuf styling ( http://bugs.exim.org/show_bug.cgi?id=1595 )
 */
 
 #endif
