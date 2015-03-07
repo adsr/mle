@@ -235,7 +235,7 @@ int bview_open(bview_t* self, char* path, int path_len);
 int bview_destroy(bview_t* self);
 int bview_resize(bview_t* self, int x, int y, int w, int h);
 int bview_draw(bview_t* self);
-int bview_draw_cursor(bview_t* self);
+int bview_draw_cursor(bview_t* self, int set_real_cursor);
 int bview_rectify_viewport(bview_t* self);
 int bview_center_viewport_y(bview_t* self);
 int bview_zero_viewport_y(bview_t* self);
@@ -353,7 +353,6 @@ Features
 [ ] run selection thru cmd
 
 TODO
-[ ] cursor screwery on splitting
 [ ] cmd_open,save file io
 [ ] prompt when closing unsaved
 [ ] cmd_next,prev for switching bview focus

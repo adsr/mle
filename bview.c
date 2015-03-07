@@ -144,14 +144,20 @@ int bview_draw(bview_t* self) {
 }
 
 // Set cursor to screen
-int bview_draw_cursor(bview_t* self) {
+int bview_draw_cursor(bview_t* self, int set_real_cursor) {
     mark_t* mark;
-    int rect_x;
-    int rect_y;
+    int screen_x;
+    int screen_y;
     mark = self->active_cursor->mark;
-    rect_x = MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
-    rect_y = mark->bline->line_index - self->viewport_y;
-    tb_set_cursor(self->rect_buffer.x + rect_x, self->rect_buffer.y + rect_y);
+    screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
+    screen_y = self->rect_buffer.y + mark->bline->line_index - self->viewport_y;
+    if (set_real_cursor) {
+        tb_set_cursor(screen_x, screen_y);
+    } else {
+        struct tb_cell* cell;
+        cell = tb_cell_buffer() + (ptrdiff_t)(tb_width() * screen_y + screen_x);
+        tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | TB_CYAN); // TODO configurable
+    }
     return MLE_OK;
 }
 
@@ -464,7 +470,7 @@ static void _bview_draw_status(bview_t* self) {
     mark = active->active_cursor->mark;
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
-        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer %p",
+        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer",
         self->editor->active == self->editor->prompt ? self->editor->prompt->prompt_label : "",
         mark->bline->line_index,
         active->buffer->line_count,

@@ -26,6 +26,7 @@ static int _editor_prompt_end(cmd_context_t* ctx);
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
 static void _editor_destroy_kmap(kmap_t* kmap);
 static void _editor_destroy_syntax_map(syntax_t* map);
+static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -311,14 +312,23 @@ static void _editor_resize(editor_t* editor, int w, int h) {
     }
 }
 
+// Draw bviews cursors recursively
+static void _editor_draw_cursors(editor_t* editor, bview_t* bview) {
+    bview_draw_cursor(bview, bview == editor->active ? 1 : 0);
+    if (bview->split_child) {
+        _editor_draw_cursors(editor, bview->split_child);
+    }
+}
+
 // Display the editor
 static void _editor_display(editor_t* editor) {
-    bview_draw_cursor(editor->active);
+    bview_t* bview;
     tb_clear();
     bview_draw(editor->active_edit_root);
     bview_draw(editor->status);
     if (editor->popup) bview_draw(editor->popup);
     if (editor->prompt) bview_draw(editor->prompt);
+    DL_FOREACH(editor->bviews, bview) _editor_draw_cursors(editor, bview);
     tb_present();
 }
 
