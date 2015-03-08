@@ -132,8 +132,10 @@ int cmd_move_page_down(cmd_context_t* ctx) {
 int cmd_move_to_line(cmd_context_t* ctx) {
     char* linestr;
     bint_t line;
-    editor_prompt(ctx->editor, "cmd_move_to_line", "Line?", &linestr);
+    editor_prompt(ctx->editor, "cmd_move_to_line", "Line?", NULL, 0, &linestr);
+    if (!linestr) return MLE_OK;
     line = strtoll(linestr, NULL, 10);
+    free(linestr);
     if (line < 1) line = 1;
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_to, line - 1, 0);
     bview_center_viewport_y(ctx->bview);
@@ -197,7 +199,39 @@ int cmd_save(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-int cmd_open(cmd_context_t* ctx) {
+// Open file in a new bview
+int cmd_open_new(cmd_context_t* ctx) {
+    char* path;
+    editor_prompt(ctx->editor, "cmd_open_new", "File?", NULL, 0, &path);
+    if (!path) return MLE_OK;
+    editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+    free(path);
+    return MLE_OK;
+}
+
+// Open a file in current bview
+int cmd_open_replace(cmd_context_t* ctx) {
+    char* path;
+    int rc;
+    if (ctx->bview->buffer->is_unsaved) {
+        do {
+            path = NULL;
+            editor_prompt(ctx->editor, "cmd_open_replace", "Save as? (C-c to not save)",
+                ctx->bview->buffer->path,
+                ctx->bview->buffer->path ? strlen(ctx->bview->buffer->path) : 0,
+                &path
+            );
+            if (!path) break;
+            rc = buffer_save_as(ctx->bview->buffer, path, strlen(path)); // TODO return errno
+            free(path);
+        } while (rc == MLBUF_ERR);
+    }
+    path = NULL;
+    editor_prompt(ctx->editor, "cmd_open_replace", "File?", NULL, 0, &path);
+    if (!path) return MLE_OK;
+    bview_open(ctx->bview, path, strlen(path));
+    bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
+    free(path);
     return MLE_OK;
 }
 

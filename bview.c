@@ -130,6 +130,16 @@ int bview_resize(bview_t* self, int x, int y, int w, int h) {
     return MLE_OK;
 }
 
+// Return top-most split_parent of a bview
+bview_t* bview_get_split_root(bview_t* self) {
+    bview_t* root;
+    root = self;
+    while (root->split_parent) {
+        root = root->split_parent;
+    }
+    return root;
+}
+
 // Draw bview to screen
 int bview_draw(bview_t* self) {
     if (MLE_BVIEW_IS_PROMPT(self)) {
@@ -199,7 +209,7 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     }
 
     // Make child
-    editor_open_bview(self->editor, self->type, NULL, 0, 1, self->buffer, &child);
+    editor_open_bview(self->editor, self->type, NULL, 0, 1, NULL, self->buffer, &child);
     child->split_parent = self;
     self->split_child = child;
     self->split_factor = factor;
@@ -470,7 +480,7 @@ static void _bview_draw_status(bview_t* self) {
     mark = active->active_cursor->mark;
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
-        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer",
+        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer %p",
         self->editor->active == self->editor->prompt ? self->editor->prompt->prompt_label : "",
         mark->bline->line_index,
         active->buffer->line_count,
