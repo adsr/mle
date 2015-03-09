@@ -325,13 +325,13 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 #define MLE_MARK_COL_TO_VCOL(pmark) ( \
     (pmark)->col >= (pmark)->bline->char_count \
     ? (pmark)->bline->char_vwidth \
-    : ( (pmark)->col <= 0 ? 0 : (pmark)->bline->char_vcol[(pmark)->col] ) \
+    : ( (pmark)->col <= 0 ? 0 : (pmark)->bline->chars[(pmark)->col].vcol ) \
 )
 
 #define MLE_COL_TO_VCOL(pline, pcol, pmax) ( \
     (pcol) >= (pline)->char_count \
     ? (pmax) \
-    : ( (pcol) <= 0 ? 0 : (pline)->char_vcol[(pcol)] ) \
+    : ( (pcol) <= 0 ? 0 : (pline)->chars[(pcol)].vcol ) \
 )
 
 /*

@@ -335,7 +335,7 @@ static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpo
 static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol) {
     bint_t i;
     for (i = 0; i < bline->char_count; i++) {
-        if (vcol <= bline->char_vcol[i]) {
+        if (vcol <= bline->chars[i].vcol) {
             return i;
         }
     }
@@ -597,19 +597,20 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     for (rect_x = 0, char_col = viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
         char_w = 1;
         if (char_col < bline->char_count) {
-            utf8_char_to_unicode(&ch, bline->data + bline->char_indexes[char_col], MLBUF_BLINE_DATA_STOP(bline));
+            //utf8_char_to_unicode(&ch, bline->data + bline->chars[char_col].index, MLBUF_BLINE_DATA_STOP(bline));
+            ch = bline->chars[char_col].ch;
             fg = bline->char_styles[char_col].fg;
             bg = bline->char_styles[char_col].bg;
             char_w = char_col == bline->char_count - 1
-                ? bline->char_vwidth - bline->char_vcol[char_col]
-                : bline->char_vcol[char_col + 1] - bline->char_vcol[char_col];
+                ? bline->char_vwidth - bline->chars[char_col].vcol
+                : bline->chars[char_col + 1].vcol - bline->chars[char_col].vcol;
             if (ch == '\t') {
                 ch = ' ';
             } else if (!iswprint(ch)) {
                 ch = '?';
             }
         } else {
-            utf8_char_to_unicode(&ch, " ", NULL);
+            ch = (uint32_t)' ';
             fg = 0;
             bg = 0;
             char_w = 1;
