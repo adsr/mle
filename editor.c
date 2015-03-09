@@ -22,7 +22,9 @@ static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern
 static void _editor_init_cli_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
-static int _editor_prompt_submit(cmd_context_t* ctx);
+static int _editor_prompt_input_submit(cmd_context_t* ctx);
+static int _editor_prompt_yn_yes(cmd_context_t* ctx);
+static int _editor_prompt_yn_no(cmd_context_t* ctx);
 static int _editor_prompt_cancel(cmd_context_t* ctx);
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
 static void _editor_destroy_kmap(kmap_t* kmap);
@@ -74,14 +76,23 @@ int editor_deinit(editor_t* editor) {
         bview_destroy(bview);
     }
     _editor_destroy_kmap(editor->kmap_normal);
-    _editor_destroy_kmap(editor->kmap_prompt);
+    _editor_destroy_kmap(editor->kmap_prompt_input);
+    _editor_destroy_kmap(editor->kmap_prompt_yn);
+    _editor_destroy_kmap(editor->kmap_prompt_ok);
     _editor_destroy_syntax_map(editor->syntax_map);
     return MLE_OK;
 }
 
 // Prompt user for input
-int editor_prompt(editor_t* editor, char* key, char* label, char* opt_data, int opt_data_len, char** optret_answer) {
+int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, char** optret_answer) {
     loop_context_t loop_ctx;
+
+    // Disallow nested prompts
+    // TODO nested prompts?
+    if (editor->prompt) {
+        if (optret_answer) *optret_answer = NULL;
+        return MLE_ERR;
+    }
 
     // Init loop_ctx
     loop_ctx.invoker = editor->active;
@@ -90,9 +101,9 @@ int editor_prompt(editor_t* editor, char* key, char* label, char* opt_data, int 
 
     // Init prompt
     editor_open_bview(editor, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, &editor->rect_prompt, NULL, &editor->prompt);
-    editor->prompt->prompt_key = key;
+    editor->prompt->prompt_key = prompt_key;
     editor->prompt->prompt_label = label;
-    bview_push_kmap(editor->prompt, editor->kmap_prompt);
+    bview_push_kmap(editor->prompt, opt_kmap ? opt_kmap : editor->kmap_prompt_input);
 
     // Insert opt_data if present
     if (opt_data && opt_data_len > 0) {
@@ -202,8 +213,8 @@ static int _editor_close_bview_inner(editor_t* editor, bview_t* bview) {
     return MLE_OK;
 }
 
-// Invoked when user hits enter in prompt
-static int _editor_prompt_submit(cmd_context_t* ctx) {
+// Invoked when user hits enter in a prompt_input
+static int _editor_prompt_input_submit(cmd_context_t* ctx) {
     bint_t answer_len;
     char* answer;
     buffer_get(ctx->bview->buffer, &answer, &answer_len);
@@ -212,7 +223,21 @@ static int _editor_prompt_submit(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-// Invoked when user hits C-c in prompt
+// Invoked when user hits y in a prompt_yn
+static int _editor_prompt_yn_yes(cmd_context_t* ctx) {
+    ctx->loop_ctx->prompt_answer = MLE_PROMPT_YES;
+    ctx->loop_ctx->should_exit = 1;
+    return MLE_OK;
+}
+
+// Invoked when user hits n in a prompt_yn
+static int _editor_prompt_yn_no(cmd_context_t* ctx) {
+    ctx->loop_ctx->prompt_answer = MLE_PROMPT_NO;
+    ctx->loop_ctx->should_exit = 1;
+    return MLE_OK;
+}
+
+// Invoked when user cancels (Ctrl-C) a prompt_(input|yn), or hits any key in a prompt_ok
 static int _editor_prompt_cancel(cmd_context_t* ctx) {
     ctx->loop_ctx->prompt_answer = NULL;
     ctx->loop_ctx->should_exit = 1;
@@ -493,6 +518,9 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_move_word_forward, "M-f" },
         { cmd_move_word_back, "M-b" },
         { cmd_anchor_sel_bound, "M-a" },
+        { cmd_drop_sleeping_cursor, "M-h" },
+        { cmd_wake_sleeping_cursors, "M-j" },
+        { cmd_remove_extra_cursors, "M-k" },
         { cmd_search, "C-f" },
         { cmd_search_next, "M-f" },
         { cmd_replace, "M-r" },
@@ -511,9 +539,18 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_quit, "C-q" },
         { NULL, "" }
     });
-    _editor_init_kmap(&editor->kmap_prompt, "prompt", NULL, 1, (kmap_def_t[]){
-        { _editor_prompt_submit, "enter" },
+    _editor_init_kmap(&editor->kmap_prompt_input, "prompt_input", NULL, 1, (kmap_def_t[]){
+        { _editor_prompt_input_submit, "enter" },
         { _editor_prompt_cancel, "C-c" },
+        { NULL, "" }
+    });
+    _editor_init_kmap(&editor->kmap_prompt_yn, "prompt_yn", NULL, 0, (kmap_def_t[]){
+        { _editor_prompt_yn_yes, "y" },
+        { _editor_prompt_yn_no, "n" },
+        { _editor_prompt_cancel, "C-c" },
+        { NULL, "" }
+    });
+    _editor_init_kmap(&editor->kmap_prompt_ok, "prompt_ok", _editor_prompt_cancel, 0, (kmap_def_t[]){
         { NULL, "" }
     });
     // TODO

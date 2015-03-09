@@ -68,10 +68,10 @@ struct editor_s {
     size_t macro_apply_input_index;
     int is_recording_macro;
     kmap_t* kmap_normal;
-    kmap_t* kmap_prompt;
+    kmap_t* kmap_prompt_input;
+    kmap_t* kmap_prompt_yn;
+    kmap_t* kmap_prompt_ok;
     kmap_t* kmap_less;
-    kmap_t* kmap_save;
-    kmap_t* kmap_quit;
     kmap_t* kmap_isearch;
     kmap_t* kmap_fsearch;
     char* syntax_override;
@@ -227,7 +227,7 @@ int editor_close_bview(editor_t* editor, bview_t* bview);
 int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_bview_exists(editor_t* editor, bview_t* bview);
-int editor_prompt(editor_t* editor, char* key, char* label, char* opt_data, int opt_data_len, char** optret_answer);
+int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, char** optret_answer);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -243,6 +243,8 @@ int bview_push_kmap(bview_t* bview, kmap_t* kmap);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
 int bview_unsplit(bview_t* parent, bview_t* child);
+int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
+int bview_remove_cursor(bview_t* self, cursor_t* cursor);
 bview_t* bview_get_split_root(bview_t* self);
 
 // cmd functions
@@ -265,6 +267,9 @@ int cmd_move_to_line(cmd_context_t* ctx);
 int cmd_move_word_forward(cmd_context_t* ctx);
 int cmd_move_word_back(cmd_context_t* ctx);
 int cmd_anchor_sel_bound(cmd_context_t* ctx);
+int cmd_drop_sleeping_cursor(cmd_context_t* ctx);
+int cmd_wake_sleeping_cursors(cmd_context_t* ctx);
+int cmd_remove_extra_cursors(cmd_context_t* ctx);
 int cmd_search(cmd_context_t* ctx);
 int cmd_search_next(cmd_context_t* ctx);
 int cmd_replace(cmd_context_t* ctx);
@@ -292,6 +297,9 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 
 #define MLE_OK 0
 #define MLE_ERR 1
+
+#define MLE_PROMPT_YES "yes"
+#define MLE_PROMPT_NO "no"
 
 #define MLE_DEFAULT_TAB_WIDTH 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
@@ -344,8 +352,8 @@ Features
 [x] prompts are buffers
 [x] bview splits
 [ ] macros
-[ ] multiple cursors
-[ ] command prompt
+[x] multiple cursors
+[x] command prompt
 [ ] named marks
 [ ] named registers
 [ ] modes (push/pop kmap on kmap_stack)
@@ -358,10 +366,7 @@ Features
 
 TODO
 [ ] prompt to save changes on cmd_close
-[ ] nested prompt screwery
 [ ] cmd_open,save file io
-[ ] prompt when closing unsaved
-[ ] cmd_next,prev for switching bview focus
 [ ] implement remaining cmd_* functions
 [ ] error messages MLE_RETURN_ERR
 [ ] status bar

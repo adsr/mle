@@ -132,7 +132,7 @@ int cmd_move_page_down(cmd_context_t* ctx) {
 int cmd_move_to_line(cmd_context_t* ctx) {
     char* linestr;
     bint_t line;
-    editor_prompt(ctx->editor, "cmd_move_to_line", "Line?", NULL, 0, &linestr);
+    editor_prompt(ctx->editor, "cmd_move_to_line", "Line?", NULL, 0, NULL, &linestr);
     if (!linestr) return MLE_OK;
     line = strtoll(linestr, NULL, 10);
     free(linestr);
@@ -148,6 +148,37 @@ int cmd_move_word_back(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_anchor_sel_bound(cmd_context_t* ctx) {
 return MLE_OK; }
+
+// Drop an is_asleep=1 cursor
+int cmd_drop_sleeping_cursor(cmd_context_t* ctx) {
+    cursor_t* cursor;
+    bview_add_cursor(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, &cursor);
+    cursor->is_asleep = 1;
+    return MLE_OK;
+}
+
+// Awake all is_asleep=1 cursors
+int cmd_wake_sleeping_cursors(cmd_context_t* ctx) {
+    cursor_t* cursor;
+    DL_FOREACH(ctx->bview->cursors, cursor) {
+        if (cursor->is_asleep) {
+            cursor->is_asleep = 0;
+        }
+    }
+    return MLE_OK;
+}
+
+// Remove all cursors except the active one
+int cmd_remove_extra_cursors(cmd_context_t* ctx) {
+    cursor_t* cursor;
+    DL_FOREACH(ctx->bview->cursors, cursor) {
+        if (cursor != ctx->cursor) {
+            bview_remove_cursor(ctx->bview, cursor);
+        }
+    }
+    return MLE_OK;
+}
+
 int cmd_search(cmd_context_t* ctx) {
     return MLE_OK;
 }
@@ -202,7 +233,7 @@ int cmd_save(cmd_context_t* ctx) {
 // Open file in a new bview
 int cmd_open_new(cmd_context_t* ctx) {
     char* path;
-    editor_prompt(ctx->editor, "cmd_open_new", "File?", NULL, 0, &path);
+    editor_prompt(ctx->editor, "cmd_open_new", "File?", NULL, 0, NULL, &path);
     if (!path) return MLE_OK;
     editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
     free(path);
@@ -219,6 +250,7 @@ int cmd_open_replace(cmd_context_t* ctx) {
             editor_prompt(ctx->editor, "cmd_open_replace", "Save as? (C-c to not save)",
                 ctx->bview->buffer->path,
                 ctx->bview->buffer->path ? strlen(ctx->bview->buffer->path) : 0,
+                NULL,
                 &path
             );
             if (!path) break;
@@ -227,7 +259,7 @@ int cmd_open_replace(cmd_context_t* ctx) {
         } while (rc == MLBUF_ERR);
     }
     path = NULL;
-    editor_prompt(ctx->editor, "cmd_open_replace", "File?", NULL, 0, &path);
+    editor_prompt(ctx->editor, "cmd_open_replace", "File?", NULL, 0, NULL, &path);
     if (!path) return MLE_OK;
     bview_open(ctx->bview, path, strlen(path));
     bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
