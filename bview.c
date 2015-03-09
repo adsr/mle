@@ -160,7 +160,13 @@ int bview_draw_cursor(bview_t* self, int set_real_cursor) {
     int screen_y;
     mark = self->active_cursor->mark;
     screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
-    screen_y = self->rect_buffer.y + mark->bline->line_index - self->viewport_y;
+    screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index);
+    if (screen_x < self->rect_buffer.x || screen_x >= self->rect_buffer.x + self->rect_buffer.w
+       || screen_y < self->rect_buffer.y || screen_y >= self->rect_buffer.y + self->rect_buffer.h
+    ) {
+        // Out of bounds
+        return MLE_OK;
+    }
     if (set_real_cursor) {
         tb_set_cursor(screen_x, screen_y);
     } else {
@@ -381,12 +387,17 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
         for (bview_tmp = editor->bviews; bview_tmp; bview_tmp = bview_tmp->next) \
             if (bview_tmp->buffer == buffer)
 
-    // Adjust line_num_width
     if (action && action->line_delta != 0) {
+        // Adjust line_num_width
         BVIEW_ITERATE_FOR_BUFFER(bview_tmp) {
             if (_bview_set_line_num_width(bview_tmp)) {
                 bview_resize(bview_tmp, bview_tmp->x, bview_tmp->y, bview_tmp->w, bview_tmp->h);
             }
+        }
+
+        // Adjust viewport_bline
+        BVIEW_ITERATE_FOR_BUFFER(bview_tmp) {
+            buffer_get_bline(bview_tmp->buffer, bview_tmp->viewport_y, &bview_tmp->viewport_bline);
         }
     }
 

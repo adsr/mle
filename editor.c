@@ -157,6 +157,7 @@ int editor_set_active(editor_t* editor, bview_t* bview) {
         editor->active_edit = bview;
         editor->active_edit_root = bview_get_split_root(bview);
     }
+    bview_rectify_viewport(bview);
     return MLE_OK;
 }
 
