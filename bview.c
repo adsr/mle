@@ -422,9 +422,11 @@ static void _bview_deinit(bview_t* self) {
     // Remove all syntax rules
     if (self->syntax) {
         srule_node_t* srule_node;
+        buffer_set_styles_enabled(self->buffer, 0);
         DL_FOREACH(self->syntax->srules, srule_node) {
             buffer_remove_srule(self->buffer, srule_node->srule);
         }
+        buffer_set_styles_enabled(self->buffer, 1);
     }
 
     // Remove all cursors
@@ -449,6 +451,7 @@ static void _bview_set_syntax(bview_t* self) {
     if (!MLE_BVIEW_IS_EDIT(self)) {
         return;
     }
+    buffer_set_styles_enabled(self->buffer, 0);
     HASH_ITER(hh, self->editor->syntax_map, syntax, syntax_tmp) {
         self->syntax = syntax;
         DL_FOREACH(syntax->srules, srule_node) {
@@ -456,6 +459,7 @@ static void _bview_set_syntax(bview_t* self) {
         }
         break;
     }
+    buffer_set_styles_enabled(self->buffer, 1);
 }
 
 // Open a buffer with an optional path to load, otherwise empty
@@ -605,7 +609,7 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     }
 
     // Render 0 thru rect_buffer.w cell by cell
-    for (rect_x = 0, char_col = viewport_x; rect_x < self->rect_buffer.w; rect_x++, char_col++) {
+    for (rect_x = 0, char_col = viewport_x; rect_x < self->rect_buffer.w; char_col++) {
         char_w = 1;
         if (char_col < bline->char_count) {
             //utf8_char_to_unicode(&ch, bline->data + bline->chars[char_col].index, MLBUF_BLINE_DATA_STOP(bline));
@@ -626,9 +630,9 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             bg = 0;
             char_w = 1;
         }
-        for (i = 0; i < char_w && rect_x < self->rect_buffer.w; i++, rect_x++) {
+        //for (i = 0; i < char_w && rect_x < self->rect_buffer.w; i++, rect_x++) {
             tb_change_cell(self->rect_buffer.x + rect_x, self->rect_buffer.y + rect_y, ch, fg, bg);
-        }
-        rect_x--;
+        //}
+        rect_x += char_w;
     }
 }

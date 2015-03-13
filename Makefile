@@ -11,5 +11,6 @@ mlbuf.a:
 
 clean:
 	rm -f *.o
+	rm -f gmon.out
 	rm -f mle
 	make -C mlbuf clean
