@@ -1,5 +1,8 @@
 #include "mle.h"
 
+static int _cmd_pre_close(editor_t* editor, bview_t* bview);
+static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
+
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
     char data[6];
@@ -217,10 +220,19 @@ MLE_IMPL_CMD_NEXTPREV(next, ctx->editor->bviews)
 MLE_IMPL_CMD_NEXTPREV(prev, ctx->editor->bviews_tail)
 #undef MLE_IMPL_CMD_NEXTPREV
 
-// Split a bview
-int cmd_split(cmd_context_t* ctx) {
+// Split a bview vertically
+int cmd_split_vertical(cmd_context_t* ctx) {
     bview_t* child;
     if (bview_split(ctx->bview, 1, 0.5, &child) == MLE_OK) {
+        editor_set_active(ctx->editor, child);
+    }
+    return MLE_OK;
+}
+
+// Split a bview horizontally
+int cmd_split_horizontal(cmd_context_t* ctx) {
+    bview_t* child;
+    if (bview_split(ctx->bview, 0, 0.5, &child) == MLE_OK) {
         editor_set_active(ctx->editor, child);
     }
     return MLE_OK;
@@ -231,35 +243,27 @@ int cmd_save(cmd_context_t* ctx) {
 }
 
 // Open file in a new bview
-int cmd_open_new(cmd_context_t* ctx) {
+int cmd_new_open(cmd_context_t* ctx) {
     char* path;
-    editor_prompt(ctx->editor, "cmd_open_new", "File?", NULL, 0, NULL, &path);
+    editor_prompt(ctx->editor, "cmd_new_open", "File?", NULL, 0, NULL, &path);
     if (!path) return MLE_OK;
     editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
     free(path);
     return MLE_OK;
 }
 
-// Open a file in current bview
-int cmd_open_replace(cmd_context_t* ctx) {
+// Open empty buffer in a new bview
+int cmd_new(cmd_context_t* ctx) {
+    editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &ctx->editor->rect_edit, NULL, NULL);
+    return MLE_OK;
+}
+
+// Open file into current bview
+int cmd_replace_open(cmd_context_t* ctx) {
     char* path;
-    int rc;
-    if (ctx->bview->buffer->is_unsaved) {
-        do {
-            path = NULL;
-            editor_prompt(ctx->editor, "cmd_open_replace", "Save as? (C-c to not save)",
-                ctx->bview->buffer->path,
-                ctx->bview->buffer->path ? strlen(ctx->bview->buffer->path) : 0,
-                NULL,
-                &path
-            );
-            if (!path) break;
-            rc = buffer_save_as(ctx->bview->buffer, path, strlen(path)); // TODO return errno
-            free(path);
-        } while (rc == MLBUF_ERR);
-    }
+    if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
     path = NULL;
-    editor_prompt(ctx->editor, "cmd_open_replace", "File?", NULL, 0, NULL, &path);
+    editor_prompt(ctx->editor, "cmd_replace_open", "Replace with file?", NULL, 0, NULL, &path);
     if (!path) return MLE_OK;
     bview_open(ctx->bview, path, strlen(path));
     bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
@@ -267,13 +271,82 @@ int cmd_open_replace(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Open empty buffer into current bview
+int cmd_replace_new(cmd_context_t* ctx) {
+    if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
+    bview_open(ctx->bview, NULL, 0);
+    bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
+    return MLE_OK;
+}
+
+// Close bview
 int cmd_close(cmd_context_t* ctx) {
+    if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
     editor_close_bview(ctx->editor, ctx->bview);
     return MLE_OK;
 }
 
-// Quit
+// Quit editor
 int cmd_quit(cmd_context_t* ctx) {
-    ctx->loop_ctx->should_exit = 1; // TODO prompt for changes
+    bview_t* bview;
+    bview_t* tmp;
+    DL_FOREACH_SAFE(ctx->editor->bviews, bview, tmp) {
+        if (!MLE_BVIEW_IS_EDIT(bview)) {
+            continue;
+        } else if (!_cmd_quit_inner(ctx->editor, bview)) {
+            return MLE_OK;
+        }
+    }
+    ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
+}
+
+// Recursively close bviews, prompting to save unsaved changes.  Return 1 if
+// it's OK to continue closing, or 0 if the action was cancelled.
+static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
+    if (bview->split_child && !_cmd_quit_inner(editor, bview->split_child)) {
+        return 0;
+    } else if (!_cmd_pre_close(editor, bview)) {
+        return 0;
+    }
+    editor_close_bview(editor, bview);
+    return 1;
+}
+
+// Prompt to save unsaved changes on close. Return 1 if it's OK to continue
+// closing the bview, or 0 if the action was cancelled.
+static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
+    int rc;
+    char* path;
+    char* yn;
+    if (!bview->buffer->is_unsaved) return 1;
+
+    editor_set_active(editor, bview);
+
+    yn = NULL;
+    editor_prompt(editor, "_cmd_pre_close", "Save modified? (y=yes, n=no, C-c=cancel)",
+        NULL,
+        0,
+        editor->kmap_prompt_yn,
+        &yn
+    );
+    if (!yn) {
+        return 0;
+    } else if (0 == strcmp(yn, MLE_PROMPT_NO)) {
+        return 1;
+    }
+
+    do {
+        path = NULL;
+        editor_prompt(editor, "_cmd_pre_close", "Save as? (C-c=cancel)",
+            bview->buffer->path,
+            bview->buffer->path ? strlen(bview->buffer->path) : 0,
+            NULL,
+            &path
+        );
+        if (!path) return 0;
+        rc = buffer_save_as(bview->buffer, path, strlen(path)); // TODO display error
+        free(path);
+    } while (rc == MLBUF_ERR);
+    return 1;
 }

@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <signal.h>
 #include <termbox.h>
 #include "uthash.h"
 #include "utlist.h"
@@ -185,6 +186,7 @@ int editor_bview_exists(editor_t* editor, bview_t* bview) {
             return 1;
         }
     }
+    raise(SIGINT);
     return 0;
 }
 
@@ -531,10 +533,13 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_uncut, "C-u" },
         { cmd_next, "M-n" },
         { cmd_prev, "M-p" },
-        { cmd_split, "M-l" },
+        { cmd_split_vertical, "M-l" },
+        { cmd_split_horizontal, "M-;" },
         { cmd_save, "C-o" },
-        { cmd_open_new, "C-p" },
-        { cmd_open_replace, "C-l" },
+        { cmd_new, "C-n" },
+        { cmd_new_open, "C-o" },
+        { cmd_replace_new, "C-p" },
+        { cmd_replace_open, "C-l" },
         { cmd_close, "M-c" },
         { cmd_quit, "C-q" },
         { NULL, "" }

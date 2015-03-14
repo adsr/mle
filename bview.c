@@ -590,7 +590,6 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     int bg;
     uint32_t ch;
     int char_w;
-    bint_t i;
     bint_t viewport_x;
     bint_t viewport_x_vcol;
 

@@ -280,11 +280,14 @@ int cmd_cut(cmd_context_t* ctx);
 int cmd_uncut(cmd_context_t* ctx);
 int cmd_next(cmd_context_t* ctx);
 int cmd_prev(cmd_context_t* ctx);
-int cmd_split(cmd_context_t* ctx);
+int cmd_split_vertical(cmd_context_t* ctx);
+int cmd_split_horizontal(cmd_context_t* ctx);
 int cmd_close(cmd_context_t* ctx);
 int cmd_save(cmd_context_t* ctx);
-int cmd_open_new(cmd_context_t* ctx);
-int cmd_open_replace(cmd_context_t* ctx);
+int cmd_new(cmd_context_t* ctx);
+int cmd_new_open(cmd_context_t* ctx);
+int cmd_replace_new(cmd_context_t* ctx);
+int cmd_replace_open(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 
 // util functions
@@ -365,8 +368,7 @@ Features
 [ ] customizable bview caption
 
 TODO
-[ ] prompt to save changes on cmd_close
-[ ] cmd_open,save file io
+[ ] cmd_save
 [ ] implement remaining cmd_* functions
 [ ] error messages MLE_RETURN_ERR
 [ ] status bar
