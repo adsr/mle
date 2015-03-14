@@ -31,6 +31,7 @@ static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
 static void _editor_destroy_kmap(kmap_t* kmap);
 static void _editor_destroy_syntax_map(syntax_t* map);
 static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
+static int _editor_bview_edit_count_inner(bview_t* bview);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -188,6 +189,27 @@ int editor_bview_exists(editor_t* editor, bview_t* bview) {
     }
     raise(SIGINT);
     return 0;
+}
+
+// Return number of EDIT bviews open
+int editor_bview_edit_count(editor_t* editor) {
+    int count;
+    bview_t* bview;
+    count = 0;
+    DL_FOREACH(editor->bviews, bview) {
+        if (MLE_BVIEW_IS_EDIT(bview)) {
+            count += _editor_bview_edit_count_inner(bview);
+        }
+    }
+    return count;
+}
+
+// Return number of edit bviews open including split children
+static int _editor_bview_edit_count_inner(bview_t* bview) {
+    if (bview->split_child) {
+        return 1 + _editor_bview_edit_count_inner(bview->split_child);
+    }
+    return 1;
 }
 
 // Close a bview

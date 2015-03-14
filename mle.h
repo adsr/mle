@@ -227,6 +227,7 @@ int editor_close_bview(editor_t* editor, bview_t* bview);
 int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_bview_exists(editor_t* editor, bview_t* bview);
+int editor_bview_edit_count(editor_t* editor);
 int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, char** optret_answer);
 
 // bview functions

@@ -281,8 +281,11 @@ int cmd_replace_new(cmd_context_t* ctx) {
 
 // Close bview
 int cmd_close(cmd_context_t* ctx) {
+    int should_exit;
     if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
+    should_exit = editor_bview_edit_count(ctx->editor) <= 1 ? 1 : 0;
     editor_close_bview(ctx->editor, ctx->bview);
+    ctx->loop_ctx->should_exit = should_exit;
     return MLE_OK;
 }
 
