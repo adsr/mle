@@ -358,6 +358,7 @@ Features
 [ ] macros
 [x] multiple cursors
 [x] command prompt
+[x] cursor selection
 [ ] named marks
 [ ] named registers
 [ ] modes (push/pop kmap on kmap_stack)
@@ -370,7 +371,9 @@ Features
 
 TODO
 [ ] cmd_save
+[ ] cut/uncut
 [ ] implement remaining cmd_* functions
+[ ] termbox assertion failure when pasting text
 [ ] error messages MLE_RETURN_ERR
 [ ] status bar
 */

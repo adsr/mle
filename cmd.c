@@ -153,20 +153,34 @@ int cmd_move_word_forward(cmd_context_t* ctx) {
 
 // Move one word back
 int cmd_move_word_back(cmd_context_t* ctx) {
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, "((?<=\\W)\\w|^)", sizeof("((?<=\\W)\\w|^)")-1);
+    return MLE_OK;
+}
+
+// Delete word back
+int cmd_delete_word_before(cmd_context_t* ctx) {
     cursor_t* cursor;
-    mark_t* mark;
-    // MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, "(?<=\\W)\\w", sizeof("(?<=\\W)\\w")-1);
+    mark_t* tmark;
     DL_FOREACH(ctx->bview->cursors, cursor) {
         if (cursor->is_asleep) continue;
-        mark = mark_clone(cursor->mark);
-        mark_move_bol(mark);
-        mark_move_next_re(mark, "\\w", sizeof("\\w")-1);
-        if (mark->bline == cursor->mark->bline && mark->col >= cursor->mark->col) {
-            mark_move_bol(cursor->mark);
-        } else {
-            mark_move_prev_re(cursor->mark, "(?<=\\W)\\w", sizeof("(?<=\\W)\\w")-1);
-        }
-        mark_destroy(mark);
+        tmark = mark_clone(cursor->mark);
+        mark_move_prev_re(tmark, "((?<=\\W)\\w|^)", sizeof("((?<=\\W)\\w|^)")-1);
+        mark_delete_between_mark(cursor->mark, tmark);
+        mark_destroy(tmark);
+    }
+    return MLE_OK;
+}
+
+// Delete word ahead
+int cmd_delete_word_after(cmd_context_t* ctx) {
+    cursor_t* cursor;
+    mark_t* tmark;
+    DL_FOREACH(ctx->bview->cursors, cursor) {
+        if (cursor->is_asleep) continue;
+        tmark = mark_clone(cursor->mark);
+        mark_move_next_re(tmark, "((?<=\\w)\\W|$)", sizeof("((?<=\\w)\\W|$)")-1);
+        mark_delete_between_mark(cursor->mark, tmark);
+        mark_destroy(tmark);
     }
     return MLE_OK;
 }
@@ -229,10 +243,6 @@ return MLE_OK; }
 int cmd_replace(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_isearch(cmd_context_t* ctx) {
-return MLE_OK; }
-int cmd_delete_word_before(cmd_context_t* ctx) {
-return MLE_OK; }
-int cmd_delete_word_after(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_cut(cmd_context_t* ctx) {
 return MLE_OK; }
