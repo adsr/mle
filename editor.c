@@ -564,6 +564,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_delete_word_before, "C-w" },
         { cmd_delete_word_after, "M-d" },
         { cmd_cut, "C-k" },
+        { cmd_copy, "C-c" },
         { cmd_uncut, "C-u" },
         { cmd_next, "M-n" },
         { cmd_prev, "M-p" },

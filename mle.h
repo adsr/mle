@@ -158,6 +158,7 @@ struct cursor_s {
     int is_sel_bound_anchored;
     int is_asleep;
     srule_t* sel_rule;
+    char* cut_buffer;
     cursor_t* next;
     cursor_t* prev;
 };
@@ -278,6 +279,7 @@ int cmd_isearch(cmd_context_t* ctx);
 int cmd_delete_word_before(cmd_context_t* ctx);
 int cmd_delete_word_after(cmd_context_t* ctx);
 int cmd_cut(cmd_context_t* ctx);
+int cmd_copy(cmd_context_t* ctx);
 int cmd_uncut(cmd_context_t* ctx);
 int cmd_next(cmd_context_t* ctx);
 int cmd_prev(cmd_context_t* ctx);
@@ -326,14 +328,6 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 #define MLE_BVIEW_IS_STATUS(bview) ((bview)->type == MLE_BVIEW_TYPE_STATUS)
 #define MLE_BVIEW_IS_PROMPT(bview) ((bview)->type == MLE_BVIEW_TYPE_PROMPT)
 
-#define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do { \
-    cursor_t* _cursor; \
-    DL_FOREACH((pcursor)->bview->cursors, _cursor) { \
-        if (_cursor->is_asleep) continue; \
-        pfn(_cursor->mark, ##__VA_ARGS__); \
-    } \
-} while(0)
-
 #define MLE_MARK_COL_TO_VCOL(pmark) ( \
     (pmark)->col >= (pmark)->bline->char_count \
     ? (pmark)->bline->char_vwidth \
@@ -370,8 +364,6 @@ Features
 [ ] customizable bview caption
 
 TODO
-[ ] cmd_save
-[ ] cut/uncut
 [ ] implement remaining cmd_* functions
 [ ] termbox assertion failure when pasting text
 [ ] error messages MLE_RETURN_ERR

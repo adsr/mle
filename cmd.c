@@ -1,8 +1,26 @@
 #include "mle.h"
 
+#define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do {\
+    cursor_t* cursor; \
+    DL_FOREACH((pcursor)->bview->cursors, cursor) { \
+        if (cursor->is_asleep) continue; \
+        pfn(cursor->mark, ##__VA_ARGS__); \
+    } \
+} while(0)
+
+#define MLE_MULTI_CURSOR_CODE(pcursor, pcode) do { \
+    cursor_t* cursor; \
+    DL_FOREACH((pcursor)->bview->cursors, cursor) { \
+        if (cursor->is_asleep) continue; \
+        pcode \
+    } \
+} while(0)
+
 static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview);
+static void _cmd_cut_copy(cursor_t* cursor, int is_cut);
+static void _cmd_toggle_sel_bound(cursor_t* cursor);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -160,49 +178,33 @@ int cmd_move_word_back(cmd_context_t* ctx) {
 
 // Delete word back
 int cmd_delete_word_before(cmd_context_t* ctx) {
-    cursor_t* cursor;
     mark_t* tmark;
-    DL_FOREACH(ctx->bview->cursors, cursor) {
-        if (cursor->is_asleep) continue;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
         tmark = mark_clone(cursor->mark);
         mark_move_prev_re(tmark, "((?<=\\W)\\w|^)", sizeof("((?<=\\W)\\w|^)")-1);
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
-    }
+    );
     return MLE_OK;
 }
 
 // Delete word ahead
 int cmd_delete_word_after(cmd_context_t* ctx) {
-    cursor_t* cursor;
     mark_t* tmark;
-    DL_FOREACH(ctx->bview->cursors, cursor) {
-        if (cursor->is_asleep) continue;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
         tmark = mark_clone(cursor->mark);
         mark_move_next_re(tmark, "((?<=\\w)\\W|$)", sizeof("((?<=\\w)\\W|$)")-1);
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
-    }
+    );
     return MLE_OK;
 }
 
 // Toggle sel bound on cursors
 int cmd_toggle_sel_bound(cmd_context_t* ctx) {
-    cursor_t* cursor;
-    DL_FOREACH(ctx->bview->cursors, cursor) {
-        if (!cursor->is_sel_bound_anchored) {
-            cursor->sel_bound = mark_clone(cursor->mark);
-            cursor->sel_rule = srule_new_range(cursor->mark, cursor->sel_bound, 0, TB_REVERSE);
-            buffer_add_srule(ctx->bview->buffer, cursor->sel_rule);
-            cursor->is_sel_bound_anchored = 1;
-        } else {
-            buffer_remove_srule(ctx->bview->buffer, cursor->sel_rule);
-            srule_destroy(cursor->sel_rule);
-            cursor->sel_rule = NULL;
-            mark_destroy(cursor->sel_bound);
-            cursor->is_sel_bound_anchored = 0;
-        }
-    }
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        _cmd_toggle_sel_bound(cursor);
+    );
     return MLE_OK;
 }
 
@@ -239,19 +241,43 @@ int cmd_remove_extra_cursors(cmd_context_t* ctx) {
 int cmd_search(cmd_context_t* ctx) {
     return MLE_OK;
 }
-int cmd_search_next(cmd_context_t* ctx) {
-return MLE_OK; }
-int cmd_replace(cmd_context_t* ctx) {
-return MLE_OK; }
-int cmd_isearch(cmd_context_t* ctx) {
-return MLE_OK; }
 
-int cmd_cut(cmd_context_t* ctx) {
+int cmd_search_next(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+int cmd_replace(cmd_context_t* ctx) {
+    return MLE_OK;
+}
+
+int cmd_isearch(cmd_context_t* ctx) {
+    return MLE_OK;
+}
+
+// Cut text
+int cmd_cut(cmd_context_t* ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        _cmd_cut_copy(cursor, 1);
+    );
+    return MLE_OK;
+}
+
+// Copy text
+int cmd_copy(cmd_context_t* ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        _cmd_cut_copy(cursor, 0);
+    );
+    return MLE_OK;
+}
+
+// Paste text
 int cmd_uncut(cmd_context_t* ctx) {
-return MLE_OK; }
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (!cursor->cut_buffer) continue;
+        mark_insert_before(cursor->mark, cursor->cut_buffer, strlen(cursor->cut_buffer));
+    );
+    return MLE_OK;
+}
 
 // Switch focus to next/prev bview (cmd_next, cmd_prev)
 #define MLE_IMPL_CMD_NEXTPREV(pthis, pend) \
@@ -413,4 +439,40 @@ static int _cmd_save(editor_t* editor, bview_t* bview) {
         free(path);
     } while (rc == MLBUF_ERR);
     return 1;
+}
+
+// Cut or copy text
+static void _cmd_cut_copy(cursor_t* cursor, int is_cut) {
+    bint_t cut_len;
+    if (cursor->cut_buffer) {
+        free(cursor->cut_buffer);
+        cursor->cut_buffer = NULL;
+    }
+    if (!cursor->is_sel_bound_anchored) {
+        _cmd_toggle_sel_bound(cursor);
+        mark_move_bol(cursor->mark);
+        mark_move_eol(cursor->sel_bound);
+        mark_move_by(cursor->sel_bound, 1);
+    }
+    mark_get_between_mark(cursor->mark, cursor->sel_bound, &cursor->cut_buffer, &cut_len);
+    if (is_cut) {
+        mark_delete_between_mark(cursor->mark, cursor->sel_bound);
+    }
+    _cmd_toggle_sel_bound(cursor);
+}
+
+// Anchor/unanchor cursor selection bound
+static void _cmd_toggle_sel_bound(cursor_t* cursor) {
+    if (!cursor->is_sel_bound_anchored) {
+        cursor->sel_bound = mark_clone(cursor->mark);
+        cursor->sel_rule = srule_new_range(cursor->mark, cursor->sel_bound, 0, TB_REVERSE);
+        buffer_add_srule(cursor->bview->buffer, cursor->sel_rule);
+        cursor->is_sel_bound_anchored = 1;
+    } else {
+        buffer_remove_srule(cursor->bview->buffer, cursor->sel_rule);
+        srule_destroy(cursor->sel_rule);
+        cursor->sel_rule = NULL;
+        mark_destroy(cursor->sel_bound);
+        cursor->is_sel_bound_anchored = 0;
+    }
 }
