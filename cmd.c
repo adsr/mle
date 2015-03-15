@@ -2,6 +2,7 @@
 
 static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
+static int _cmd_save(editor_t* editor, bview_t* bview);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -244,8 +245,11 @@ int cmd_replace(cmd_context_t* ctx) {
 return MLE_OK; }
 int cmd_isearch(cmd_context_t* ctx) {
 return MLE_OK; }
+
 int cmd_cut(cmd_context_t* ctx) {
-return MLE_OK; }
+    return MLE_OK;
+}
+
 int cmd_uncut(cmd_context_t* ctx) {
 return MLE_OK; }
 
@@ -287,7 +291,9 @@ int cmd_split_horizontal(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Save file
 int cmd_save(cmd_context_t* ctx) {
+    _cmd_save(ctx->editor, ctx->bview);
     return MLE_OK;
 }
 
@@ -368,8 +374,6 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
 // Prompt to save unsaved changes on close. Return 1 if it's OK to continue
 // closing the bview, or 0 if the action was cancelled.
 static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
-    int rc;
-    char* path;
     char* yn;
     if (!bview->buffer->is_unsaved) return 1;
 
@@ -388,9 +392,17 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
         return 1;
     }
 
+    return _cmd_save(editor, bview);
+}
+
+// Prompt to save changes. Return 1 if file was saved or 0 if the action was
+// cancelled.
+static int _cmd_save(editor_t* editor, bview_t* bview) {
+    int rc;
+    char* path;
     do {
         path = NULL;
-        editor_prompt(editor, "_cmd_pre_close", "Save as? (C-c=cancel)",
+        editor_prompt(editor, "_cmd_save", "Save as? (C-c=cancel)",
             bview->buffer->path,
             bview->buffer->path ? strlen(bview->buffer->path) : 0,
             NULL,

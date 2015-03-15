@@ -571,7 +571,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_split_horizontal, "M-;" },
         { cmd_save, "C-o" },
         { cmd_new, "C-n" },
-        { cmd_new_open, "C-o" },
+        { cmd_new_open, "C-b" },
         { cmd_replace_new, "C-p" },
         { cmd_replace_open, "C-l" },
         { cmd_close, "M-c" },
