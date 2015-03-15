@@ -309,7 +309,7 @@ void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const 
 
 #define MLE_DEFAULT_TAB_WIDTH 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
-#define MLE_DEFAULT_MACRO_TOGGLE_KEY "C-x"
+#define MLE_DEFAULT_MACRO_TOGGLE_KEY "C-q"
 
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \
@@ -364,6 +364,7 @@ Features
 [ ] customizable bview caption
 
 TODO
+[ ] trap signal and save buffers
 [ ] implement remaining cmd_* functions
 [ ] termbox assertion failure when pasting text
 [ ] error messages MLE_RETURN_ERR

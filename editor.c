@@ -576,7 +576,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_replace_new, "C-p" },
         { cmd_replace_open, "C-l" },
         { cmd_close, "M-c" },
-        { cmd_quit, "C-q" },
+        { cmd_quit, "C-x" },
         { NULL, "" }
     });
     _editor_init_kmap(&editor->kmap_prompt_input, "prompt_input", NULL, 1, (kmap_def_t[]){
@@ -670,8 +670,8 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "/([^/]|/)*" "/", NULL, TB_YELLOW, TB_DEFAULT },
         { "/" "/.*$", NULL, TB_CYAN, TB_DEFAULT },
         { "/\\" "*", "\\*" "/", TB_CYAN, TB_DEFAULT },
-        { "<\\?(php)?|\\?>", NULL, TB_GREEN, TB_DEFAULT },
-        { "\\?>", "<\\?(php)?", TB_WHITE, TB_DEFAULT },
+        { "<\\?(php)?|\\?" ">", NULL, TB_GREEN, TB_DEFAULT },
+        { "\\?" ">", "<\\?(php)?", TB_WHITE, TB_DEFAULT },
         { "\"\"\"", "\"\"\"", TB_YELLOW | TB_BOLD, TB_DEFAULT },
         { "\\t+", NULL, TB_DEFAULT, TB_RED },
         { "\\s+$", NULL, TB_DEFAULT, TB_GREEN },
