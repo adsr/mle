@@ -623,6 +623,11 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             } else if (!iswprint(ch)) {
                 ch = '?';
             }
+        } else if (char_col == bline->char_count && bline->eol_rule) {
+            ch = (uint32_t)' ';
+            fg = bline->eol_rule->style.fg;
+            bg = bline->eol_rule->style.bg;
+            char_w = 1;
         } else {
             ch = (uint32_t)' ';
             fg = 0;

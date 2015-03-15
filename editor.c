@@ -32,6 +32,7 @@ static void _editor_destroy_kmap(kmap_t* kmap);
 static void _editor_destroy_syntax_map(syntax_t* map);
 static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
 static int _editor_bview_edit_count_inner(bview_t* bview);
+static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -183,7 +184,7 @@ int editor_set_macro_toggle_key(editor_t* editor, char* key) {
 int editor_bview_exists(editor_t* editor, bview_t* bview) {
     bview_t* tmp;
     DL_FOREACH(editor->bviews, tmp) {
-        if (tmp == bview) {
+        if (_editor_bview_exists_inner(tmp, bview)) {
             return 1;
         }
     }
@@ -202,6 +203,17 @@ int editor_bview_edit_count(editor_t* editor) {
         }
     }
     return count;
+}
+
+// Return 1 if parent or a child of parent == needle, otherwise return 0
+static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle) {
+    if (parent == needle) {
+        return 1;
+    }
+    if (parent->split_child) {
+        return _editor_bview_exists_inner(parent->split_child, needle);
+    }
+    return 0;
 }
 
 // Return number of edit bviews open including split children
@@ -541,7 +553,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_move_to_line, "M-g" },
         { cmd_move_word_forward, "M-f" },
         { cmd_move_word_back, "M-b" },
-        { cmd_anchor_sel_bound, "M-a" },
+        { cmd_toggle_sel_bound, "M-a" },
         { cmd_drop_sleeping_cursor, "M-h" },
         { cmd_wake_sleeping_cursors, "M-j" },
         { cmd_remove_extra_cursors, "M-k" },

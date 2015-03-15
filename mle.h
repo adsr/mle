@@ -267,7 +267,7 @@ int cmd_move_page_down(cmd_context_t* ctx);
 int cmd_move_to_line(cmd_context_t* ctx);
 int cmd_move_word_forward(cmd_context_t* ctx);
 int cmd_move_word_back(cmd_context_t* ctx);
-int cmd_anchor_sel_bound(cmd_context_t* ctx);
+int cmd_toggle_sel_bound(cmd_context_t* ctx);
 int cmd_drop_sleeping_cursor(cmd_context_t* ctx);
 int cmd_wake_sleeping_cursors(cmd_context_t* ctx);
 int cmd_remove_extra_cursors(cmd_context_t* ctx);

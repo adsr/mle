@@ -171,8 +171,25 @@ int cmd_move_word_back(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-int cmd_anchor_sel_bound(cmd_context_t* ctx) {
-return MLE_OK; }
+// Toggle sel bound on cursors
+int cmd_toggle_sel_bound(cmd_context_t* ctx) {
+    cursor_t* cursor;
+    DL_FOREACH(ctx->bview->cursors, cursor) {
+        if (!cursor->is_sel_bound_anchored) {
+            cursor->sel_bound = mark_clone(cursor->mark);
+            cursor->sel_rule = srule_new_range(cursor->mark, cursor->sel_bound, 0, TB_REVERSE);
+            buffer_add_srule(ctx->bview->buffer, cursor->sel_rule);
+            cursor->is_sel_bound_anchored = 1;
+        } else {
+            buffer_remove_srule(ctx->bview->buffer, cursor->sel_rule);
+            srule_destroy(cursor->sel_rule);
+            cursor->sel_rule = NULL;
+            mark_destroy(cursor->sel_bound);
+            cursor->is_sel_bound_anchored = 0;
+        }
+    }
+    return MLE_OK;
+}
 
 // Drop an is_asleep=1 cursor
 int cmd_drop_sleeping_cursor(cmd_context_t* ctx) {
