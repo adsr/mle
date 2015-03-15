@@ -145,10 +145,32 @@ int cmd_move_to_line(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Move one word forward
 int cmd_move_word_forward(cmd_context_t* ctx) {
-return MLE_OK; }
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re, "((?<=\\w)\\W|$)", sizeof("((?<=\\w)\\W|$)")-1);
+    return MLE_OK;
+}
+
+// Move one word back
 int cmd_move_word_back(cmd_context_t* ctx) {
-return MLE_OK; }
+    cursor_t* cursor;
+    mark_t* mark;
+    // MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, "(?<=\\W)\\w", sizeof("(?<=\\W)\\w")-1);
+    DL_FOREACH(ctx->bview->cursors, cursor) {
+        if (cursor->is_asleep) continue;
+        mark = mark_clone(cursor->mark);
+        mark_move_bol(mark);
+        mark_move_next_re(mark, "\\w", sizeof("\\w")-1);
+        if (mark->bline == cursor->mark->bline && mark->col >= cursor->mark->col) {
+            mark_move_bol(cursor->mark);
+        } else {
+            mark_move_prev_re(cursor->mark, "(?<=\\W)\\w", sizeof("(?<=\\W)\\w")-1);
+        }
+        mark_destroy(mark);
+    }
+    return MLE_OK;
+}
+
 int cmd_anchor_sel_bound(cmd_context_t* ctx) {
 return MLE_OK; }
 

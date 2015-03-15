@@ -546,7 +546,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         { cmd_wake_sleeping_cursors, "M-j" },
         { cmd_remove_extra_cursors, "M-k" },
         { cmd_search, "C-f" },
-        { cmd_search_next, "M-f" },
+        { cmd_search_next, "C-j" },
         { cmd_replace, "M-r" },
         { cmd_isearch, "C-r" },
         { cmd_delete_word_before, "C-w" },
