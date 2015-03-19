@@ -1,3 +1,6 @@
 [submodule "mlbuf"]
 	path = mlbuf
 	url = https://github.com/adsr/mlbuf
+[submodule "termbox"]
+	path = termbox
+	url = https://github.com/nsf/termbox
