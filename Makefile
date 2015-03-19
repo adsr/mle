@@ -4,10 +4,10 @@ CC=$(shell if which colorgcc>/dev/null; then echo colorgcc; else echo gcc; fi)
 
 all: mle
 
-mle: mlbuf.a ./termbox/build/src/libtermbox.a
+mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
 	$(CC) -Wall -pg -g -I./mlbuf/ -I./termbox/src/ *.c -o $@ ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lpcre -lm
 
-mlbuf.a:
+./mlbuf/libmlbuf.a:
 	make -C mlbuf
 
 ./termbox/build/src/libtermbox.a:
