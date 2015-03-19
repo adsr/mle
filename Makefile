@@ -8,7 +8,6 @@ mle: mlbuf.a ./termbox/build/src/libtermbox.a
 	$(CC) -Wall -pg -g -I./mlbuf/ -L./mlbuf/ *.c -o $@ ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lpcre -lm
 
 mlbuf.a:
-	git submodule update --recursive
 	make -C mlbuf
 
 ./termbox/build/src/libtermbox.a:
