@@ -21,7 +21,7 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut);
 static void _cmd_toggle_sel_bound(cursor_t* cursor);
-static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* term, int term_len);
+static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -239,39 +239,106 @@ int cmd_remove_extra_cursors(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-// Search for a term
+// Search for a regex
 int cmd_search(cmd_context_t* ctx) {
-    char* term;
-    int term_len;
+    char* regex;
+    int regex_len;
     mark_t* search_mark;
-    editor_prompt(ctx->editor, "cmd_search", "Term?", NULL, 0, NULL, &term);
-    if (!term) return MLE_OK;
-    term_len = strlen(term);
+    editor_prompt(ctx->editor, "cmd_search", "Regex?", NULL, 0, NULL, &regex);
+    if (!regex) return MLE_OK;
+    regex_len = strlen(regex);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_search_next(ctx->bview, cursor, search_mark, term, term_len);
+        _cmd_search_next(ctx->bview, cursor, search_mark, regex, regex_len);
     );
     mark_destroy(search_mark);
     if (ctx->bview->last_search) free(ctx->bview->last_search);
-    ctx->bview->last_search = term;
+    ctx->bview->last_search = regex;
     return MLE_OK;
 }
 
-// Search for next instance
+// Search for next instance of last search regex
 int cmd_search_next(cmd_context_t* ctx) {
-    int term_len;
+    int regex_len;
     mark_t* search_mark;
     if (!ctx->bview->last_search) return MLE_OK;
-    term_len = strlen(ctx->bview->last_search);
+    regex_len = strlen(ctx->bview->last_search);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_search_next(ctx->bview, cursor, search_mark, ctx->bview->last_search, term_len);
+        _cmd_search_next(ctx->bview, cursor, search_mark, ctx->bview->last_search, regex_len);
     );
     mark_destroy(search_mark);
     return MLE_OK;
 }
 
+// Interactive search and replace
 int cmd_replace(cmd_context_t* ctx) {
+    char* regex;
+    char* replacement;
+    int wrapped;
+    char* yn;
+    mark_t* search_mark;
+    mark_t* search_mark_end;
+    srule_t* highlight;
+    bline_t* bline;
+    bint_t col;
+    bint_t char_count;
+
+    regex = NULL;
+    replacement = NULL;
+    wrapped = 0;
+    search_mark = NULL;
+    search_mark_end = NULL;
+
+    do {
+        editor_prompt(ctx->editor, "cmd_replace", "Regex?", NULL, 0, NULL, &regex);
+        if (!regex) break;
+        editor_prompt(ctx->editor, "cmd_replace", "Replacement?", NULL, 0, NULL, &replacement);
+        if (!replacement) break;
+        search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+        search_mark_end = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+        mark_join(search_mark, ctx->cursor->mark);
+        while (1) {
+            if (mark_find_next_re(search_mark, regex, strlen(regex), &bline, &col, &char_count) == MLBUF_OK) {
+                mark_move_to(search_mark, bline->line_index, col);
+                mark_move_to(search_mark_end, bline->line_index, col + char_count);
+                highlight = srule_new_range(search_mark, search_mark_end, 0, TB_REVERSE);
+                buffer_add_srule(ctx->bview->buffer, highlight);
+                mark_join(ctx->cursor->mark, search_mark);
+                bview_rectify_viewport(ctx->bview);
+                bview_draw(ctx->bview);
+                yn = NULL;
+                editor_prompt(ctx->editor, "cmd_replace", "Replace? (y=yes, n=no, C-c=stop)",
+                    NULL,
+                    0,
+                    ctx->editor->kmap_prompt_yn,
+                    &yn
+                );
+                buffer_remove_srule(ctx->bview->buffer, highlight);
+                srule_destroy(highlight);
+                bview_draw(ctx->bview);
+                if (!yn) {
+                    break;
+                } else if (0 == strcmp(yn, MLE_PROMPT_YES)) {
+                    mark_delete_between_mark(search_mark, search_mark_end);
+                    mark_insert_before(search_mark, replacement, strlen(replacement));
+                } else {
+                    mark_move_by(search_mark, 1);
+                }
+            } else if (!wrapped) {
+                mark_move_beginning(search_mark);
+                wrapped = 1;
+            } else {
+                break;
+            }
+        }
+    } while(0);
+
+    if (regex) free(regex);
+    if (replacement) free(replacement);
+    if (search_mark) mark_destroy(search_mark);
+    if (search_mark_end) mark_destroy(search_mark_end);
+
     return MLE_OK;
 }
 
@@ -504,21 +571,21 @@ static void _cmd_toggle_sel_bound(cursor_t* cursor) {
 
 // Move cursor to next occurrence of term, wrap if necessary. Return 1 if
 // there was a match, or 0 if no match.
-static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* term, int term_len) {
+static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len) {
     int rc;
     rc = 0;
 
     // Move search_mark to cursor
     mark_join(search_mark, cursor->mark);
     // Look for match ahead of us
-    if (mark_move_next_re(search_mark, term, term_len) == MLBUF_OK) {
+    if (mark_move_next_re(search_mark, regex, regex_len) == MLBUF_OK) {
         // Match! Move there
         mark_join(cursor->mark, search_mark);
         rc = 1;
     } else {
         // No match, try from beginning
         mark_move_beginning(search_mark);
-        if (mark_move_next_re(search_mark, term, term_len) == MLBUF_OK) {
+        if (mark_move_next_re(search_mark, regex, regex_len) == MLBUF_OK) {
             // Match! Move there
             mark_join(cursor->mark, search_mark);
             rc =1;
