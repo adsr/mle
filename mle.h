@@ -144,6 +144,7 @@ struct bview_s {
     kmap_node_t* kmap_tail;
     cursor_t* cursors;
     cursor_t* active_cursor;
+    char* last_search;
     int tab_to_space;
     syntax_t* syntax;
     bview_t* next;
@@ -364,6 +365,7 @@ Features
 [ ] customizable bview caption
 
 TODO
+[ ] less mode
 [ ] trap signal and save buffers
 [ ] implement remaining cmd_* functions
 [ ] termbox assertion failure when pasting text

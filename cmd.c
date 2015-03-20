@@ -21,6 +21,7 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut);
 static void _cmd_toggle_sel_bound(cursor_t* cursor);
+static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* term, int term_len);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -238,11 +239,35 @@ int cmd_remove_extra_cursors(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Search for a term
 int cmd_search(cmd_context_t* ctx) {
+    char* term;
+    int term_len;
+    mark_t* search_mark;
+    editor_prompt(ctx->editor, "cmd_search", "Term?", NULL, 0, NULL, &term);
+    if (!term) return MLE_OK;
+    term_len = strlen(term);
+    search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        _cmd_search_next(ctx->bview, cursor, search_mark, term, term_len);
+    );
+    mark_destroy(search_mark);
+    if (ctx->bview->last_search) free(ctx->bview->last_search);
+    ctx->bview->last_search = term;
     return MLE_OK;
 }
 
+// Search for next instance
 int cmd_search_next(cmd_context_t* ctx) {
+    int term_len;
+    mark_t* search_mark;
+    if (!ctx->bview->last_search) return MLE_OK;
+    term_len = strlen(ctx->bview->last_search);
+    search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        _cmd_search_next(ctx->bview, cursor, search_mark, ctx->bview->last_search, term_len);
+    );
+    mark_destroy(search_mark);
     return MLE_OK;
 }
 
@@ -476,3 +501,33 @@ static void _cmd_toggle_sel_bound(cursor_t* cursor) {
         cursor->is_sel_bound_anchored = 0;
     }
 }
+
+// Move cursor to next occurrence of term, wrap if necessary. Return 1 if
+// there was a match, or 0 if no match.
+static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* term, int term_len) {
+    int rc;
+    rc = 0;
+
+    // Move search_mark to cursor
+    mark_join(search_mark, cursor->mark);
+    // Look for match ahead of us
+    if (mark_move_next_re(search_mark, term, term_len) == MLBUF_OK) {
+        // Match! Move there
+        mark_join(cursor->mark, search_mark);
+        rc = 1;
+    } else {
+        // No match, try from beginning
+        mark_move_beginning(search_mark);
+        if (mark_move_next_re(search_mark, term, term_len) == MLBUF_OK) {
+            // Match! Move there
+            mark_join(cursor->mark, search_mark);
+            rc =1;
+        }
+    }
+
+    // Rectify viewport if needed
+    if (rc) bview_rectify_viewport(bview);
+
+    return rc;
+}
+

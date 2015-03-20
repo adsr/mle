@@ -441,6 +441,11 @@ static void _bview_deinit(bview_t* self) {
             buffer_destroy(self->buffer);
         }
     }
+
+    // Free last_search
+    if (self->last_search) {
+        free(self->last_search);
+    }
 }
 
 static void _bview_set_syntax(bview_t* self) {
