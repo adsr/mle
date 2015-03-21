@@ -299,6 +299,9 @@ int util_file_exists(char* path, int path_len);
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 
+// Globals
+extern editor_t _editor;
+
 // Macros
 #define MLE_VERSION "0.1"
 

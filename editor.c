@@ -16,6 +16,8 @@ static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_record_macro_input(editor_t* editor, kinput_t* input);
 static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input);
 static int _editor_key_to_input(char* key, kinput_t* ret_input);
+static void _editor_init_signal_handlers(editor_t* editor);
+static void _editor_graceful_exit(int signum);
 static void _editor_init_kmaps(editor_t* editor);
 static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t default_func, int allow_fallthru, kmap_def_t* defs);
 static void _editor_init_syntaxes(editor_t* editor);
@@ -43,7 +45,14 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     editor->viewport_scope_y = -4;
     editor->startup_linenum = -1;
     editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
+
+    // Init signal handlers
+    _editor_init_signal_handlers(editor);
+
+    // Init kmaps
     _editor_init_kmaps(editor);
+
+    // Init syntaxes
     _editor_init_syntaxes(editor);
 
     // Parse cli args
@@ -70,7 +79,6 @@ int editor_run(editor_t* editor) {
 
 // Deinit editor
 int editor_deinit(editor_t* editor) {
-    // TODO free stuff
     bview_t* bview;
     bview_t* tmp;
     bview_destroy(editor->status);
@@ -528,6 +536,34 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
     }
     *ret_input = (kinput_t){ mod, ch, 0 };
     return MLE_OK;
+}
+
+// Init signal handlers
+static void _editor_init_signal_handlers(editor_t* editor) {
+    struct sigaction action;
+    memset(&action, 0, sizeof(struct sigaction));
+    action.sa_handler = _editor_graceful_exit;
+    sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGQUIT, &action, NULL);
+    sigaction(SIGSTOP, &action, NULL);
+    sigaction(SIGHUP, &action, NULL);
+}
+
+// Gracefully exit
+static void _editor_graceful_exit(int signum) {
+    bview_t* bview;
+    char path[64];
+    int bview_num;
+    bview_num = 0;
+    tb_shutdown();
+    DL_FOREACH(_editor.bviews, bview) {
+        snprintf((char*)&path, 64, "mle.bak.%d.%d", getpid(), bview_num);
+        buffer_save_as(bview->buffer, path, strlen(path));
+        bview_num += 1;
+    }
+    editor_deinit(&_editor);
+    exit(1);
 }
 
 // Init built-in kmaps
