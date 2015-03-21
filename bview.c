@@ -597,6 +597,7 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     int char_w;
     bint_t viewport_x;
     bint_t viewport_x_vcol;
+    int i;
 
     // Use viewport_x only for current line
     viewport_x = 0;
@@ -639,9 +640,9 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             bg = 0;
             char_w = 1;
         }
-        //for (i = 0; i < char_w && rect_x < self->rect_buffer.w; i++, rect_x++) {
-            tb_change_cell(self->rect_buffer.x + rect_x, self->rect_buffer.y + rect_y, ch, fg, bg);
-        //}
+        for (i = 0; i < char_w && rect_x < self->rect_buffer.w; i++) {
+            tb_change_cell(self->rect_buffer.x + rect_x + i, self->rect_buffer.y + rect_y, ch, fg, bg);
+        }
         rect_x += char_w;
     }
 }
