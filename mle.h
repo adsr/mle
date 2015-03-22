@@ -23,7 +23,7 @@ typedef struct kbinding_def_s kbinding_def_t; // A definition of a keymap
 typedef struct kbinding_s kbinding_t; // A single binding in a keymap
 typedef struct syntax_s syntax_t; // A syntax definition
 typedef struct syntax_node_s syntax_node_t; // A node in a linked list of syntaxes
-typedef struct syntax_def_s syntax_def_t; // A definition of a syntax
+typedef struct srule_def_s srule_def_t; // A definition of a syntax
 typedef struct srule_node_s srule_node_t; // A node in a linked list of srules
 typedef struct tb_event tb_event_t; // A termbox event
 
@@ -69,6 +69,7 @@ struct editor_s {
     size_t macro_apply_input_index;
     int is_recording_macro;
     cmd_funcref_t* func_map;
+    char* kmap_init;
     kmap_t* kmap_map;
     kmap_t* kmap_normal;
     kmap_t* kmap_prompt_input;
@@ -83,10 +84,11 @@ struct editor_s {
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     bint_t startup_linenum;
+    int is_in_init;
 };
 
-// syntax_def_t
-struct syntax_def_s {
+// srule_def_t
+struct srule_def_s {
     char* re;
     char* re_end;
     uint16_t fg;
@@ -308,6 +310,7 @@ int cmd_quit(cmd_context_t* ctx);
 
 // util functions
 int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
+int util_pcre_match(char* subject, char* re);
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 

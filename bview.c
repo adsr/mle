@@ -448,23 +448,40 @@ static void _bview_deinit(bview_t* self) {
     }
 }
 
+// Set syntax on bview buffer
 static void _bview_set_syntax(bview_t* self) {
-    // TODO set by self->buffer->path pattern
     syntax_t* syntax;
     syntax_t* syntax_tmp;
+    syntax_t* use_syntax;
     srule_node_t* srule_node;
+
+    // Only set syntax on edit bviews
     if (!MLE_BVIEW_IS_EDIT(self)) {
         return;
     }
-    buffer_set_styles_enabled(self->buffer, 0);
-    HASH_ITER(hh, self->editor->syntax_map, syntax, syntax_tmp) {
-        self->syntax = syntax;
-        DL_FOREACH(syntax->srules, srule_node) {
+
+    use_syntax = NULL;
+    if (self->editor->is_in_init && self->editor->syntax_override) {
+        // Set by override
+        HASH_FIND_STR(self->editor->syntax_map, self->editor->syntax_override, use_syntax);
+    } else if (self->buffer->path) {
+        // Set by path
+        HASH_ITER(hh, self->editor->syntax_map, syntax, syntax_tmp) {
+            if (util_pcre_match(self->buffer->path, syntax->path_pattern)) {
+                use_syntax = syntax;
+                break;
+            }
+        }
+    }
+
+    // Set syntax if found
+    if (use_syntax) {
+        buffer_set_styles_enabled(self->buffer, 0);
+        DL_FOREACH(use_syntax->srules, srule_node) {
             buffer_add_srule(self->buffer, srule_node->srule);
         }
-        break;
+        buffer_set_styles_enabled(self->buffer, 1);
     }
-    buffer_set_styles_enabled(self->buffer, 1);
 }
 
 // Open a buffer with an optional path to load, otherwise empty

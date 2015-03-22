@@ -6,10 +6,18 @@
 #include "mle.h"
 #include "mlbuf.h"
 
+static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle);
+static int _editor_bview_edit_count_inner(bview_t* bview);
+static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
+static int _editor_prompt_input_submit(cmd_context_t* ctx);
+static int _editor_prompt_yn_yes(cmd_context_t* ctx);
+static int _editor_prompt_yn_no(cmd_context_t* ctx);
+static int _editor_prompt_cancel(cmd_context_t* ctx);
 static void _editor_startup(editor_t* editor);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
 static void _editor_resize(editor_t* editor, int w, int h);
+static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
 static void _editor_display(editor_t* editor);
 static void _editor_get_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
@@ -21,25 +29,20 @@ static void _editor_init_signal_handlers(editor_t* editor);
 static void _editor_graceful_exit(int signum);
 static void _editor_init_kmaps(editor_t* editor);
 static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, cmd_funcref_t default_funcref, int allow_fallthru, kbinding_def_t* defs);
-static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* str);
 static void _editor_init_kmap_add_binding(kmap_t* kmap, kbinding_def_t def);
+static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* str);
 static int _editor_init_kmap_add_binding_by_str(kmap_t* kmap, char* str);
+static void _editor_destroy_kmap(kmap_t* kmap);
 static void _editor_init_syntaxes(editor_t* editor);
-static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern, syntax_def_t* defs);
+static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, srule_def_t* defs);
+static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str);
+static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def);
+static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str);
+static void _editor_destroy_syntax_map(syntax_t* map);
 static void _editor_init_from_rc(editor_t* editor, FILE* rc);
 static void _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
-static int _editor_prompt_input_submit(cmd_context_t* ctx);
-static int _editor_prompt_yn_yes(cmd_context_t* ctx);
-static int _editor_prompt_yn_no(cmd_context_t* ctx);
-static int _editor_prompt_cancel(cmd_context_t* ctx);
-static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
-static void _editor_destroy_kmap(kmap_t* kmap);
-static void _editor_destroy_syntax_map(syntax_t* map);
-static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
-static int _editor_bview_edit_count_inner(bview_t* bview);
-static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -47,6 +50,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     char *home_rc;
 
     // Set editor defaults
+    editor->is_in_init = 1;
     editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
     editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
     editor->viewport_scope_x = -4;
@@ -85,6 +89,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     // Init bviews
     _editor_init_bviews(editor, argc, argv);
 
+    editor->is_in_init = 0;
     return MLE_OK;
 }
 
@@ -122,7 +127,6 @@ int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_dat
     loop_context_t loop_ctx;
 
     // Disallow nested prompts
-    // TODO nested prompts?
     if (editor->prompt) {
         if (optret_answer) *optret_answer = NULL;
         return MLE_ERR;
@@ -157,7 +161,7 @@ int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_dat
     }
 
     // Restore previous focus
-    editor_close_bview(editor, editor->prompt); // TODO nested prompts / editor->prompt as LL
+    editor_close_bview(editor, editor->prompt);
     editor_set_active(editor, loop_ctx.invoker);
     editor->prompt = NULL;
 
@@ -351,8 +355,6 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
             cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
             cmd_fn(&cmd_ctx);
-        } else {
-            // TODO log error
         }
     }
 }
@@ -602,7 +604,7 @@ static void _editor_graceful_exit(int signum) {
 
 // Init built-in kmaps
 static void _editor_init_kmaps(editor_t* editor) {
-    _editor_init_kmap(editor, &editor->kmap_normal, "normal", MLE_FUNCREF(cmd_insert_data), 0, (kbinding_def_t[]){
+    _editor_init_kmap(editor, &editor->kmap_normal, "mle_normal", MLE_FUNCREF(cmd_insert_data), 0, (kbinding_def_t[]){
         MLE_KBINDING_DEF(cmd_insert_tab, "tab"),
         MLE_KBINDING_DEF(cmd_insert_newline, "enter"),
         MLE_KBINDING_DEF(cmd_delete_before, "backspace"),
@@ -649,27 +651,25 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_quit, "C-x"),
         MLE_KBINDING_DEF(NULL, "")
     });
-    _editor_init_kmap(editor, &editor->kmap_prompt_input, "prompt_input", MLE_FUNCREF(NULL), 1, (kbinding_def_t[]){
+    _editor_init_kmap(editor, &editor->kmap_prompt_input, "mle_prompt_input", MLE_FUNCREF(NULL), 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_prompt_input_submit, "enter"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(NULL, "")
     });
-    _editor_init_kmap(editor, &editor->kmap_prompt_yn, "prompt_yn", MLE_FUNCREF(NULL), 0, (kbinding_def_t[]){
+    _editor_init_kmap(editor, &editor->kmap_prompt_yn, "mle_prompt_yn", MLE_FUNCREF(NULL), 0, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_prompt_yn_yes, "y"),
         MLE_KBINDING_DEF(_editor_prompt_yn_no, "n"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(NULL, "")
     });
-    _editor_init_kmap(editor, &editor->kmap_prompt_ok, "prompt_ok", MLE_FUNCREF(_editor_prompt_cancel), 0, (kbinding_def_t[]){
+    _editor_init_kmap(editor, &editor->kmap_prompt_ok, "mle_prompt_ok", MLE_FUNCREF(_editor_prompt_cancel), 0, (kbinding_def_t[]){
         MLE_KBINDING_DEF(NULL, "")
     });
-    // TODO
 }
 
 // Init a single kmap
 static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, cmd_funcref_t default_funcref, int allow_fallthru, kbinding_def_t* defs) {
     kmap_t* kmap;
-    kbinding_t* binding;
 
     kmap = calloc(1, sizeof(kmap_t));
     snprintf(kmap->name, MLE_KMAP_NAME_MAX_LEN, "%s", name);
@@ -737,7 +737,8 @@ static void _editor_destroy_kmap(kmap_t* kmap) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, "generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (syntax_def_t[]){
+    /*
+    _editor_init_syntax(editor, NULL, "mle_generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
@@ -779,29 +780,58 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "\\s+$", NULL, TB_DEFAULT, TB_GREEN },
         { NULL, NULL, 0, 0 }
     });
+    */
 }
 
 // Init a single syntax
-static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern, syntax_def_t* defs) {
+static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, srule_def_t* defs) {
     syntax_t* syntax;
-    srule_node_t* node;
 
     syntax = calloc(1, sizeof(syntax_t));
     snprintf(syntax->name, MLE_SYNTAX_NAME_MAX_LEN, "%s", name);
     syntax->path_pattern = path_pattern;
 
     while (defs && defs->re) {
-        node = calloc(1, sizeof(srule_node_t));
-        if (defs->re_end) {
-            node->srule = srule_new_multi(defs->re, strlen(defs->re), defs->re_end, strlen(defs->re_end), defs->fg, defs->bg);
-        } else {
-            node->srule = srule_new_single(defs->re, strlen(defs->re), defs->fg, defs->bg);
-        }
-        DL_APPEND(syntax->srules, node);
+        _editor_init_syntax_add_rule(syntax, *defs);
         defs++;
     }
-
     HASH_ADD_STR(editor->syntax_map, name, syntax);
+
+    if (optret_syntax) *optret_syntax = syntax;
+}
+
+// Proxy for _editor_init_syntax with str in format '<name>,<path_pattern>'
+static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str) {
+    char* args[2];
+    args[0] = strtok(str,  ","); if (!args[0]) return MLE_ERR;
+    args[1] = strtok(NULL, ","); if (!args[1]) return MLE_ERR;
+    _editor_init_syntax(editor, ret_syntax, args[0], args[1], NULL);
+    return MLE_OK;
+}
+
+// Add rule to syntax
+static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def) {
+    srule_node_t* node;
+    node = calloc(1, sizeof(srule_node_t));
+    if (def.re_end) {
+        node->srule = srule_new_multi(def.re, strlen(def.re), def.re_end, strlen(def.re_end), def.fg, def.bg);
+    } else {
+        node->srule = srule_new_single(def.re, strlen(def.re), def.fg, def.bg);
+    }
+    DL_APPEND(syntax->srules, node);
+}
+
+// Proxy for _editor_init_syntax_add_rule with str in format '<start>,<end>,<fg>,<bg>' or '<regex>,<fg>,<bg>'
+static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str) {
+    char* args[4];
+    int style_i;
+    args[0] = strtok(str,  ","); if (!args[0]) return MLE_ERR;
+    args[1] = strtok(NULL, ","); if (!args[1]) return MLE_ERR;
+    args[2] = strtok(NULL, ","); if (!args[2]) return MLE_ERR;
+    args[3] = strtok(NULL, ",");
+    style_i = args[3] ? 2 : 1;
+    _editor_init_syntax_add_rule(syntax, (srule_def_t){ args[0], style_i == 2 ? args[1] : NULL, atoi(args[style_i]), atoi(args[style_i + 1]) });
+    return MLE_OK;
 }
 
 // Destroy a syntax
@@ -836,7 +866,7 @@ static void _editor_init_from_rc(editor_t* editor, FILE* rc) {
     size = ftell(rc);
     fseek(rc, 0L, SEEK_SET);
     rc_data = malloc(size + 1);
-    fgets(rc_data, size, rc);
+    fread(rc_data, size, 1, rc);
     rc_data[size] = '\0';
     rc_data_stop = rc_data + size;
 
@@ -882,7 +912,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while ((c = getopt(argc, argv, "haK:k:m:n:S:s:t:vy:")) != -1) {
+    while ((c = getopt(argc, argv, "haK:k:m:n:S:s:t:vx:y:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -892,11 +922,12 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
-                printf("    -n <kmap>    Set normal kmap mode\n");
+                printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
                 printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
+                printf("    -x <script>  Execute user script\n");
                 printf("    -y <syntax>  Set override syntax for files opened at start up\n\n");
                 printf("    file         At start up, open file\n");
                 printf("    file:line    At start up, open file at line\n");
@@ -923,6 +954,21 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
             case 'm':
                 if (editor_set_macro_toggle_key(editor, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not set macro key to: %s\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'n':
+                editor->kmap_init = optarg;
+                break;
+            case 'S':
+                if (_editor_init_syntax_by_str(editor, &cur_syntax, optarg) != MLE_OK) {
+                    MLE_LOG_ERR("Could not init syntax by str: %s\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 's':
+                if (!cur_syntax || _editor_init_syntax_add_rule_by_str(cur_syntax, optarg) != MLE_OK) {
+                    MLE_LOG_ERR("Could not add style rule to syntax %p by str: %s\n", cur_syntax, optarg);
                     exit(EXIT_FAILURE);
                 }
                 break;
