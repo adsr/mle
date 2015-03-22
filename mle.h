@@ -177,6 +177,7 @@ struct kmacro_s {
 
 // cmd_funcref_t
 struct cmd_funcref_s {
+#define MLE_FUNCREF(pcmdfn) (cmd_funcref_t){ #pcmdfn, (pcmdfn), NULL }
     char* name;
     cmd_func_t func;
     UT_hash_handle hh;
