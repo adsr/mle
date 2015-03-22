@@ -737,7 +737,6 @@ static void _editor_destroy_kmap(kmap_t* kmap) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    /*
     _editor_init_syntax(editor, NULL, "mle_generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
@@ -780,7 +779,6 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "\\s+$", NULL, TB_DEFAULT, TB_GREEN },
         { NULL, NULL, 0, 0 }
     });
-    */
 }
 
 // Init a single syntax
