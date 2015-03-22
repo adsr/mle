@@ -1,9 +1,17 @@
 #include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "mle.h"
 
-int util_file_exists(char* path, int path_len) {
-    // TODO util_file_exists
-    return 0;
+int util_file_exists(char* path, char* opt_mode, FILE** optret_file) {
+    struct stat sb;
+    if (stat(path, &sb) != 0 || !S_ISREG(sb.st_mode)) return 0;
+    if (opt_mode && optret_file) {
+        *optret_file = fopen(path, opt_mode);
+        if (!*optret_file) return 0;
+    }
+    return 1;
 }
 
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str) {

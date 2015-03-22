@@ -14,15 +14,18 @@ static void _editor_display(editor_t* editor);
 static void _editor_get_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_record_macro_input(editor_t* editor, kinput_t* input);
-static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input);
+static cmd_func_t _editor_get_command(editor_t* editor, kinput_t input);
+static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref);
 static int _editor_key_to_input(char* key, kinput_t* ret_input);
 static void _editor_init_signal_handlers(editor_t* editor);
 static void _editor_graceful_exit(int signum);
 static void _editor_init_kmaps(editor_t* editor);
-static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t default_func, int allow_fallthru, kmap_def_t* defs);
+static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, cmd_func_t default_func, int allow_fallthru, kbinding_def_t* defs);
+static void _editor_init_kmap_add_binding(kmap_t* kmap, kbinding_def_t* def);
 static void _editor_init_syntaxes(editor_t* editor);
 static void _editor_init_syntax(editor_t* editor, char* name, char* path_pattern, syntax_def_t* defs);
-static void _editor_init_cli_args(editor_t* editor, int argc, char** argv);
+static void _editor_init_from_rc(editor_t* editor, FILE* rc);
+static void _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 static int _editor_prompt_input_submit(cmd_context_t* ctx);
@@ -38,6 +41,9 @@ static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
+    FILE* rc;
+    char *home_rc;
+
     // Set editor defaults
     editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
     editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
@@ -55,8 +61,21 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     // Init syntaxes
     _editor_init_syntaxes(editor);
 
+    // Parse rc files
+    home_rc = NULL;
+    if (getenv("HOME")) {
+        asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
+        if (util_file_exists(home_rc, "rb", &rc)) {
+            _editor_init_from_rc(editor, rc);
+        }
+        free(home_rc);
+    }
+    if (util_file_exists("/etc/mlerc", "rb", &rc)) {
+        _editor_init_from_rc(editor, rc);
+    }
+
     // Parse cli args
-    _editor_init_cli_args(editor, argc, argv);
+    _editor_init_from_args(editor, argc, argv);
 
     // Init status bar
     _editor_init_status(editor);
@@ -300,7 +319,7 @@ static void _editor_startup(editor_t* editor) {
 // Run editor loop
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
     cmd_context_t cmd_ctx;
-    cmd_function_t cmd_fn;
+    cmd_func_t cmd_fn;
 
     // Init cmd_context
     memset(&cmd_ctx, 0, sizeof(cmd_context_t));
@@ -480,7 +499,7 @@ static void _editor_record_macro_input(editor_t* editor, kinput_t* input) {
 }
 
 // Return command for input
-static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input) {
+static cmd_func_t _editor_get_command(editor_t* editor, kinput_t input) {
     kmap_node_t* kmap_node;
     kbinding_t tmp_binding;
     kbinding_t* binding;
@@ -492,9 +511,9 @@ static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input) {
     while (kmap_node) {
         HASH_FIND(hh, kmap_node->kmap->bindings, &tmp_binding.input, sizeof(kinput_t), binding);
         if (binding) {
-            return binding->func;
-        } else if (kmap_node->kmap->default_func) {
-            return kmap_node->kmap->default_func;
+            return _editor_resolve_funcref(editor, &binding->funcref);
+        } else if (kmap_node->kmap->default_funcref) {
+            return _editor_resolve_funcref(editor, kmap_node->kmap->default_funcref);
         }
         if (kmap_node->kmap->allow_fallthru) {
             kmap_node = kmap_node->prev;
@@ -503,6 +522,18 @@ static cmd_function_t _editor_get_command(editor_t* editor, kinput_t input) {
         }
     }
     return NULL;
+}
+
+// Resolve a funcref to a func
+static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref) {
+    cmd_funcref_t* resolved;
+    if (!ref->func) {
+        HASH_FIND_STR(editor->func_map, ref->name, resolved);
+        if (resolved) {
+            ref->func = resolved->func;
+        }
+    }
+    return ref->func;
 }
 
 // Return a kinput_t given a key name
@@ -546,7 +577,6 @@ static void _editor_init_signal_handlers(editor_t* editor) {
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGQUIT, &action, NULL);
-    sigaction(SIGSTOP, &action, NULL);
     sigaction(SIGHUP, &action, NULL);
 }
 
@@ -568,94 +598,105 @@ static void _editor_graceful_exit(int signum) {
 
 // Init built-in kmaps
 static void _editor_init_kmaps(editor_t* editor) {
-    _editor_init_kmap(&editor->kmap_normal, "normal", cmd_insert_data, 0, (kmap_def_t[]){
-        { cmd_insert_tab, "tab" },
-        { cmd_insert_newline, "enter", },
-        { cmd_delete_before, "backspace" },
-        { cmd_delete_before, "backspace2" },
-        { cmd_delete_after, "delete" },
-        { cmd_move_bol, "C-a" },
-        { cmd_move_bol, "home" },
-        { cmd_move_eol, "C-e" },
-        { cmd_move_eol, "end" },
-        { cmd_move_beginning, "M-\\" },
-        { cmd_move_end, "M-/" },
-        { cmd_move_left, "left" },
-        { cmd_move_right, "right" },
-        { cmd_move_up, "up" },
-        { cmd_move_down, "down" },
-        { cmd_move_page_up, "page-up" },
-        { cmd_move_page_down, "page-down" },
-        { cmd_move_to_line, "M-g" },
-        { cmd_move_word_forward, "M-f" },
-        { cmd_move_word_back, "M-b" },
-        { cmd_toggle_sel_bound, "M-a" },
-        { cmd_drop_sleeping_cursor, "M-h" },
-        { cmd_wake_sleeping_cursors, "M-j" },
-        { cmd_remove_extra_cursors, "M-k" },
-        { cmd_search, "C-f" },
-        { cmd_search_next, "C-j" },
-        { cmd_replace, "M-r" },
-        { cmd_isearch, "C-r" },
-        { cmd_delete_word_before, "C-w" },
-        { cmd_delete_word_after, "M-d" },
-        { cmd_cut, "C-k" },
-        { cmd_copy, "C-c" },
-        { cmd_uncut, "C-u" },
-        { cmd_next, "M-n" },
-        { cmd_prev, "M-p" },
-        { cmd_split_vertical, "M-l" },
-        { cmd_split_horizontal, "M-;" },
-        { cmd_save, "C-o" },
-        { cmd_new, "C-n" },
-        { cmd_new_open, "C-b" },
-        { cmd_replace_new, "C-p" },
-        { cmd_replace_open, "C-l" },
-        { cmd_close, "M-c" },
-        { cmd_quit, "C-x" },
-        { NULL, "" }
+    _editor_init_kmap(editor, &editor->kmap_normal, "normal", cmd_insert_data, 0, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(cmd_insert_tab, "tab"),
+        MLE_KBINDING_DEF(cmd_insert_newline, "enter"),
+        MLE_KBINDING_DEF(cmd_delete_before, "backspace"),
+        MLE_KBINDING_DEF(cmd_delete_before, "backspace2"),
+        MLE_KBINDING_DEF(cmd_delete_after, "delete"),
+        MLE_KBINDING_DEF(cmd_move_bol, "C-a"),
+        MLE_KBINDING_DEF(cmd_move_bol, "home"),
+        MLE_KBINDING_DEF(cmd_move_eol, "C-e"),
+        MLE_KBINDING_DEF(cmd_move_eol, "end"),
+        MLE_KBINDING_DEF(cmd_move_beginning, "M-\\"),
+        MLE_KBINDING_DEF(cmd_move_end, "M-/"),
+        MLE_KBINDING_DEF(cmd_move_left, "left"),
+        MLE_KBINDING_DEF(cmd_move_right, "right"),
+        MLE_KBINDING_DEF(cmd_move_up, "up"),
+        MLE_KBINDING_DEF(cmd_move_down, "down"),
+        MLE_KBINDING_DEF(cmd_move_page_up, "page-up"),
+        MLE_KBINDING_DEF(cmd_move_page_down, "page-down"),
+        MLE_KBINDING_DEF(cmd_move_to_line, "M-g"),
+        MLE_KBINDING_DEF(cmd_move_word_forward, "M-f"),
+        MLE_KBINDING_DEF(cmd_move_word_back, "M-b"),
+        MLE_KBINDING_DEF(cmd_toggle_sel_bound, "M-a"),
+        MLE_KBINDING_DEF(cmd_drop_sleeping_cursor, "M-h"),
+        MLE_KBINDING_DEF(cmd_wake_sleeping_cursors, "M-j"),
+        MLE_KBINDING_DEF(cmd_remove_extra_cursors, "M-k"),
+        MLE_KBINDING_DEF(cmd_search, "C-f"),
+        MLE_KBINDING_DEF(cmd_search_next, "C-j"),
+        MLE_KBINDING_DEF(cmd_replace, "M-r"),
+        MLE_KBINDING_DEF(cmd_isearch, "C-r"),
+        MLE_KBINDING_DEF(cmd_delete_word_before, "C-w"),
+        MLE_KBINDING_DEF(cmd_delete_word_after, "M-d"),
+        MLE_KBINDING_DEF(cmd_cut, "C-k"),
+        MLE_KBINDING_DEF(cmd_copy, "C-c"),
+        MLE_KBINDING_DEF(cmd_uncut, "C-u"),
+        MLE_KBINDING_DEF(cmd_next, "M-n"),
+        MLE_KBINDING_DEF(cmd_prev, "M-p"),
+        MLE_KBINDING_DEF(cmd_split_vertical, "M-l"),
+        MLE_KBINDING_DEF(cmd_split_horizontal, "M-;"),
+        MLE_KBINDING_DEF(cmd_save, "C-o"),
+        MLE_KBINDING_DEF(cmd_new, "C-n"),
+        MLE_KBINDING_DEF(cmd_new_open, "C-b"),
+        MLE_KBINDING_DEF(cmd_replace_new, "C-p"),
+        MLE_KBINDING_DEF(cmd_replace_open, "C-l"),
+        MLE_KBINDING_DEF(cmd_close, "M-c"),
+        MLE_KBINDING_DEF(cmd_quit, "C-x"),
+        MLE_KBINDING_DEF(NULL, "")
     });
-    _editor_init_kmap(&editor->kmap_prompt_input, "prompt_input", NULL, 1, (kmap_def_t[]){
-        { _editor_prompt_input_submit, "enter" },
-        { _editor_prompt_cancel, "C-c" },
-        { NULL, "" }
+    _editor_init_kmap(editor, &editor->kmap_prompt_input, "prompt_input", NULL, 1, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(_editor_prompt_input_submit, "enter"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
+        MLE_KBINDING_DEF(NULL, "")
     });
-    _editor_init_kmap(&editor->kmap_prompt_yn, "prompt_yn", NULL, 0, (kmap_def_t[]){
-        { _editor_prompt_yn_yes, "y" },
-        { _editor_prompt_yn_no, "n" },
-        { _editor_prompt_cancel, "C-c" },
-        { NULL, "" }
+    _editor_init_kmap(editor, &editor->kmap_prompt_yn, "prompt_yn", NULL, 0, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(_editor_prompt_yn_yes, "y"),
+        MLE_KBINDING_DEF(_editor_prompt_yn_no, "n"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
+        MLE_KBINDING_DEF(NULL, "")
     });
-    _editor_init_kmap(&editor->kmap_prompt_ok, "prompt_ok", _editor_prompt_cancel, 0, (kmap_def_t[]){
-        { NULL, "" }
+    _editor_init_kmap(editor, &editor->kmap_prompt_ok, "prompt_ok", _editor_prompt_cancel, 0, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(NULL, "")
     });
     // TODO
 }
 
 // Init a single kmap
-static void _editor_init_kmap(kmap_t** ret_kmap, char* name, cmd_function_t default_func, int allow_fallthru, kmap_def_t* defs) {
+static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, cmd_func_t default_func, int allow_fallthru, kbinding_def_t* defs) {
     kmap_t* kmap;
     kbinding_t* binding;
 
     kmap = calloc(1, sizeof(kmap_t));
     snprintf(kmap->name, MLE_KMAP_NAME_MAX_LEN, "%s", name);
     kmap->allow_fallthru = allow_fallthru;
-    kmap->default_func = default_func;
+    if (default_func) {
+        kmap->default_funcref = malloc(sizeof(cmd_funcref_t));
+        kmap->default_funcref->func = default_func;
+    }
 
-    while (defs && defs->func) {
-        binding = calloc(1, sizeof(kbinding_t));
-        binding->func = defs->func;
-        if (_editor_key_to_input(defs->key, &binding->input) != MLE_OK) {
-            // TODO log error
-            free(binding);
-            defs++;
-            continue;
-        }
-        HASH_ADD(hh, kmap->bindings, input, sizeof(kinput_t), binding);
+    while (defs && defs->funcref.func) {
+        _editor_init_kmap_add_binding(kmap, defs);
         defs++;
     }
 
+    HASH_ADD_KEYPTR(hh, editor->kmap_map, name, strlen(name), kmap);
     *ret_kmap = kmap;
+}
+
+// Add a binding to a kmap
+static void _editor_init_kmap_add_binding(kmap_t* kmap, kbinding_def_t* def) {
+    kbinding_t* binding;
+
+    binding = calloc(1, sizeof(kbinding_t));
+    binding->funcref = def->funcref;
+
+    if (_editor_key_to_input(def->key, &binding->input) != MLE_OK) {
+        free(binding);
+        return;
+    }
+
+    HASH_ADD(hh, kmap->bindings, input, sizeof(kinput_t), binding);
 }
 
 // Destroy a kmap
@@ -755,34 +796,108 @@ static void _editor_destroy_syntax_map(syntax_t* map) {
     }
 }
 
+// Parse rc file
+static void _editor_init_from_rc(editor_t* editor, FILE* rc) {
+    long size;
+    char *rc_data;
+    char *rc_data_stop;
+    char* eol;
+    char* bol;
+    int fargc;
+    char** fargv;
+
+    // Read all from rc
+    fseek(rc, 0L, SEEK_END);
+    size = ftell(rc);
+    fseek(rc, 0L, SEEK_SET);
+    rc_data = malloc(size + 1);
+    fgets(rc_data, size, rc);
+    rc_data[size] = '\0';
+    rc_data_stop = rc_data + size;
+
+    // Make fargc, fargv
+    int i;
+    fargv = NULL;
+    for (i = 0; i < 2; i++) {
+        bol = rc_data;
+        fargc = 1;
+        while (bol < rc_data_stop) {
+            eol = strchr(bol, '\n');
+            if (!eol) eol = rc_data_stop - 1;
+            if (fargv) {
+                *eol = '\0';
+                fargv[fargc] = bol;
+            }
+            fargc += 1;
+            bol = eol + 1;
+        }
+        if (!fargv) {
+            if (fargc < 2) break;
+            fargv = malloc((fargc + 1) * sizeof(char*));
+            fargv[0] = "mle";
+            fargv[fargc] = NULL;
+        }
+    }
+
+    // Parse args
+    if (fargv) {
+        _editor_init_from_args(editor, fargc, fargv);
+        free(fargv);
+    }
+
+    free(rc_data);
+}
+
 // Parse cli args
-static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
+static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
+    kmap_t* cur_kmap;
+    syntax_t* cur_syntax;
     int c;
-    while ((c = getopt(argc, argv, "hAms:t:v")) != -1) {
+
+    cur_kmap = NULL;
+    cur_syntax = NULL;
+    optind = 0;
+    while ((c = getopt(argc, argv, "haK:k:m:n:S:s:t:vy:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
-                printf("Usage: mle [options] [file]...\n\n");
-                printf("    -A           Allow tabs (disable tab-to-space)\n");
+                printf("Usage: mle [options] [file:line]...\n\n");
                 printf("    -h           Show this message\n");
-                printf("    -m <key>     Set macro toggle key (default: C-x)\n");
-                printf("    -s <syntax>  Specify override syntax\n");
+                printf("    -a           Allow tabs (disable tab-to-space)\n");
+                printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
+                printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
+                printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
+                printf("    -n <kmap>    Set normal kmap mode\n");
+                printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
+                printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
+                printf("    -y <syntax>  Set override syntax for files opened at start up\n\n");
                 printf("    file         At start up, open file\n");
                 printf("    file:line    At start up, open file at line\n");
+                printf("    kdef         '<name>,<default_cmd>,<allow_fallthru>'\n");
+                printf("    kbind        '<cmd>,<key>'\n");
+                printf("    syndef       '<name>,<path_pattern>'\n");
+                printf("    synrule      '<start>,<end>,<fg>,<bg>'\n");
                 exit(EXIT_SUCCESS);
-            case 'A':
+            case 'a':
                 editor->tab_to_space = 0;
                 break;
+/*
+            case 'K':
+                if (cur_kmap) save;
+                cur_kmap = optarg;
+                break;
+            case 'k':
+                if (!cur_kmap) err
+                cur_kmap[] = optarg
+                break;
+*/
             case 'm':
                 if (editor_set_macro_toggle_key(editor, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not set macro key to %s\n", optarg);
                     exit(EXIT_FAILURE);
                 }
-                break;
-            case 's':
-                editor->syntax_override = optarg;
                 break;
             case 't':
                 editor->tab_width = atoi(optarg);
@@ -790,6 +905,11 @@ static void _editor_init_cli_args(editor_t* editor, int argc, char** argv) {
             case 'v':
                 printf("mle version %s\n", MLE_VERSION);
                 exit(EXIT_SUCCESS);
+            case 'y':
+                editor->syntax_override = optarg;
+                break;
+            default:
+                exit(EXIT_FAILURE);
         }
     }
 }
@@ -818,8 +938,7 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
         // Open files
         for (i = optind; i < argc; i++) {
             path = argv[i];
-            path_len = strlen(argv[i]);
-            if (util_file_exists(path, path_len)) {
+            if (util_file_exists(path, NULL, NULL)) {
                 editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, &editor->rect_edit, NULL, NULL);
             } else if ((colon = strrchr(path, ':')) != NULL) {
                 path_len = colon - path;

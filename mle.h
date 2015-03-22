@@ -13,12 +13,13 @@ typedef struct bview_rect_s bview_rect_t; // A rectangle in bview with a default
 typedef struct cursor_s cursor_t; // A cursor (insertion mark + selection bound mark) in a buffer
 typedef struct loop_context_s loop_context_t; // Context for a single _editor_loop
 typedef struct cmd_context_s cmd_context_t; // Context for a single command invocation
-typedef int (*cmd_function_t)(cmd_context_t* ctx); // A command function
+typedef int (*cmd_func_t)(cmd_context_t* ctx); // A command function
+typedef struct cmd_funcref_s cmd_funcref_t; // A reference to a command function
 typedef struct kinput_s kinput_t; // A single key input (similar to a tb_event from termbox)
 typedef struct kmacro_s kmacro_t; // A sequence of kinputs and a name
 typedef struct kmap_s kmap_t; // A map of keychords to functions
 typedef struct kmap_node_s kmap_node_t; // A node in a list of keymaps
-typedef struct kmap_def_s kmap_def_t; // A definition of a keymap
+typedef struct kbinding_def_s kbinding_def_t; // A definition of a keymap
 typedef struct kbinding_s kbinding_t; // A single binding in a keymap
 typedef struct syntax_s syntax_t; // A syntax definition
 typedef struct syntax_node_s syntax_node_t; // A node in a linked list of syntaxes
@@ -67,13 +68,14 @@ struct editor_s {
     kmacro_t* macro_apply;
     size_t macro_apply_input_index;
     int is_recording_macro;
+    cmd_funcref_t* func_map;
+    kmap_t* kmap_map;
     kmap_t* kmap_normal;
     kmap_t* kmap_prompt_input;
     kmap_t* kmap_prompt_yn;
     kmap_t* kmap_prompt_ok;
     kmap_t* kmap_less;
     kmap_t* kmap_isearch;
-    kmap_t* kmap_fsearch;
     char* syntax_override;
     int tab_width;
     int tab_to_space;
@@ -173,10 +175,17 @@ struct kmacro_s {
     UT_hash_handle hh;
 };
 
+// cmd_funcref_t
+struct cmd_funcref_s {
+    char* name;
+    cmd_func_t func;
+    UT_hash_handle hh;
+};
+
 // kbinding_t
 struct kbinding_s {
     kinput_t input;
-    cmd_function_t func;
+    cmd_funcref_t funcref;
     UT_hash_handle hh;
 };
 
@@ -188,9 +197,10 @@ struct kmap_node_s {
     kmap_node_t* prev;
 };
 
-// kmap_def_t
-struct kmap_def_s {
-    cmd_function_t func;
+// kbinding_def_t
+struct kbinding_def_s {
+#define MLE_KBINDING_DEF(pcmdfn, pkey) { { #pcmdfn, (pcmdfn), NULL }, (pkey) }
+    cmd_funcref_t funcref;
     char* key;
 };
 
@@ -200,7 +210,8 @@ struct kmap_s {
     char name[MLE_KMAP_NAME_MAX_LEN + 1];
     kbinding_t* bindings;
     int allow_fallthru;
-    cmd_function_t default_func;
+    cmd_funcref_t* default_funcref;
+    UT_hash_handle hh;
 };
 
 // cmd_context_t
@@ -295,7 +306,7 @@ int cmd_replace_open(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 
 // util functions
-int util_file_exists(char* path, int path_len);
+int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 
