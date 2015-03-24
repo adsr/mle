@@ -477,6 +477,21 @@ int cmd_quit(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Apply a macro
+int cmd_apply_macro(cmd_context_t* ctx) {
+    char* name;
+    kmacro_t* macro;
+    if (ctx->editor->macro_apply) return MLE_ERR;
+    editor_prompt(ctx->editor, "cmd_move_to_line", "Apply macro name?", NULL, 0, NULL, &name);
+    if (!name) return MLE_OK;
+    HASH_FIND_STR(ctx->editor->macro_map, name, macro);
+    free(name);
+    if (!macro) return MLE_ERR;
+    ctx->editor->macro_apply = macro;
+    ctx->editor->macro_apply_input_index = 0;
+    return MLE_OK;
+}
+
 // Recursively close bviews, prompting to save unsaved changes.  Return 1 if
 // it's OK to continue closing, or 0 if the action was cancelled.
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
@@ -597,4 +612,3 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
 
     return rc;
 }
-

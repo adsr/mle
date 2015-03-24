@@ -21,7 +21,7 @@ static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
 static void _editor_display(editor_t* editor);
 static void _editor_get_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
-static void _editor_record_macro_input(editor_t* editor, kinput_t* input);
+static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input);
 static cmd_func_t _editor_get_command(editor_t* editor, kinput_t input);
 static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref);
 static int _editor_key_to_input(char* key, kinput_t* ret_input);
@@ -33,6 +33,7 @@ static void _editor_init_kmap_add_binding(kmap_t* kmap, kbinding_def_t def);
 static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* str);
 static int _editor_init_kmap_add_binding_by_str(kmap_t* kmap, char* str);
 static void _editor_destroy_kmap(kmap_t* kmap);
+static int _editor_add_macro_by_str(editor_t* editor, char* str);
 static void _editor_init_syntaxes(editor_t* editor);
 static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, srule_def_t* defs);
 static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str);
@@ -109,6 +110,8 @@ int editor_deinit(editor_t* editor) {
     bview_t* bview_tmp;
     kmap_t* kmap;
     kmap_t* kmap_tmp;
+    kmacro_t* macro;
+    kmacro_t* macro_tmp;
     bview_destroy(editor->status);
     DL_FOREACH_SAFE(editor->bviews, bview, bview_tmp) {
         DL_DELETE(editor->bviews, bview);
@@ -117,6 +120,15 @@ int editor_deinit(editor_t* editor) {
     HASH_ITER(hh, editor->kmap_map, kmap, kmap_tmp) {
         HASH_DEL(editor->kmap_map, kmap);
         _editor_destroy_kmap(kmap);
+    }
+    HASH_ITER(hh, editor->macro_map, macro, macro_tmp) {
+        HASH_DEL(editor->macro_map, macro);
+        if (macro->inputs) free(macro->inputs);
+        free(macro);
+    }
+    if (editor->macro_record) {
+        if (editor->macro_record->inputs) free(editor->macro_record->inputs);
+        free(editor->macro_record);
     }
     _editor_destroy_syntax_map(editor->syntax_map);
     return MLE_OK;
@@ -346,7 +358,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         _editor_get_input(editor, &cmd_ctx.input);
 
         // Toggle macro?
-        if (_editor_maybe_toggle_macro(editor, &cmd_ctx.input) == 1) {
+        if (_editor_maybe_toggle_macro(editor, &cmd_ctx.input)) {
             continue;
         }
 
@@ -359,23 +371,32 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
     }
 }
 
-// If input == editor->macro_toggle_key, toggle macro mode and return 1
+// If input == editor->macro_toggle_key, toggle macro mode and return 1. Else
+// return 0.
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
-    if (memcmp(input, &editor->macro_toggle_key, sizeof(kinput_t)) == 0) {
-        if (editor->is_recording_macro) {
-            // Stop recording macro and add to map
-            HASH_ADD(hh, editor->macro_map, key, sizeof(kinput_t), editor->macro_record);
-            editor->macro_record = NULL;
-            editor->is_recording_macro = 0;
-        } else {
-            // Get macro_key and start recording
-            editor->macro_record = calloc(1, sizeof(kmacro_t));
-            _editor_get_input(editor, &editor->macro_record->key);
-            editor->is_recording_macro = 1;
-        }
-        return 1;
+    char* name;
+    if (memcmp(input, &editor->macro_toggle_key, sizeof(kinput_t)) != 0) {
+        return 0;
     }
-    return 0;
+    if (editor->is_recording_macro) {
+        // Stop recording macro and add to map
+        if (editor->macro_record->inputs_len > 0) {
+            // Remove toggle key from macro inputs
+            editor->macro_record->inputs_len -= 1; // TODO This is hacky
+        }
+        HASH_ADD_STR(editor->macro_map, name, editor->macro_record);
+        editor->macro_record = NULL;
+        editor->is_recording_macro = 0;
+    } else {
+        // Get macro name and start recording
+        editor_prompt(editor, "_editor_maybe_toggle_macro", "Macro name?", NULL, 0, NULL, &name);
+        if (!name) return 1;
+        editor->macro_record = calloc(1, sizeof(kmacro_t));
+        snprintf(editor->macro_record->name, MLE_KMAP_NAME_MAX_LEN + 1, "%s", name);
+        free(name);
+        editor->is_recording_macro = 1;
+    }
+    return 1;
 }
 
 // Resize the editor
@@ -462,9 +483,9 @@ static void _editor_get_input(editor_t* editor, kinput_t* ret_input) {
             // Get user input
             _editor_get_user_input(editor, ret_input);
         }
-        if (editor->is_recording_macro) {
+        if (editor->is_recording_macro && editor->macro_record) {
             // Record macro input
-            _editor_record_macro_input(editor, ret_input);
+            _editor_record_macro_input(editor->macro_record, ret_input);
         }
         break;
     }
@@ -489,9 +510,7 @@ static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input) {
 }
 
 // Copy input into macro buffer
-static void _editor_record_macro_input(editor_t* editor, kinput_t* input) {
-    kmacro_t* macro;
-    macro = editor->macro_record;
+static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input) {
     if (!macro->inputs) {
         macro->inputs = calloc(8, sizeof(kinput_t));
         macro->inputs_len = 0;
@@ -507,15 +526,12 @@ static void _editor_record_macro_input(editor_t* editor, kinput_t* input) {
 // Return command for input
 static cmd_func_t _editor_get_command(editor_t* editor, kinput_t input) {
     kmap_node_t* kmap_node;
-    kbinding_t tmp_binding;
     kbinding_t* binding;
 
     kmap_node = editor->active->kmap_tail;
-    memset(&tmp_binding, 0, sizeof(kbinding_t));
-    tmp_binding.input = input;
     binding = NULL;
     while (kmap_node) {
-        HASH_FIND(hh, kmap_node->kmap->bindings, &tmp_binding.input, sizeof(kinput_t), binding);
+        HASH_FIND(hh, kmap_node->kmap->bindings, &input, sizeof(kinput_t), binding);
         if (binding) {
             return _editor_resolve_funcref(editor, &binding->funcref);
         } else if (kmap_node->kmap->default_funcref) {
@@ -548,11 +564,13 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
     int mod;
     uint32_t ch;
     keylen = strlen(key);
+    memset(ret_input, 0, sizeof(kinput_t));
 
     // Check for special key
 #define MLE_KEY_DEF(pckey, pmod, pch, pkey) \
-    } else if (!strncmp((pckey), key, keylen)) { \
-        *ret_input = (kinput_t){ (pmod), 0, (pkey) }; \
+    } else if (keylen == strlen((pckey)) && !strncmp((pckey), key, keylen)) { \
+        ret_input->mod = (pmod); \
+        ret_input->key = (pkey); \
         return MLE_OK;
     if (keylen < 1) {
         MLE_RETURN_ERR("key has length %d\n", keylen);
@@ -571,7 +589,8 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
     if (ch < 1) {
         return MLE_ERR;
     }
-    *ret_input = (kinput_t){ mod, ch, 0 };
+    ret_input->mod = mod;
+    ret_input->ch = ch;
     return MLE_OK;
 }
 
@@ -645,6 +664,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_save, "C-o"),
         MLE_KBINDING_DEF(cmd_new, "C-n"),
         MLE_KBINDING_DEF(cmd_new_open, "C-b"),
+        MLE_KBINDING_DEF(cmd_apply_macro, "C-g"),
         MLE_KBINDING_DEF(cmd_replace_new, "C-p"),
         MLE_KBINDING_DEF(cmd_replace_open, "C-l"),
         MLE_KBINDING_DEF(cmd_close, "M-c"),
@@ -733,6 +753,48 @@ static void _editor_destroy_kmap(kmap_t* kmap) {
     }
     if (kmap->default_funcref) free(kmap->default_funcref);
     free(kmap);
+}
+
+// Add a macro by str with format '<name> <key1> <key2> ... <keyN>'
+static int _editor_add_macro_by_str(editor_t* editor, char* str) {
+    int has_input;
+    char* token;
+    kmacro_t* macro;
+    kinput_t input = { 0, 0, 0 };
+
+    has_input = 0;
+    macro = NULL;
+
+    // Tokenize by space
+    token = strtok(str, " ");
+    while (token) {
+        if (!macro) {
+            // Make macro with <name> on first token
+            macro = calloc(1, sizeof(kmacro_t));
+            snprintf(macro->name, MLE_KMAP_NAME_MAX_LEN + 1, "%s", token);
+        } else {
+            // Parse token as kinput_t
+            if (_editor_key_to_input(token, &input) != MLE_OK) {
+                free(macro);
+                return MLE_ERR;
+            }
+            // Add kinput_t to macro
+            _editor_record_macro_input(macro, &input);
+            has_input = 1;
+        }
+        // Get next token
+        token = strtok(NULL, " ");
+    }
+
+    // Add macro to map if has_input
+    if (has_input) {
+        HASH_ADD_STR(editor->macro_map, name, macro);
+        return MLE_OK;
+    }
+
+    // Fail
+    if (macro) free(macro);
+    return MLE_ERR;
 }
 
 // Init built-in syntax map
@@ -910,7 +972,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while ((c = getopt(argc, argv, "haK:k:m:n:S:s:t:vx:y:")) != -1) {
+    while ((c = getopt(argc, argv, "haK:k:M:m:n:S:s:t:vx:y:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -919,6 +981,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -a           Allow tabs (disable tab-to-space)\n");
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
+                printf("    -M <macro>   Add a macro\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
                 printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
@@ -931,6 +994,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    file:line    At start up, open file at line\n");
                 printf("    kdef         '<name>,<default_cmd>,<allow_fallthru>'\n");
                 printf("    kbind        '<cmd>,<key>'\n");
+                printf("    macro        '<name> <key1> <key2> ... <keyN>'\n");
                 printf("    syndef       '<name>,<path_pattern>'\n");
                 printf("    synrule      '<start>,<end>,<fg>,<bg>'\n");
                 exit(EXIT_SUCCESS);
@@ -946,6 +1010,12 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
             case 'k':
                 if (!cur_kmap || _editor_init_kmap_add_binding_by_str(cur_kmap, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not add key binding to kmap %p by str: %s\n", cur_kmap, optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'M':
+                if (_editor_add_macro_by_str(editor, optarg) != MLE_OK) {
+                    MLE_LOG_ERR("Could not add macro by str: %s\n", optarg);
                     exit(EXIT_FAILURE);
                 }
                 break;

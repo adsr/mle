@@ -170,7 +170,8 @@ struct cursor_s {
 
 // kmacro_t
 struct kmacro_s {
-    kinput_t key;
+#define MLE_KMACRO_NAME_MAX_LEN 16
+    char name[MLE_KMACRO_NAME_MAX_LEN + 1];
     kinput_t* inputs;
     size_t inputs_len;
     size_t inputs_cap;
@@ -283,6 +284,7 @@ int cmd_move_page_down(cmd_context_t* ctx);
 int cmd_move_to_line(cmd_context_t* ctx);
 int cmd_move_word_forward(cmd_context_t* ctx);
 int cmd_move_word_back(cmd_context_t* ctx);
+int cmd_apply_macro(cmd_context_t* ctx);
 int cmd_toggle_sel_bound(cmd_context_t* ctx);
 int cmd_drop_sleeping_cursor(cmd_context_t* ctx);
 int cmd_wake_sleeping_cursors(cmd_context_t* ctx);
@@ -368,27 +370,22 @@ Features
 [x] file:line#(s) to open
 [x] prompts are buffers
 [x] bview splits
-[ ] macros
+[x] macros
 [x] multiple cursors
 [x] command prompt
 [x] cursor selection
-[ ] named marks
-[ ] named registers
-[ ] modes (push/pop kmap on kmap_stack)
+[x] modes (push/pop kmap on kmap_stack)
 [x] cli options
-[ ] rc file
-[ ] soft line wrap, code folding
-[ ] run selection thru cmd
+[x] rc file
 [ ] customizable status
 [ ] customizable bview caption
 
 TODO
+[ ] display error messages / MLE_RETURN_ERR
+[ ] editor_prompt_ok at end of macro record
 [ ] less mode
-[ ] trap signal and save buffers
-[ ] implement remaining cmd_* functions
-[ ] termbox assertion failure when pasting text
-[ ] error messages MLE_RETURN_ERR
 [ ] status bar
+[ ] caption bar
 */
 
 #endif
