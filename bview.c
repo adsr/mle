@@ -14,7 +14,7 @@ static void _bview_set_syntax(bview_t* self);
 static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
 static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
 static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol);
-static int _bview_set_line_num_width(bview_t* self);
+static int _bview_set_linenum_width(bview_t* self);
 
 // Create a new bview
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
@@ -34,8 +34,10 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
     self->path = strndup(opt_path, opt_path_len);
     self->rect_caption.bg = TB_REVERSE; // TODO configurable
     self->rect_lines.fg = TB_YELLOW;
+    self->rect_lines.bg = TB_BLACK;
     self->rect_margin_left.fg = TB_RED;
     self->rect_margin_right.fg = TB_RED;
+    self->rect_buffer.h = 10; // TODO hack to fix _bview_set_linenum_width before bview_resize
     self->tab_to_space = editor->tab_to_space;
     self->viewport_scope_x = editor->viewport_scope_x;
     self->viewport_scope_y = editor->viewport_scope_y;
@@ -91,17 +93,17 @@ int bview_resize(bview_t* self, int x, int y, int w, int h) {
 
         self->rect_lines.x = x;
         self->rect_lines.y = y + 1;
-        self->rect_lines.w = self->line_num_width;
+        self->rect_lines.w = self->linenum_width;
         self->rect_lines.h = ah - 1;
 
-        self->rect_margin_left.x = x + self->line_num_width;
+        self->rect_margin_left.x = x + self->linenum_width;
         self->rect_margin_left.y = y + 1;
         self->rect_margin_left.w = 1;
         self->rect_margin_left.h = ah - 1;
 
-        self->rect_buffer.x = x + self->line_num_width + 1;
+        self->rect_buffer.x = x + self->linenum_width + 1;
         self->rect_buffer.y = y + 1;
-        self->rect_buffer.w = aw - (self->line_num_width + 1 + 1);
+        self->rect_buffer.w = aw - (self->linenum_width + 1 + 1);
         self->rect_buffer.h = ah - 1;
 
         self->rect_margin_right.x = x + (aw - 1);
@@ -357,7 +359,7 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
     // Reference buffer
     self->buffer = buffer;
     self->buffer->ref_count += 1;
-    _bview_set_line_num_width(self);
+    _bview_set_linenum_width(self);
 
     // Push normal mode
     bview_push_kmap(self, self->editor->kmap_normal);
@@ -388,9 +390,9 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
             if (bview_tmp->buffer == buffer)
 
     if (action && action->line_delta != 0) {
-        // Adjust line_num_width
+        // Adjust linenum_width
         BVIEW_ITERATE_FOR_BUFFER(bview_tmp) {
-            if (_bview_set_line_num_width(bview_tmp)) {
+            if (_bview_set_linenum_width(bview_tmp)) {
                 bview_resize(bview_tmp, bview_tmp->x, bview_tmp->y, bview_tmp->w, bview_tmp->h);
             }
         }
@@ -404,12 +406,19 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
     #undef BVIEW_ITERATE_FOR_BUFFER
 }
 
-// Set line_num_width and return 1 if changed
-static int _bview_set_line_num_width(bview_t* self) {
+// Set linenum_width and return 1 if changed
+static int _bview_set_linenum_width(bview_t* self) {
     int orig;
-    orig = self->line_num_width;
-    self->line_num_width = MLE_MAX(1, (int)(floor(log10((double)self->buffer->line_count))) + 1);
-    return orig == self->line_num_width ? 0 : 1;
+    orig = self->linenum_width;
+    self->abs_linenum_width = MLE_MAX(1, (int)(floor(log10((double)self->buffer->line_count))) + 1);
+    if (self->editor->rel_linenums) {
+        self->rel_linenum_width = MLE_MAX(1, (int)(floor(log10((double)self->rect_buffer.h))) + 1);
+    } else {
+        self->rel_linenum_width = 0;
+    }
+    self->linenum_width = self->abs_linenum_width
+        + (self->rel_linenum_width > 0 ? self->rel_linenum_width + 1 : 0);
+    return orig == self->linenum_width ? 0 : 1;
 }
 
 // Deinit a bview
@@ -563,7 +572,7 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
 
     // Calc min dimensions
-    min_w = self->line_num_width + 3;
+    min_w = self->linenum_width + 3;
     min_h = 2;
 
     // Ensure renderable
@@ -591,7 +600,7 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     for (rect_y = 0; rect_y < self->rect_buffer.h; rect_y++) {
         if (self->viewport_y + rect_y < 0 || self->viewport_y + rect_y >= self->buffer->line_count || !bline) { // "|| !bline" See TODOs below
             // Draw pre/post blank
-            tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*c", self->line_num_width, '~');
+            tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*c", self->linenum_width, '~');
             tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", ' ');
             tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", ' ');
             tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, self->rect_buffer.w, " ");
@@ -625,7 +634,10 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     }
 
     if (MLE_BVIEW_IS_EDIT(self)) {
-        tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->line_num_width, (int)(bline->line_index + 1) % (int)pow(10, self->line_num_width));
+        tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*d", self->abs_linenum_width, (int)(bline->line_index + 1) % (int)pow(10, self->linenum_width));
+        if (self->editor->rel_linenums) {
+            tb_printf(self->rect_lines, self->abs_linenum_width, rect_y, 0, 0, " %*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
+        }
         tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
         tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');
     }

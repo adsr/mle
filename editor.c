@@ -974,7 +974,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while ((c = getopt(argc, argv, "haK:k:M:m:n:S:s:t:vx:y:")) != -1) {
+    while ((c = getopt(argc, argv, "haK:k:M:m:n:rS:s:t:vx:y:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -986,6 +986,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -M <macro>   Add a macro\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
+                printf("    -r           Use relative line numbers\n");
                 printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
@@ -1029,6 +1030,9 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'n':
                 editor->kmap_init = optarg;
+                break;
+            case 'r':
+                editor->rel_linenums = 1;
                 break;
             case 'S':
                 if (_editor_init_syntax_by_str(editor, &cur_syntax, optarg) != MLE_OK) {

@@ -78,6 +78,7 @@ struct editor_s {
     kmap_t* kmap_less;
     kmap_t* kmap_isearch;
     char* syntax_override;
+    int rel_linenums; // TODO linenum_type ~ rel, abs, rel+abs, hybrid
     int tab_width;
     int tab_to_space;
     int popup_h; // TODO cli option
@@ -123,7 +124,9 @@ struct bview_s {
     int w;
     int h;
     int type;
-    int line_num_width;
+    int linenum_width;
+    int abs_linenum_width;
+    int rel_linenum_width;
     bview_rect_t rect_caption;
     bview_rect_t rect_lines;
     bview_rect_t rect_margin_left;
@@ -362,36 +365,21 @@ extern editor_t _editor;
 )
 
 /*
-Features
-[x] tab stops
-[x] tab to space
-[x] utf8 support
-[x] visual character width (e.g., for tabs and wcwidth(3))
-[x] file:line#(s) to open
-[x] prompts are buffers
-[x] bview splits
-[x] macros
-[x] multiple cursors
-[x] command prompt
-[x] cursor selection
-[x] modes (push/pop kmap on kmap_stack)
-[x] cli options
-[x] rc file
-[ ] customizable status (airline)
-[ ] customizable bview caption
-
 TODO
-[ ] incremental search
+[ ] editor_config_t
+[ ] incremental search (use prompt_callback)
 [ ] hooks
-[ ] editor_dialog like editor_prompt but with output from program (fuzzy file search via fzf)
-[ ] directory navigation
+[ ] editor_dialog (like editor_prompt but with output from program + select on stdin)
+    [ ] fuzzy file search via `fzf -f 'thing'`
+    [ ] directory navigation via `tree -f --charset C`
 [ ] more sane key defaults
 [ ] user scripts
 [ ] display error messages / MLE_RETURN_ERR
 [ ] macro record icon
 [ ] less mode
-[ ] status bar
-[ ] caption bar
+[ ] configurable colors
+[ ] configurable status bar
+[ ] configurable caption bar
 */
 
 #endif
