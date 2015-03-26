@@ -155,7 +155,7 @@ int cmd_move_page_down(cmd_context_t* ctx) {
 int cmd_move_to_line(cmd_context_t* ctx) {
     char* linestr;
     bint_t line;
-    editor_prompt(ctx->editor, "cmd_move_to_line", "Line?", NULL, 0, NULL, &linestr);
+    editor_prompt(ctx->editor, "cmd_move_to_line", "Line?", NULL, 0, NULL, NULL, &linestr);
     if (!linestr) return MLE_OK;
     line = strtoll(linestr, NULL, 10);
     free(linestr);
@@ -244,7 +244,7 @@ int cmd_search(cmd_context_t* ctx) {
     char* regex;
     int regex_len;
     mark_t* search_mark;
-    editor_prompt(ctx->editor, "cmd_search", "Regex?", NULL, 0, NULL, &regex);
+    editor_prompt(ctx->editor, "cmd_search", "Regex?", NULL, 0, NULL, NULL, &regex);
     if (!regex) return MLE_OK;
     regex_len = strlen(regex);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
@@ -291,9 +291,9 @@ int cmd_replace(cmd_context_t* ctx) {
     search_mark_end = NULL;
 
     do {
-        editor_prompt(ctx->editor, "cmd_replace", "Regex?", NULL, 0, NULL, &regex);
+        editor_prompt(ctx->editor, "cmd_replace", "Regex?", NULL, 0, NULL, NULL, &regex);
         if (!regex) break;
-        editor_prompt(ctx->editor, "cmd_replace", "Replacement?", NULL, 0, NULL, &replacement);
+        editor_prompt(ctx->editor, "cmd_replace", "Replacement?", NULL, 0, NULL, NULL, &replacement);
         if (!replacement) break;
         search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
         search_mark_end = buffer_add_mark(ctx->bview->buffer, NULL, 0);
@@ -312,6 +312,7 @@ int cmd_replace(cmd_context_t* ctx) {
                     NULL,
                     0,
                     ctx->editor->kmap_prompt_yn,
+                    NULL,
                     &yn
                 );
                 buffer_remove_srule(ctx->bview->buffer, highlight);
@@ -418,7 +419,7 @@ int cmd_save(cmd_context_t* ctx) {
 // Open file in a new bview
 int cmd_new_open(cmd_context_t* ctx) {
     char* path;
-    editor_prompt(ctx->editor, "cmd_new_open", "File?", NULL, 0, NULL, &path);
+    editor_prompt(ctx->editor, "cmd_new_open", "File?", NULL, 0, NULL, NULL, &path);
     if (!path) return MLE_OK;
     editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
     free(path);
@@ -436,7 +437,7 @@ int cmd_replace_open(cmd_context_t* ctx) {
     char* path;
     if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
     path = NULL;
-    editor_prompt(ctx->editor, "cmd_replace_open", "Replace with file?", NULL, 0, NULL, &path);
+    editor_prompt(ctx->editor, "cmd_replace_open", "Replace with file?", NULL, 0, NULL, NULL, &path);
     if (!path) return MLE_OK;
     bview_open(ctx->bview, path, strlen(path));
     bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
@@ -482,7 +483,7 @@ int cmd_apply_macro(cmd_context_t* ctx) {
     char* name;
     kmacro_t* macro;
     if (ctx->editor->macro_apply) return MLE_ERR;
-    editor_prompt(ctx->editor, "cmd_move_to_line", "Apply macro name?", NULL, 0, NULL, &name);
+    editor_prompt(ctx->editor, "cmd_move_to_line", "Apply macro name?", NULL, 0, NULL, NULL, &name);
     if (!name) return MLE_OK;
     HASH_FIND_STR(ctx->editor->macro_map, name, macro);
     free(name);
@@ -517,6 +518,7 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
         NULL,
         0,
         editor->kmap_prompt_yn,
+        NULL,
         &yn
     );
     if (!yn) {
@@ -538,6 +540,7 @@ static int _cmd_save(editor_t* editor, bview_t* bview) {
         editor_prompt(editor, "_cmd_save", "Save as? (C-c=cancel)",
             bview->buffer->path,
             bview->buffer->path ? strlen(bview->buffer->path) : 0,
+            NULL,
             NULL,
             &path
         );

@@ -230,9 +230,9 @@ struct cmd_context_s {
 // loop_context_t
 struct loop_context_s {
     bview_t* invoker;
-    bview_t** active;
     int should_exit;
     char* prompt_answer;
+    cmd_func_t prompt_callback;
 };
 
 // editor functions
@@ -245,7 +245,7 @@ int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_bview_exists(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);
-int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, char** optret_answer);
+int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, cmd_func_t opt_cb, char** optret_answer);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -377,12 +377,18 @@ Features
 [x] modes (push/pop kmap on kmap_stack)
 [x] cli options
 [x] rc file
-[ ] customizable status
+[ ] customizable status (airline)
 [ ] customizable bview caption
 
 TODO
+[ ] incremental search
+[ ] hooks
+[ ] editor_dialog like editor_prompt but with output from program (fuzzy file search via fzf)
+[ ] directory navigation
+[ ] more sane key defaults
+[ ] user scripts
 [ ] display error messages / MLE_RETURN_ERR
-[ ] editor_prompt_ok at end of macro record
+[ ] macro record icon
 [ ] less mode
 [ ] status bar
 [ ] caption bar

@@ -97,7 +97,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
 // Run editor
 int editor_run(editor_t* editor) {
     loop_context_t loop_ctx;
-    loop_ctx.should_exit = 0;
+    memset(&loop_ctx, 0, sizeof(loop_context_t));
     _editor_resize(editor, -1, -1);
     _editor_startup(editor);
     _editor_loop(editor, &loop_ctx);
@@ -135,7 +135,7 @@ int editor_deinit(editor_t* editor) {
 }
 
 // Prompt user for input
-int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, char** optret_answer) {
+int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, cmd_func_t opt_cb, char** optret_answer) {
     loop_context_t loop_ctx;
 
     // Disallow nested prompts
@@ -148,6 +148,7 @@ int editor_prompt(editor_t* editor, char* prompt_key, char* label, char* opt_dat
     loop_ctx.invoker = editor->active;
     loop_ctx.should_exit = 0;
     loop_ctx.prompt_answer = NULL;
+    loop_ctx.prompt_callback = opt_cb;
 
     // Init prompt
     editor_open_bview(editor, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, &editor->rect_prompt, NULL, &editor->prompt);
@@ -367,6 +368,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
             cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
             cmd_fn(&cmd_ctx);
+            if (loop_ctx->prompt_callback) loop_ctx->prompt_callback(&cmd_ctx);
         }
     }
 }
@@ -389,7 +391,7 @@ static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
         editor->is_recording_macro = 0;
     } else {
         // Get macro name and start recording
-        editor_prompt(editor, "_editor_maybe_toggle_macro", "Macro name?", NULL, 0, NULL, &name);
+        editor_prompt(editor, "_editor_maybe_toggle_macro", "Macro name?", NULL, 0, NULL, NULL, &name);
         if (!name) return 1;
         editor->macro_record = calloc(1, sizeof(kmacro_t));
         snprintf(editor->macro_record->name, MLE_KMAP_NAME_MAX_LEN + 1, "%s", name);
