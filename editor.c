@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <signal.h>
+#include <sys/time.h>
 #include <termbox.h>
 #include "uthash.h"
 #include "utlist.h"
@@ -44,6 +45,7 @@ static void _editor_init_from_rc(editor_t* editor, FILE* rc);
 static void _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
+static int _editor_drain_async_procs(editor_t* editor);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -131,6 +133,7 @@ int editor_deinit(editor_t* editor) {
         free(editor->macro_record);
     }
     _editor_destroy_syntax_map(editor->syntax_map);
+    if (editor->tty) fclose(editor->tty);
     return MLE_OK;
 }
 
@@ -353,6 +356,11 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         // Display editor
         if (!editor->is_display_disabled) {
             _editor_display(editor);
+        }
+
+        // Check for async input
+        if (editor->async_procs && _editor_drain_async_procs(editor)) {
+            continue;
         }
 
         // Get input
@@ -1097,4 +1105,81 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
             }
         }
     }
+}
+
+// Manage async procs, giving priority to user input. Return 1 if an async
+// proc callback took place, else return 0.
+static int _editor_drain_async_procs(editor_t* editor) {
+    int maxfd;
+    fd_set readfds;
+    struct timeval timeout;
+    struct timeval now;
+    async_proc_t* aproc;
+    async_proc_t* aproc_tmp;
+    char buf[1024 + 1];
+    size_t nbytes;
+    int rc;
+    int did_callback;
+    int is_done;
+
+    // Open tty if not already open
+    if (!editor->tty) {
+        if (!(editor->tty = fopen("/dev/tty", "r"))) {
+            // TODO error
+            return 0;
+        }
+        editor->ttyfd = fileno(editor->tty);
+    }
+
+    // Add tty to readfds
+    FD_ZERO(&readfds);
+    FD_SET(editor->ttyfd, &readfds);
+
+    // Add async procs to readfds
+    maxfd = editor->ttyfd;
+    DL_FOREACH(editor->async_procs, aproc) {
+        FD_SET(aproc->pipefd, &readfds);
+        if (aproc->pipefd > maxfd) maxfd = aproc->pipefd;
+    }
+
+    // Set timeout to 5ms
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 5000;
+
+    // Perform select
+    rc = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
+    gettimeofday(&now, NULL);
+    did_callback = 0;
+    if (rc < 0) {
+        // TODO select error
+        return 0;
+    } else if (rc > 0) {
+        if (FD_ISSET(editor->ttyfd, &readfds)) {
+            // Immediately give priority to user input
+            return 0;
+        } else {
+            // Read async procs
+            DL_FOREACH_SAFE(editor->async_procs, aproc, aproc_tmp) {
+                // Read and invoke callback
+                is_done = 0;
+                if (FD_ISSET(aproc->pipefd, &readfds)) {
+                    nbytes = fread(&buf, sizeof(char), 1024, aproc->pipe);
+                    if (nbytes > 0) {
+                        buf[nbytes] = '\0';
+                        aproc->callback(aproc, buf, nbytes, ferror(aproc->pipe), feof(aproc->pipe), 0);
+                        did_callback = 1;
+                        is_done = ferror(aproc->pipe) || feof(aproc->pipe);
+                    }
+                }
+
+                // Close and free if eof, error, or timeout
+                if (is_done || util_timeval_is_gt(&aproc->timeout, &now)) {
+                    if (!is_done) aproc->callback(aproc, NULL, 0, 0, 0, 1);
+                    async_proc_destroy(aproc); // Calls DL_DELETE
+                }
+            }
+        }
+    }
+
+    return did_callback;
 }

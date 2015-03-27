@@ -25,6 +25,8 @@ typedef struct syntax_s syntax_t; // A syntax definition
 typedef struct syntax_node_s syntax_node_t; // A node in a linked list of syntaxes
 typedef struct srule_def_s srule_def_t; // A definition of a syntax
 typedef struct srule_node_s srule_node_t; // A node in a linked list of srules
+typedef struct async_proc_s async_proc_t; // An asynchronous process
+typedef void (*async_proc_cb_t)(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout); // An async_proc_t callback
 typedef struct tb_event tb_event_t; // A termbox event
 
 // kinput_t
@@ -77,6 +79,9 @@ struct editor_s {
     kmap_t* kmap_prompt_ok;
     kmap_t* kmap_less;
     kmap_t* kmap_isearch;
+    async_proc_t* async_procs;
+    FILE* tty;
+    int ttyfd;
     char* syntax_override;
     int rel_linenums; // TODO linenum_type ~ rel, abs, rel+abs, hybrid
     int tab_width;
@@ -238,6 +243,18 @@ struct loop_context_s {
     cmd_func_t prompt_callback;
 };
 
+// async_proc_t
+struct async_proc_s {
+    editor_t* editor;
+    bview_t* invoker;
+    FILE* pipe;
+    int pipefd;
+    struct timeval timeout;
+    async_proc_cb_t callback;
+    async_proc_t* next;
+    async_proc_t* prev;
+};
+
 // editor functions
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
@@ -313,9 +330,15 @@ int cmd_replace_new(cmd_context_t* ctx);
 int cmd_replace_open(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 
+// async functions
+async_proc_t* async_proc_new(bview_t* invoker, struct timeval timeout, async_proc_cb_t callback, const char *cmd_fmt, ...);
+int async_proc_destroy(async_proc_t* aproc);
+
 // util functions
 int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
 int util_pcre_match(char* subject, char* re);
+int util_timeval_is_gt(struct timeval* a, struct timeval* b);
+char* util_escape_shell_arg(char* str);
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 

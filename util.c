@@ -28,6 +28,54 @@ int util_pcre_match(char* subject, char* re) {
     return rc >= 0 ? 1 : 0;
 }
 
+// Return 1 if a > b, else return 0.
+int util_timeval_is_gt(struct timeval* a, struct timeval* b) {
+    if (a->tv_sec > b->tv_sec) {
+        return 1;
+    }
+    return a->tv_usec > b->tv_usec ? 1 : 0;
+}
+
+// Ported from php_escape_shell_arg
+// https://github.com/php/php-src/blob/master/ext/standard/exec.c
+char* util_escape_shell_arg(char* str) {
+    int x, y = 0, l = (int)strlen(str);
+    char *cmd;
+
+    cmd = malloc(4 * l + 3); // worst case
+
+    cmd[y++] = '\'';
+
+    for (x = 0; x < l; x++) {
+        int mb_len = tb_utf8_char_length(*(str + x));
+
+        // skip non-valid multibyte characters
+        if (mb_len < 0) {
+            continue;
+        } else if (mb_len > 1) {
+            memcpy(cmd + y, str + x, mb_len);
+            y += mb_len;
+            x += mb_len - 1;
+            continue;
+        }
+
+        switch (str[x]) {
+        case '\'':
+            cmd[y++] = '\'';
+            cmd[y++] = '\\';
+            cmd[y++] = '\'';
+            // fall-through
+        default:
+            cmd[y++] = str[x];
+        }
+    }
+    cmd[y++] = '\'';
+    cmd[y] = '\0';
+
+    return cmd;
+}
+
+
 // Adapted from termbox src/demo/keyboard.c
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str) {
     uint32_t uni;
