@@ -6,7 +6,6 @@ static void _bview_init(bview_t* self, buffer_t* buffer);
 static void _bview_deinit(bview_t* self);
 static buffer_t* _bview_open_buffer(char* path, int path_len, editor_t* editor);
 static void _bview_draw_prompt(bview_t* self);
-static void _bview_draw_popup(bview_t* self);
 static void _bview_draw_status(bview_t* self);
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y);
@@ -146,8 +145,6 @@ bview_t* bview_get_split_root(bview_t* self) {
 int bview_draw(bview_t* self) {
     if (MLE_BVIEW_IS_PROMPT(self)) {
         _bview_draw_prompt(self);
-    } else if (MLE_BVIEW_IS_POPUP(self)) {
-        _bview_draw_popup(self);
     } else if (MLE_BVIEW_IS_STATUS(self)) {
         _bview_draw_status(self);
     }
@@ -512,11 +509,6 @@ static buffer_t* _bview_open_buffer(char* opt_path, int opt_path_len, editor_t* 
 
 static void _bview_draw_prompt(bview_t* self) {
     _bview_draw_bline(self, self->buffer->first_line, 0);
-}
-
-static void _bview_draw_popup(bview_t* self) {
-    // TODO
-    tb_printf(self->editor->rect_popup, 0, 0, 0, 0, "popup");
 }
 
 static void _bview_draw_status(bview_t* self) {

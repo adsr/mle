@@ -432,16 +432,9 @@ static void _editor_resize(editor_t* editor, int w, int h) {
     editor->rect_prompt.w = editor->w;
     editor->rect_prompt.h = 1;
 
-    editor->rect_popup.x = 0;
-    editor->rect_popup.y = editor->h - 2 - (editor->popup_h);
-    editor->rect_popup.w = editor->w;
-    editor->rect_popup.h = editor->popup_h;
-
     DL_FOREACH(editor->bviews, bview) {
         if (MLE_BVIEW_IS_PROMPT(bview)) {
             bounds = &editor->rect_prompt;
-        } else if (MLE_BVIEW_IS_POPUP(bview)) {
-            bounds = &editor->rect_popup;
         } else if (MLE_BVIEW_IS_STATUS(bview)) {
             bounds = &editor->rect_status;
         } else {
@@ -469,7 +462,6 @@ static void _editor_display(editor_t* editor) {
     tb_clear();
     bview_draw(editor->active_edit_root);
     bview_draw(editor->status);
-    if (editor->popup) bview_draw(editor->popup);
     if (editor->prompt) bview_draw(editor->prompt);
     DL_FOREACH(editor->bviews, bview) _editor_draw_cursors(editor, bview);
     tb_present();

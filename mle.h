@@ -56,11 +56,9 @@ struct editor_s {
     bview_t* active_edit;
     bview_t* active_edit_root;
     bview_t* status;
-    bview_t* popup;
     bview_t* prompt;
     bview_rect_t rect_edit;
     bview_rect_t rect_status;
-    bview_rect_t rect_popup;
     bview_rect_t rect_prompt;
     syntax_t* syntax_map;
     int is_display_disabled;
@@ -86,7 +84,6 @@ struct editor_s {
     int rel_linenums; // TODO linenum_type ~ rel, abs, rel+abs, hybrid
     int tab_width;
     int tab_to_space;
-    int popup_h; // TODO cli option
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     bint_t startup_linenum;
@@ -120,9 +117,8 @@ struct syntax_s {
 // bview_t
 struct bview_s {
 #define MLE_BVIEW_TYPE_EDIT 0
-#define MLE_BVIEW_TYPE_POPUP 2
-#define MLE_BVIEW_TYPE_STATUS 3
-#define MLE_BVIEW_TYPE_PROMPT 1
+#define MLE_BVIEW_TYPE_STATUS 1
+#define MLE_BVIEW_TYPE_PROMPT 2
     editor_t* editor;
     int x;
     int y;
