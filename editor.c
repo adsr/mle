@@ -138,7 +138,7 @@ int editor_deinit(editor_t* editor) {
 }
 
 // Prompt user for input
-int editor_prompt(editor_t* editor, char* label, char* opt_data, int opt_data_len, kmap_t* opt_kmap, cmd_func_t opt_cb, char** optret_answer) {
+int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, cmd_func_t opt_cb, char** optret_answer) {
     loop_context_t loop_ctx;
 
     // Disallow nested prompts
@@ -155,7 +155,7 @@ int editor_prompt(editor_t* editor, char* label, char* opt_data, int opt_data_le
 
     // Init prompt
     editor_open_bview(editor, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, &editor->rect_prompt, NULL, &editor->prompt);
-    editor->prompt->prompt_label = label;
+    editor->prompt->prompt_str = prompt;
     bview_push_kmap(editor->prompt, opt_kmap ? opt_kmap : editor->kmap_prompt_input);
 
     // Insert opt_data if present

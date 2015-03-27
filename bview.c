@@ -519,7 +519,7 @@ static void _bview_draw_status(bview_t* self) {
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
         "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer %p",
-        self->editor->active == self->editor->prompt ? self->editor->prompt->prompt_label : "",
+        self->editor->active == self->editor->prompt ? self->editor->prompt->prompt_str : "",
         mark->bline->line_index,
         active->buffer->line_count,
         mark->col,
