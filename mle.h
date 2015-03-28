@@ -10,6 +10,8 @@
 typedef struct editor_s editor_t; // A container for editor-wide globals
 typedef struct bview_s bview_t; // A view of a buffer
 typedef struct bview_rect_s bview_rect_t; // A rectangle in bview with a default styling
+typedef struct bview_listener_s bview_listener_t; // A listener to buffer events in a bview
+typedef void (*bview_listener_cb_t)(bview_t* bview, baction_t* action, void* udata); // A bview_listener_t callback
 typedef struct cursor_s cursor_t; // A cursor (insertion mark + selection bound mark) in a buffer
 typedef struct loop_context_s loop_context_t; // Context for a single _editor_loop
 typedef struct cmd_context_s cmd_context_t; // Context for a single command invocation
@@ -75,6 +77,8 @@ struct editor_s {
     kmap_t* kmap_prompt_input;
     kmap_t* kmap_prompt_yn;
     kmap_t* kmap_prompt_ok;
+    kmap_t* kmap_menu;
+    kmap_t* kmap_prompt_menu;
     kmap_t* kmap_less;
     kmap_t* kmap_isearch;
     async_proc_t* async_procs;
@@ -154,8 +158,19 @@ struct bview_s {
     char* last_search;
     int tab_to_space;
     syntax_t* syntax;
+    async_proc_t* async_proc;
+    cmd_func_t menu_callback;
+    bview_listener_t* listeners;
     bview_t* next;
     bview_t* prev;
+};
+
+// bview_listener_t
+struct bview_listener_s {
+    bview_listener_cb_t callback;
+    void* udata;
+    bview_listener_t* next;
+    bview_listener_t* prev;
 };
 
 // cursor_t
@@ -260,8 +275,9 @@ int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_bview_exists(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);
-int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, cmd_func_t opt_cb, char** optret_answer);
-int editor_dialog(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, cmd_func_t opt_cb, char** optret_answer);
+int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, bview_listener_cb_t opt_cb, char** optret_answer);
+int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc);
+int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -279,6 +295,8 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
 int bview_unsplit(bview_t* parent, bview_t* child);
 int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
 int bview_remove_cursor(bview_t* self, cursor_t* cursor);
+int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata);
+int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
 bview_t* bview_get_split_root(bview_t* self);
 
 // cmd functions
@@ -325,6 +343,7 @@ int cmd_new_open(cmd_context_t* ctx);
 int cmd_replace_new(cmd_context_t* ctx);
 int cmd_replace_open(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
+int cmd_noop(cmd_context_t* ctx);
 
 // async functions
 async_proc_t* async_proc_new(bview_t* invoker, struct timeval timeout, async_proc_cb_t callback, const char *cmd_fmt, ...);

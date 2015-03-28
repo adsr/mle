@@ -14,6 +14,11 @@ static int _editor_prompt_input_submit(cmd_context_t* ctx);
 static int _editor_prompt_yn_yes(cmd_context_t* ctx);
 static int _editor_prompt_yn_no(cmd_context_t* ctx);
 static int _editor_prompt_cancel(cmd_context_t* ctx);
+static int _editor_menu_submit(cmd_context_t* ctx);
+static int _editor_prompt_menu_up(cmd_context_t* ctx);
+static int _editor_prompt_menu_down(cmd_context_t* ctx);
+static int _editor_prompt_menu_page_up(cmd_context_t* ctx);
+static int _editor_prompt_menu_page_down(cmd_context_t* ctx);
 static void _editor_startup(editor_t* editor);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
@@ -138,7 +143,8 @@ int editor_deinit(editor_t* editor) {
 }
 
 // Prompt user for input
-int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, cmd_func_t opt_cb, char** optret_answer) {
+int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, bview_listener_cb_t opt_prompt_cb, char** optret_answer) {
+    bview_t* bview_tmp;
     loop_context_t loop_ctx;
 
     // Disallow nested prompts
@@ -151,10 +157,10 @@ int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_l
     loop_ctx.invoker = editor->active;
     loop_ctx.should_exit = 0;
     loop_ctx.prompt_answer = NULL;
-    loop_ctx.prompt_callback = opt_cb;
 
     // Init prompt
     editor_open_bview(editor, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, &editor->rect_prompt, NULL, &editor->prompt);
+    if (opt_prompt_cb) bview_add_listener(editor->prompt, opt_prompt_cb, NULL);
     editor->prompt->prompt_str = prompt;
     bview_push_kmap(editor->prompt, opt_kmap ? opt_kmap : editor->kmap_prompt_input);
 
@@ -176,10 +182,57 @@ int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_l
     }
 
     // Restore previous focus
-    editor_close_bview(editor, editor->prompt);
-    editor_set_active(editor, loop_ctx.invoker);
+    bview_tmp = editor->prompt;
     editor->prompt = NULL;
+    editor_close_bview(editor, bview_tmp);
+    editor_set_active(editor, loop_ctx.invoker);
 
+    return MLE_OK;
+}
+
+// Open dialog menu
+int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc) {
+    bview_t* menu;
+    editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, &menu);
+    bview_push_kmap(menu, editor->kmap_menu);
+    if (opt_buf_data) {
+        mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
+    }
+    if (opt_aproc) {
+        opt_aproc->editor = editor;
+        opt_aproc->invoker = menu;
+        menu->async_proc = opt_aproc;
+        menu->menu_callback = callback;
+    }
+    return MLE_OK;
+}
+
+// Open dialog menu with prompt
+int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line) {
+    bview_t* menu;
+    bview_t* orig;
+    char* prompt_answer;
+    orig = editor->active;
+    editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, &menu);
+    if (opt_aproc) {
+        opt_aproc->editor = editor;
+        opt_aproc->invoker = menu;
+        menu->async_proc = opt_aproc;
+    }
+    if (opt_buf_data) {
+        mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
+    }
+    editor_prompt(editor, prompt, NULL, 0, NULL, opt_prompt_cb, &prompt_answer);
+    if (optret_line) {
+        if (prompt_answer) {
+            *optret_line = strndup(menu->active_cursor->mark->bline->data, menu->active_cursor->mark->bline->data_len);
+        } else {
+            *optret_line = NULL;
+            free(prompt_answer);
+        }
+    }
+    editor_close_bview(editor, menu);
+    editor_set_active(editor, orig);
     return MLE_OK;
 }
 
@@ -215,6 +268,8 @@ int editor_close_bview(editor_t* editor, bview_t* bview) {
 int editor_set_active(editor_t* editor, bview_t* bview) {
     if (!editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR("No bview %p in editor->bviews\n", bview);
+    } else if (editor->prompt) {
+        MLE_RETURN_ERR("Cannot abandon prompt for bview %p\n", bview);
     }
     editor->active = bview;
     if (MLE_BVIEW_IS_EDIT(bview)) {
@@ -330,6 +385,38 @@ static int _editor_prompt_cancel(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Invoked when user hits enter in a menu
+static int _editor_menu_submit(cmd_context_t* ctx) {
+    if (ctx->bview->menu_callback) return ctx->bview->menu_callback(ctx);
+    return MLE_OK;
+}
+
+// Invoked when user hits up in a prompt_menu
+static int _editor_prompt_menu_up(cmd_context_t* ctx) {
+    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1);
+    return MLE_OK;
+}
+
+// Invoked when user hits down in a prompt_menu
+static int _editor_prompt_menu_down(cmd_context_t* ctx) {
+    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, 1);
+    return MLE_OK;
+}
+
+// Invoked when user hits page-up in a prompt_menu
+static int _editor_prompt_menu_page_up(cmd_context_t* ctx) {
+    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1 * ctx->bview->rect_buffer.h);
+    bview_zero_viewport_y(ctx->editor->active_edit);
+    return MLE_OK;
+}
+
+// Invoked when user hits page-down in a prompt_menu
+static int _editor_prompt_menu_page_down(cmd_context_t* ctx) {
+    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, ctx->bview->rect_buffer.h);
+    bview_zero_viewport_y(ctx->editor->active_edit);
+    return MLE_OK;
+}
+
 // Run startup actions. This is before any user-input is processed.
 static void _editor_startup(editor_t* editor) {
     // Jump to line in current bview if specified
@@ -375,7 +462,6 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
             cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
             cmd_fn(&cmd_ctx);
-            if (loop_ctx->prompt_callback) loop_ctx->prompt_callback(&cmd_ctx);
         }
     }
 }
@@ -646,12 +732,12 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_move_word_forward, "M-f"),
         MLE_KBINDING_DEF(cmd_move_word_back, "M-b"),
         MLE_KBINDING_DEF(cmd_toggle_sel_bound, "M-a"),
-        MLE_KBINDING_DEF(cmd_drop_sleeping_cursor, "M-h"),
-        MLE_KBINDING_DEF(cmd_wake_sleeping_cursors, "M-j"),
-        MLE_KBINDING_DEF(cmd_remove_extra_cursors, "M-k"),
+        MLE_KBINDING_DEF(cmd_drop_sleeping_cursor, "M-q"),
+        MLE_KBINDING_DEF(cmd_wake_sleeping_cursors, "M-w"),
+        MLE_KBINDING_DEF(cmd_remove_extra_cursors, "M-e"),
         MLE_KBINDING_DEF(cmd_search, "C-f"),
-        MLE_KBINDING_DEF(cmd_search_next, "C-j"),
-        MLE_KBINDING_DEF(cmd_replace, "M-r"),
+        MLE_KBINDING_DEF(cmd_search_next, "C-g"),
+        MLE_KBINDING_DEF(cmd_replace, "C-t"),
         MLE_KBINDING_DEF(cmd_isearch, "C-r"),
         MLE_KBINDING_DEF(cmd_delete_word_before, "C-w"),
         MLE_KBINDING_DEF(cmd_delete_word_after, "M-d"),
@@ -660,14 +746,14 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_uncut, "C-u"),
         MLE_KBINDING_DEF(cmd_next, "M-n"),
         MLE_KBINDING_DEF(cmd_prev, "M-p"),
-        MLE_KBINDING_DEF(cmd_split_vertical, "M-l"),
-        MLE_KBINDING_DEF(cmd_split_horizontal, "M-;"),
+        MLE_KBINDING_DEF(cmd_split_vertical, "M-v"),
+        MLE_KBINDING_DEF(cmd_split_horizontal, "M-h"),
         MLE_KBINDING_DEF(cmd_save, "C-o"),
         MLE_KBINDING_DEF(cmd_new, "C-n"),
         MLE_KBINDING_DEF(cmd_new_open, "C-b"),
-        MLE_KBINDING_DEF(cmd_apply_macro, "C-g"),
-        MLE_KBINDING_DEF(cmd_replace_new, "C-p"),
-        MLE_KBINDING_DEF(cmd_replace_open, "C-l"),
+        MLE_KBINDING_DEF(cmd_apply_macro, "M-m"),
+        MLE_KBINDING_DEF(cmd_replace_new, "C-l"),
+        MLE_KBINDING_DEF(cmd_replace_open, "C-p"),
         MLE_KBINDING_DEF(cmd_close, "M-c"),
         MLE_KBINDING_DEF(cmd_quit, "C-x"),
         MLE_KBINDING_DEF(NULL, "")
@@ -684,6 +770,19 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(NULL, "")
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_ok, "mle_prompt_ok", MLE_FUNCREF(_editor_prompt_cancel), 0, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(NULL, "")
+    });
+    _editor_init_kmap(editor, &editor->kmap_menu, "mle_menu", MLE_FUNCREF(NULL), 1, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(_editor_menu_submit, "enter"),
+        MLE_KBINDING_DEF(NULL, "")
+    });
+    _editor_init_kmap(editor, &editor->kmap_prompt_menu, "mle_prompt_menu", MLE_FUNCREF(NULL), 0, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(_editor_prompt_input_submit, "enter"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
+        MLE_KBINDING_DEF(_editor_prompt_menu_up, "up"),
+        MLE_KBINDING_DEF(_editor_prompt_menu_down, "down"),
+        MLE_KBINDING_DEF(_editor_prompt_menu_page_up, "page-up"),
+        MLE_KBINDING_DEF(_editor_prompt_menu_page_down, "page-down"),
         MLE_KBINDING_DEF(NULL, "")
     });
 }

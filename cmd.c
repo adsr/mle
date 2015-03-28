@@ -376,6 +376,7 @@ int cmd_uncut(cmd_context_t* ctx) {
 #define MLE_IMPL_CMD_NEXTPREV(pthis, pend) \
 int cmd_ ## pthis (cmd_context_t* ctx) { \
     bview_t* tmp; \
+    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK; \
     for (tmp = ctx->bview->pthis; tmp != ctx->bview; tmp = tmp->pthis) { \
         if (tmp == NULL) { \
             tmp = (pend); \
@@ -490,6 +491,11 @@ int cmd_apply_macro(cmd_context_t* ctx) {
     if (!macro) return MLE_ERR;
     ctx->editor->macro_apply = macro;
     ctx->editor->macro_apply_input_index = 0;
+    return MLE_OK;
+}
+
+// No-op
+int cmd_noop(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
