@@ -194,6 +194,7 @@ int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_l
 int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc) {
     bview_t* menu;
     editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, &menu);
+    menu->is_menu = 1;
     bview_push_kmap(menu, editor->kmap_menu);
     if (opt_buf_data) {
         mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
@@ -214,6 +215,7 @@ int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int o
     char* prompt_answer;
     orig = editor->active;
     editor_open_bview(editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, &menu);
+    menu->is_menu = 1;
     if (opt_aproc) {
         opt_aproc->editor = editor;
         opt_aproc->invoker = menu;
@@ -222,7 +224,7 @@ int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int o
     if (opt_buf_data) {
         mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
     }
-    editor_prompt(editor, prompt, NULL, 0, NULL, opt_prompt_cb, &prompt_answer);
+    editor_prompt(editor, prompt, NULL, 0, editor->kmap_prompt_menu, opt_prompt_cb, &prompt_answer);
     if (optret_line) {
         if (prompt_answer) {
             *optret_line = strndup(menu->active_cursor->mark->bline->data, menu->active_cursor->mark->bline->data_len);
@@ -394,25 +396,27 @@ static int _editor_menu_submit(cmd_context_t* ctx) {
 // Invoked when user hits up in a prompt_menu
 static int _editor_prompt_menu_up(cmd_context_t* ctx) {
     mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1);
+    bview_rectify_viewport(ctx->editor->active_edit);
     return MLE_OK;
 }
 
 // Invoked when user hits down in a prompt_menu
 static int _editor_prompt_menu_down(cmd_context_t* ctx) {
     mark_move_vert(ctx->editor->active_edit->active_cursor->mark, 1);
+    bview_rectify_viewport(ctx->editor->active_edit);
     return MLE_OK;
 }
 
 // Invoked when user hits page-up in a prompt_menu
 static int _editor_prompt_menu_page_up(cmd_context_t* ctx) {
-    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1 * ctx->bview->rect_buffer.h);
+    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1 * ctx->editor->active_edit->rect_buffer.h);
     bview_zero_viewport_y(ctx->editor->active_edit);
     return MLE_OK;
 }
 
 // Invoked when user hits page-down in a prompt_menu
 static int _editor_prompt_menu_page_down(cmd_context_t* ctx) {
-    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, ctx->bview->rect_buffer.h);
+    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->rect_buffer.h);
     bview_zero_viewport_y(ctx->editor->active_edit);
     return MLE_OK;
 }
@@ -748,6 +752,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_prev, "M-p"),
         MLE_KBINDING_DEF(cmd_split_vertical, "M-v"),
         MLE_KBINDING_DEF(cmd_split_horizontal, "M-h"),
+        MLE_KBINDING_DEF(cmd_fsearch, "C-z"),
+        MLE_KBINDING_DEF(cmd_browse, "C-b"),
         MLE_KBINDING_DEF(cmd_save, "C-o"),
         MLE_KBINDING_DEF(cmd_new, "C-n"),
         MLE_KBINDING_DEF(cmd_new_open, "C-b"),
@@ -776,11 +782,13 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_menu_submit, "enter"),
         MLE_KBINDING_DEF(NULL, "")
     });
-    _editor_init_kmap(editor, &editor->kmap_prompt_menu, "mle_prompt_menu", MLE_FUNCREF(NULL), 0, (kbinding_def_t[]){
+    _editor_init_kmap(editor, &editor->kmap_prompt_menu, "mle_prompt_menu", MLE_FUNCREF(NULL), 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_prompt_input_submit, "enter"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_menu_up, "up"),
         MLE_KBINDING_DEF(_editor_prompt_menu_down, "down"),
+        MLE_KBINDING_DEF(_editor_prompt_menu_up, "left"),
+        MLE_KBINDING_DEF(_editor_prompt_menu_down, "right"),
         MLE_KBINDING_DEF(_editor_prompt_menu_page_up, "page-up"),
         MLE_KBINDING_DEF(_editor_prompt_menu_page_down, "page-down"),
         MLE_KBINDING_DEF(NULL, "")
@@ -1197,8 +1205,8 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
     }
 }
 
-// Manage async procs, giving priority to user input. Return 1 if an async
-// proc callback took place, else return 0.
+// Manage async procs, giving priority to user input. Return 1 if drain should
+// be called again, else return 0.
 static int _editor_drain_async_procs(editor_t* editor) {
     int maxfd;
     fd_set readfds;
@@ -1209,7 +1217,6 @@ static int _editor_drain_async_procs(editor_t* editor) {
     char buf[1024 + 1];
     size_t nbytes;
     int rc;
-    int did_callback;
     int is_done;
 
     // Open tty if not already open
@@ -1220,6 +1227,10 @@ static int _editor_drain_async_procs(editor_t* editor) {
         }
         editor->ttyfd = fileno(editor->tty);
     }
+
+    // Set timeout to 1s
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
 
     // Add tty to readfds
     FD_ZERO(&readfds);
@@ -1232,44 +1243,41 @@ static int _editor_drain_async_procs(editor_t* editor) {
         if (aproc->pipefd > maxfd) maxfd = aproc->pipefd;
     }
 
-    // Set timeout to 5ms
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 5000;
-
     // Perform select
     rc = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
     gettimeofday(&now, NULL);
-    did_callback = 0;
-    if (rc < 0) {
-        // TODO select error
-        return 0;
-    } else if (rc > 0) {
-        if (FD_ISSET(editor->ttyfd, &readfds)) {
-            // Immediately give priority to user input
-            return 0;
-        } else {
-            // Read async procs
-            DL_FOREACH_SAFE(editor->async_procs, aproc, aproc_tmp) {
-                // Read and invoke callback
-                is_done = 0;
-                if (FD_ISSET(aproc->pipefd, &readfds)) {
-                    nbytes = fread(&buf, sizeof(char), 1024, aproc->pipe);
-                    if (nbytes > 0) {
-                        buf[nbytes] = '\0';
-                        aproc->callback(aproc, buf, nbytes, ferror(aproc->pipe), feof(aproc->pipe), 0);
-                        did_callback = 1;
-                        is_done = ferror(aproc->pipe) || feof(aproc->pipe);
-                    }
-                }
 
-                // Close and free if eof, error, or timeout
-                if (is_done || util_timeval_is_gt(&aproc->timeout, &now)) {
-                    if (!is_done) aproc->callback(aproc, NULL, 0, 0, 0, 1);
-                    async_proc_destroy(aproc); // Calls DL_DELETE
+    if (rc < 0) {
+        return 0; // TODO Display errors
+    } else if (rc == 0) {
+        return 1; // Nothing to ready, call again
+    }
+
+    if (FD_ISSET(editor->ttyfd, &readfds)) {
+        // Immediately give priority to user input
+        return 0;
+    } else {
+        // Read async procs
+        DL_FOREACH_SAFE(editor->async_procs, aproc, aproc_tmp) {
+            // Read and invoke callback
+            is_done = 0;
+            if (FD_ISSET(aproc->pipefd, &readfds)) {
+                nbytes = fread(&buf, sizeof(char), 1024, aproc->pipe);
+                if (nbytes > 0) {
+                    buf[nbytes] = '\0';
+                    aproc->callback(aproc, buf, nbytes, ferror(aproc->pipe), feof(aproc->pipe), 0);
                 }
+                is_done = ferror(aproc->pipe) || feof(aproc->pipe);
+            }
+
+            // Close and free if eof, error, or timeout
+            // TODO Alert user when timeout occurs
+            if (is_done || aproc->is_done || util_timeval_is_gt(&aproc->timeout, &now)) {
+                aproc->callback(aproc, NULL, 0, 0, 0, 1);
+                async_proc_destroy(aproc); // Calls DL_DELETE
             }
         }
     }
 
-    return did_callback;
+    return 1;
 }

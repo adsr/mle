@@ -701,7 +701,7 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             bg = 0;
             char_w = 1;
         }
-        if (self->menu_callback && is_cursor_line) {
+        if (MLE_BVIEW_IS_MENU(self) && is_cursor_line) {
             bg |= TB_REVERSE;
         }
         for (i = 0; i < char_w && rect_x < self->rect_buffer.w; i++) {

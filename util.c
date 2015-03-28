@@ -38,8 +38,8 @@ int util_timeval_is_gt(struct timeval* a, struct timeval* b) {
 
 // Ported from php_escape_shell_arg
 // https://github.com/php/php-src/blob/master/ext/standard/exec.c
-char* util_escape_shell_arg(char* str) {
-    int x, y = 0, l = (int)strlen(str);
+char* util_escape_shell_arg(char* str, int l) {
+    int x, y = 0;
     char *cmd;
 
     cmd = malloc(4 * l + 3); // worst case

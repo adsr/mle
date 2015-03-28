@@ -4,24 +4,19 @@
 #include "mle.h"
 
 // Return a new async_proc_t
-async_proc_t* async_proc_new(bview_t* invoker, struct timeval timeout, async_proc_cb_t callback, const char *cmd_fmt, ...) {
+async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd) {
     async_proc_t* aproc;
-    char* shell_cmd;
-    va_list vl;
-
-    // Make shell_cmd
-    va_start(vl, cmd_fmt);
-    vasprintf(&shell_cmd, cmd_fmt, vl);
-    va_end(vl);
 
     // Make async proc
     aproc = calloc(1, sizeof(async_proc_t));
     aproc->editor = invoker->editor;
     aproc->invoker = invoker;
     aproc->pipe = popen(shell_cmd, "r");
-    aproc->timeout = timeout;
+    setvbuf(aproc->pipe, NULL, _IONBF, 0);
+    aproc->pipefd = fileno(aproc->pipe);
+    aproc->timeout.tv_sec = timeout_sec;
+    aproc->timeout.tv_usec = timeout_usec;
     aproc->callback = callback;
-    free(shell_cmd);
 
     DL_APPEND(aproc->editor->async_procs, aproc);
     return aproc;
@@ -31,6 +26,9 @@ async_proc_t* async_proc_new(bview_t* invoker, struct timeval timeout, async_pro
 int async_proc_destroy(async_proc_t* aproc) {
     DL_DELETE(aproc->editor->async_procs, aproc);
     pclose(aproc->pipe);
+    if (aproc->invoker && aproc->invoker->async_proc == aproc) {
+        aproc->invoker->async_proc = NULL;
+    }
     free(aproc);
     return MLE_OK;
 }

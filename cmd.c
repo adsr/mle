@@ -22,6 +22,8 @@ static int _cmd_save(editor_t* editor, bview_t* bview);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut);
 static void _cmd_toggle_sel_bound(cursor_t* cursor);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
+static void _cmd_fsearch_aproc_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
+static void _cmd_fsearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -411,6 +413,24 @@ int cmd_split_horizontal(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Fuzzy path search via fzf
+int cmd_fsearch(cmd_context_t* ctx) {
+    async_proc_t* aproc;
+    char* path;
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_fsearch_aproc_cb, "fzf -f ''");
+    editor_prompt_menu(ctx->editor, "Fuzzy path?", NULL, 0, _cmd_fsearch_prompt_cb, aproc, &path);
+    if (path) {
+        editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+        free(path);
+    }
+    return MLE_OK;
+}
+
+// Browse directory via tree
+int cmd_browse(cmd_context_t* ctx) {
+    return MLE_OK;
+}
+
 // Save file
 int cmd_save(cmd_context_t* ctx) {
     _cmd_save(ctx->editor, ctx->bview);
@@ -620,4 +640,43 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
     if (rc) bview_rectify_viewport(bview);
 
     return rc;
+}
+
+// Fuzzy path search aproc callback
+static void _cmd_fsearch_aproc_cb(async_proc_t* aproc, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout) {
+    mark_t* ins_mark;
+    if (!buf || buf_len < 1) return;
+
+    // Append data at end of menu buffer
+    ins_mark = aproc->invoker->active_cursor->mark;
+    mark_move_end(ins_mark);
+    mark_insert_before(ins_mark, buf, buf_len);
+    mark_move_beginning(ins_mark);
+    bview_rectify_viewport(aproc->invoker);
+}
+
+// Fuzzy path search prompt callback
+static void _cmd_fsearch_prompt_cb(bview_t* bview_prompt, baction_t* action, void* udata) {
+    async_proc_t* aproc;
+    bview_t* menu;
+    char* shell_cmd;
+    char* shell_arg;
+
+    // Get menu and aproc
+    menu = bview_prompt->editor->active_edit;
+    aproc = menu->async_proc;
+    if (aproc && aproc->invoker == menu) {
+        // Mark current aproc is_done
+        aproc->is_done = 1;
+    }
+
+    // Clear menu
+    buffer_set(menu->buffer, "", 0);
+
+    // Make new aproc
+    shell_arg = util_escape_shell_arg(bview_prompt->buffer->first_line->data, bview_prompt->buffer->first_line->data_len);
+    asprintf(&shell_cmd, "fzf -f %s", shell_arg);
+    menu->async_proc = async_proc_new(menu, 1, 0, _cmd_fsearch_aproc_cb, shell_cmd);
+    free(shell_arg);
+    free(shell_cmd);
 }

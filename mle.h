@@ -160,6 +160,7 @@ struct bview_s {
     syntax_t* syntax;
     async_proc_t* async_proc;
     cmd_func_t menu_callback;
+    int is_menu;
     bview_listener_t* listeners;
     bview_t* next;
     bview_t* prev;
@@ -259,6 +260,7 @@ struct async_proc_s {
     bview_t* invoker;
     FILE* pipe;
     int pipefd;
+    int is_done;
     struct timeval timeout;
     async_proc_cb_t callback;
     async_proc_t* next;
@@ -342,18 +344,20 @@ int cmd_new(cmd_context_t* ctx);
 int cmd_new_open(cmd_context_t* ctx);
 int cmd_replace_new(cmd_context_t* ctx);
 int cmd_replace_open(cmd_context_t* ctx);
+int cmd_fsearch(cmd_context_t* ctx);
+int cmd_browse(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 
 // async functions
-async_proc_t* async_proc_new(bview_t* invoker, struct timeval timeout, async_proc_cb_t callback, const char *cmd_fmt, ...);
+async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
 int async_proc_destroy(async_proc_t* aproc);
 
 // util functions
 int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
 int util_pcre_match(char* subject, char* re);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
-char* util_escape_shell_arg(char* str);
+char* util_escape_shell_arg(char* str, int len);
 void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 
@@ -386,6 +390,7 @@ extern editor_t _editor;
 #define MLE_MAX(a,b) (((a)>(b)) ? (a) : (b))
 
 #define MLE_BVIEW_IS_EDIT(bview) ((bview)->type == MLE_BVIEW_TYPE_EDIT)
+#define MLE_BVIEW_IS_MENU(bview) ((bview)->is_menu && MLE_BVIEW_IS_EDIT(bview))
 #define MLE_BVIEW_IS_POPUP(bview) ((bview)->type == MLE_BVIEW_TYPE_POPUP)
 #define MLE_BVIEW_IS_STATUS(bview) ((bview)->type == MLE_BVIEW_TYPE_STATUS)
 #define MLE_BVIEW_IS_PROMPT(bview) ((bview)->type == MLE_BVIEW_TYPE_PROMPT)
