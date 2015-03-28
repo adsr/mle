@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "mle.h"
 
 #define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do {\
@@ -22,8 +23,9 @@ static int _cmd_save(editor_t* editor, bview_t* bview);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut);
 static void _cmd_toggle_sel_bound(cursor_t* cursor);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
-static void _cmd_fsearch_aproc_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
+static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
 static void _cmd_fsearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
+static int _cmd_browse_cb(cmd_context_t* ctx);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -417,7 +419,7 @@ int cmd_split_horizontal(cmd_context_t* ctx) {
 int cmd_fsearch(cmd_context_t* ctx) {
     async_proc_t* aproc;
     char* path;
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_fsearch_aproc_cb, "fzf -f ''");
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "fzf -f ''");
     editor_prompt_menu(ctx->editor, "Fuzzy path?", NULL, 0, _cmd_fsearch_prompt_cb, aproc, &path);
     if (path) {
         editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
@@ -428,6 +430,11 @@ int cmd_fsearch(cmd_context_t* ctx) {
 
 // Browse directory via tree
 int cmd_browse(cmd_context_t* ctx) {
+    bview_t* menu;
+    async_proc_t* aproc;
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "tree --charset C -n -f");
+    editor_menu(ctx->editor, _cmd_browse_cb, ".", 1, aproc, &menu);
+    mark_move_beginning(menu->active_cursor->mark);
     return MLE_OK;
 }
 
@@ -456,6 +463,7 @@ int cmd_new(cmd_context_t* ctx) {
 // Open file into current bview
 int cmd_replace_open(cmd_context_t* ctx) {
     char* path;
+    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
     path = NULL;
     editor_prompt(ctx->editor, "Replace with file?", NULL, 0, NULL, NULL, &path);
@@ -468,6 +476,7 @@ int cmd_replace_open(cmd_context_t* ctx) {
 
 // Open empty buffer into current bview
 int cmd_replace_new(cmd_context_t* ctx) {
+    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
     bview_open(ctx->bview, NULL, 0);
     bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
@@ -477,6 +486,7 @@ int cmd_replace_new(cmd_context_t* ctx) {
 // Close bview
 int cmd_close(cmd_context_t* ctx) {
     int should_exit;
+    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
     should_exit = editor_bview_edit_count(ctx->editor) <= 1 ? 1 : 0;
     editor_close_bview(ctx->editor, ctx->bview);
@@ -535,7 +545,7 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
 // closing the bview, or 0 if the action was cancelled.
 static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
     char* yn;
-    if (!bview->buffer->is_unsaved) return 1;
+    if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)) return 1;
 
     editor_set_active(editor, bview);
 
@@ -642,17 +652,25 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
     return rc;
 }
 
-// Fuzzy path search aproc callback
-static void _cmd_fsearch_aproc_cb(async_proc_t* aproc, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout) {
+// Aproc callback that writes buf to bview buffer
+static void _cmd_aproc_passthru_cb(async_proc_t* aproc, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout) {
+    mark_t* active_mark;
     mark_t* ins_mark;
+    int is_cursor_at_zero;
     if (!buf || buf_len < 1) return;
 
+    // Remeber if cursor is at 0
+    active_mark = aproc->invoker->active_cursor->mark;
+    is_cursor_at_zero = active_mark->bline->line_index == 0 && active_mark->col == 0 ? 1 : 0;
+
     // Append data at end of menu buffer
-    ins_mark = aproc->invoker->active_cursor->mark;
+    ins_mark = buffer_add_mark(aproc->invoker->buffer, NULL, 0);
     mark_move_end(ins_mark);
     mark_insert_before(ins_mark, buf, buf_len);
-    mark_move_beginning(ins_mark);
+    mark_destroy(ins_mark);
     bview_rectify_viewport(aproc->invoker);
+
+    if (is_cursor_at_zero) mark_move_beginning(active_mark);
 }
 
 // Fuzzy path search prompt callback
@@ -676,7 +694,31 @@ static void _cmd_fsearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
     // Make new aproc
     shell_arg = util_escape_shell_arg(bview_prompt->buffer->first_line->data, bview_prompt->buffer->first_line->data_len);
     asprintf(&shell_cmd, "fzf -f %s", shell_arg);
-    menu->async_proc = async_proc_new(menu, 1, 0, _cmd_fsearch_aproc_cb, shell_cmd);
+    menu->async_proc = async_proc_new(menu, 1, 0, _cmd_aproc_passthru_cb, shell_cmd);
     free(shell_arg);
     free(shell_cmd);
+}
+
+// Callback from cmd_browse
+static int _cmd_browse_cb(cmd_context_t* ctx) {
+    char* line;
+    char* path;
+    line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
+    if ((path = strstr(line, "- ")) != NULL) {
+        path += 2;
+    } else if (strcmp(line, "..") == 0) {
+        path = "..";
+    }
+    editor_close_bview(ctx->editor, ctx->bview);
+    if (path) {
+        if (util_dir_exists(path)) {
+            chdir(path);
+            ctx->bview = ctx->editor->active_edit;
+            cmd_browse(ctx);
+        } else {
+            editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+        }
+    }
+    free(line);
+    return MLE_OK;
 }

@@ -278,7 +278,7 @@ int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_bview_exists(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);
 int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, bview_listener_cb_t opt_cb, char** optret_answer);
-int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc);
+int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu);
 int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line);
 
 // bview functions
@@ -355,6 +355,7 @@ int async_proc_destroy(async_proc_t* aproc);
 
 // util functions
 int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
+int util_dir_exists(char* path);
 int util_pcre_match(char* subject, char* re);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int len);
@@ -409,12 +410,10 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] buffer_add_srule memleak
 [ ] editor_config_t
 [ ] incremental search (use prompt_callback)
 [ ] hooks
-[ ] editor_dialog (like editor_prompt but with output from program + select on stdin)
-    [ ] fuzzy file search via `fzf -f 'thing'`
-    [ ] directory navigation via `tree -f --charset C`
 [ ] more sane key defaults
 [ ] user scripts
 [ ] display error messages / MLE_RETURN_ERR

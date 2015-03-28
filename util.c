@@ -15,6 +15,13 @@ int util_file_exists(char* path, char* opt_mode, FILE** optret_file) {
     return 1;
 }
 
+// Return 1 if path is dir
+int util_dir_exists(char* path) {
+    struct stat sb;
+    if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)) return 0;
+    return 1;
+}
+
 // Return 1 if re matches subject
 int util_pcre_match(char* subject, char* re) {
     int rc;
