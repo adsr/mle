@@ -65,6 +65,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
     editor->viewport_scope_x = -4;
     editor->viewport_scope_y = -4;
     editor->startup_linenum = -1;
+    editor->color_col = -1;
     editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
 
     // Init signal handlers
@@ -1090,13 +1091,14 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while ((c = getopt(argc, argv, "haK:k:M:m:n:rS:s:t:vx:y:")) != -1) {
+    while ((c = getopt(argc, argv, "hac:K:k:M:m:n:rS:s:t:vx:y:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
                 printf("Usage: mle [options] [file:line]...\n\n");
                 printf("    -h           Show this message\n");
                 printf("    -a           Allow tabs (disable tab-to-space)\n");
+                printf("    -c <column>  Color column\n");
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
                 printf("    -M <macro>   Add a macro\n");
@@ -1119,6 +1121,9 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 exit(EXIT_SUCCESS);
             case 'a':
                 editor->tab_to_space = 0;
+                break;
+            case 'c':
+                editor->color_col = atoi(optarg);
                 break;
             case 'K':
                 if (_editor_init_kmap_by_str(editor, &cur_kmap, optarg) != MLE_OK) {

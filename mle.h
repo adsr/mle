@@ -88,6 +88,7 @@ struct editor_s {
     int rel_linenums; // TODO linenum_type ~ rel, abs, rel+abs, hybrid
     int tab_width;
     int tab_to_space;
+    int color_col;
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     bint_t startup_linenum;

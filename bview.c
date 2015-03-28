@@ -690,6 +690,9 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             } else if (!iswprint(ch)) {
                 ch = '?';
             }
+            if (self->editor->color_col == char_col && MLE_BVIEW_IS_EDIT(self)) {
+                bg |= TB_RED;
+            }
         } else if (char_col == bline->char_count && bline->eol_rule) {
             ch = (uint32_t)' ';
             fg = bline->eol_rule->style.fg;
