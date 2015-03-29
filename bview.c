@@ -14,6 +14,8 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
 static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
 static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol);
 static int _bview_set_linenum_width(bview_t* self);
+static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark);
+static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell);
 
 // Create a new bview
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
@@ -157,21 +159,21 @@ int bview_draw_cursor(bview_t* self, int set_real_cursor) {
     mark_t* mark;
     int screen_x;
     int screen_y;
+    struct tb_cell* cell;
     mark = self->active_cursor->mark;
-    screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
-    screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index);
-    if (screen_x < self->rect_buffer.x || screen_x >= self->rect_buffer.x + self->rect_buffer.w
-       || screen_y < self->rect_buffer.y || screen_y >= self->rect_buffer.y + self->rect_buffer.h
-    ) {
+    if (_bview_get_screen_coords(self, mark, &screen_x, &screen_y, &cell) != MLE_OK) {
         // Out of bounds
         return MLE_OK;
     }
     if (set_real_cursor) {
+        // Set terminal cursor
         tb_set_cursor(screen_x, screen_y);
     } else {
-        struct tb_cell* cell;
-        cell = tb_cell_buffer() + (ptrdiff_t)(tb_width() * screen_y + screen_x);
+        // Set fake cursor
         tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | TB_CYAN); // TODO configurable
+    }
+    if (self->editor->highlight_bracket_pairs) {
+        _bview_highlight_bracket_pair(self, mark);
     }
     return MLE_OK;
 }
@@ -712,4 +714,49 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
         }
         rect_x += char_w;
     }
+}
+
+// Highlight matching bracket pair under mark
+static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
+    bline_t* line;
+    bint_t col;
+    mark_t pair;
+    int screen_x;
+    int screen_y;
+    struct tb_cell* cell;
+    if (mark_is_at_eol(mark) || !util_is_bracket_char(mark->bline->chars[mark->col].ch)) {
+        // Not a bracket
+        return;
+    }
+    if (mark_find_bracket_pair(mark, 10000, &line, &col, NULL) != MLBUF_OK) {
+        // No pair found
+        return;
+    }
+    pair.bline = line;
+    pair.col = col;
+    if (_bview_get_screen_coords(self, &pair, &screen_x, &screen_y, &cell) != MLE_OK) {
+        // Out of bounds
+        return;
+    }
+    tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | TB_CYAN); // TODO configurable
+}
+
+// Find screen coordinates for a mark
+static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell) {
+    int screen_x;
+    int screen_y;
+    screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
+    screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index);
+    if (screen_x < self->rect_buffer.x || screen_x >= self->rect_buffer.x + self->rect_buffer.w
+       || screen_y < self->rect_buffer.y || screen_y >= self->rect_buffer.y + self->rect_buffer.h
+    ) {
+        // Out of bounds
+        return MLE_ERR;
+    }
+    *ret_x = screen_x;
+    *ret_y = screen_y;
+    if (optret_cell) {
+        *optret_cell = tb_cell_buffer() + (ptrdiff_t)(tb_width() * screen_y + screen_x);
+    }
+    return MLE_OK;
 }

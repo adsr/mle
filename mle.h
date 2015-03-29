@@ -88,6 +88,7 @@ struct editor_s {
     int rel_linenums; // TODO linenum_type ~ rel, abs, rel+abs, hybrid
     int tab_width;
     int tab_to_space;
+    int highlight_bracket_pairs;
     int color_col;
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
@@ -249,7 +250,10 @@ struct cmd_context_s {
 
 // loop_context_t
 struct loop_context_s {
+#define MLE_LOOP_CTX_MAX_NUM_LEN 20
     bview_t* invoker;
+    char num[MLE_LOOP_CTX_MAX_NUM_LEN + 1];
+    int num_len;
     int should_exit;
     char* prompt_answer;
     cmd_func_t prompt_callback;
@@ -355,13 +359,14 @@ async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec
 int async_proc_destroy(async_proc_t* aproc);
 
 // util functions
+int util_is_bracket_char(uint32_t ch);
 int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
 int util_dir_exists(char* path);
 int util_pcre_match(char* subject, char* re);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int len);
-void tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
-void tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
+int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
+int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 
 // Globals
 extern editor_t _editor;
@@ -411,8 +416,12 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] don't prompt to save if buffer is still open in another bview
+[ ] command prompt
+[ ] trie keymap, "c i ?" => cmd_change
 [ ] buffer_add_srule memleak
-[ ] editor_config_t
+[ ] more elegant menu/prompt_menu
+[ ] bview_config_t
 [ ] incremental search (use prompt_callback)
 [ ] hooks
 [ ] more sane key defaults

@@ -1091,13 +1091,14 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while ((c = getopt(argc, argv, "hac:K:k:M:m:n:rS:s:t:vx:y:")) != -1) {
+    while ((c = getopt(argc, argv, "habc:K:k:M:m:n:rS:s:t:vx:y:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
                 printf("Usage: mle [options] [file:line]...\n\n");
                 printf("    -h           Show this message\n");
                 printf("    -a           Allow tabs (disable tab-to-space)\n");
+                printf("    -b           Highlight bracket pairs\n");
                 printf("    -c <column>  Color column\n");
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
@@ -1121,6 +1122,9 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 exit(EXIT_SUCCESS);
             case 'a':
                 editor->tab_to_space = 0;
+                break;
+            case 'b':
+                editor->highlight_bracket_pairs = 1;
                 break;
             case 'c':
                 editor->color_col = atoi(optarg);

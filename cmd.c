@@ -21,7 +21,7 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut);
-static void _cmd_toggle_sel_bound(cursor_t* cursor);
+static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
 static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
 static void _cmd_fsearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
@@ -208,7 +208,7 @@ int cmd_delete_word_after(cmd_context_t* ctx) {
 // Toggle sel bound on cursors
 int cmd_toggle_sel_bound(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_toggle_sel_bound(cursor);
+        _cmd_toggle_sel_bound(cursor, 1);
     );
     return MLE_OK;
 }
@@ -589,13 +589,16 @@ static int _cmd_save(editor_t* editor, bview_t* bview) {
 
 // Cut or copy text
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut) {
+    int use_srules;
     bint_t cut_len;
+    use_srules = 1;
     if (cursor->cut_buffer) {
         free(cursor->cut_buffer);
         cursor->cut_buffer = NULL;
     }
     if (!cursor->is_sel_bound_anchored) {
-        _cmd_toggle_sel_bound(cursor);
+        use_srules = 0;
+        _cmd_toggle_sel_bound(cursor, use_srules);
         mark_move_bol(cursor->mark);
         mark_move_eol(cursor->sel_bound);
         mark_move_by(cursor->sel_bound, 1);
@@ -604,20 +607,24 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut) {
     if (is_cut) {
         mark_delete_between_mark(cursor->mark, cursor->sel_bound);
     }
-    _cmd_toggle_sel_bound(cursor);
+    _cmd_toggle_sel_bound(cursor, use_srules);
 }
 
 // Anchor/unanchor cursor selection bound
-static void _cmd_toggle_sel_bound(cursor_t* cursor) {
+static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules) {
     if (!cursor->is_sel_bound_anchored) {
         cursor->sel_bound = mark_clone(cursor->mark);
-        cursor->sel_rule = srule_new_range(cursor->mark, cursor->sel_bound, 0, TB_REVERSE);
-        buffer_add_srule(cursor->bview->buffer, cursor->sel_rule);
+        if (use_srules) {
+            cursor->sel_rule = srule_new_range(cursor->mark, cursor->sel_bound, 0, TB_REVERSE);
+            buffer_add_srule(cursor->bview->buffer, cursor->sel_rule);
+        }
         cursor->is_sel_bound_anchored = 1;
     } else {
-        buffer_remove_srule(cursor->bview->buffer, cursor->sel_rule);
-        srule_destroy(cursor->sel_rule);
-        cursor->sel_rule = NULL;
+        if (use_srules) {
+            buffer_remove_srule(cursor->bview->buffer, cursor->sel_rule);
+            srule_destroy(cursor->sel_rule);
+            cursor->sel_rule = NULL;
+        }
         mark_destroy(cursor->sel_bound);
         cursor->is_sel_bound_anchored = 0;
     }
