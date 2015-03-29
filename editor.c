@@ -7,6 +7,7 @@
 #include "mle.h"
 #include "mlbuf.h"
 
+static int _editor_count_bviews_by_buffer_inner(bview_t* bview, buffer_t* buffer);
 static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle);
 static int _editor_bview_edit_count_inner(bview_t* bview);
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview);
@@ -311,6 +312,30 @@ int editor_bview_edit_count(editor_t* editor) {
         if (MLE_BVIEW_IS_EDIT(bview)) {
             count += _editor_bview_edit_count_inner(bview);
         }
+    }
+    return count;
+}
+
+// Return number of bviews displaying buffer
+int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer) {
+    int count;
+    bview_t* bview;
+    count = 0;
+    DL_FOREACH(editor->bviews, bview) {
+        count += _editor_count_bviews_by_buffer_inner(bview, buffer);
+    }
+    return count;
+}
+
+// Return number of bviews under bview displaying buffer
+static int _editor_count_bviews_by_buffer_inner(bview_t* bview, buffer_t* buffer) {
+    int count;
+    count = 0;
+    if (bview->buffer == buffer) {
+        count += 1;
+    }
+    if (bview->split_child) {
+        return count + _editor_count_bviews_by_buffer_inner(bview->split_child, buffer);
     }
     return count;
 }
@@ -1300,3 +1325,4 @@ static int _editor_drain_async_procs(editor_t* editor) {
 
     return 1;
 }
+

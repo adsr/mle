@@ -285,6 +285,7 @@ int editor_bview_edit_count(editor_t* editor);
 int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, bview_listener_cb_t opt_cb, char** optret_answer);
 int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu);
 int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line);
+int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -416,7 +417,6 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] don't prompt to save if buffer is still open in another bview
 [ ] command prompt
 [ ] trie keymap, "c i ?" => cmd_change
 [ ] buffer_add_srule memleak

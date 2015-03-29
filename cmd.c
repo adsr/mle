@@ -545,7 +545,11 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
 // closing the bview, or 0 if the action was cancelled.
 static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
     char* yn;
-    if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)) return 1;
+    if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)
+        || editor_count_bviews_by_buffer(editor, bview->buffer) > 1
+    ) {
+        return 1;
+    }
 
     editor_set_active(editor, bview);
 
