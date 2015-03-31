@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-CC=$(shell colorgcc -v >/dev/null 2>&1 && echo colorgcc || echo gcc)
+CC=$(shell if which colorgcc>/dev/null; then echo colorgcc; else echo gcc; fi
 
 all: mle
 
