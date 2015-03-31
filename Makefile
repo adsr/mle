@@ -12,6 +12,10 @@ mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
 ./termbox/build/src/libtermbox.a:
 	pushd termbox; ./waf configure && ./waf; popd
 
+test: mle
+	make -C mlbuf test
+	./mle -v
+
 clean:
 	rm -f *.o
 	rm -f gmon.out
