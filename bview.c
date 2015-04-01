@@ -3,6 +3,7 @@
 #include "mle.h"
 
 static void _bview_init(bview_t* self, buffer_t* buffer);
+static kmap_t* _bview_get_init_kmap(editor_t* editor);
 static void _bview_deinit(bview_t* self);
 static buffer_t* _bview_open_buffer(bview_t* self, char* path, int path_len);
 static void _bview_draw_prompt(bview_t* self);
@@ -378,13 +379,26 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
     _bview_set_linenum_width(self);
 
     // Push normal mode
-    bview_push_kmap(self, self->editor->kmap_normal);
+    bview_push_kmap(self, _bview_get_init_kmap(self->editor));
 
     // Set syntax
     _bview_set_syntax(self);
 
     // Add a cursor
     bview_add_cursor(self, self->buffer->first_line, 0, &cursor_tmp);
+}
+
+// Return initial kmap to use
+static kmap_t* _bview_get_init_kmap(editor_t* editor) {
+    if (!editor->kmap_init) {
+        if (editor->kmap_init_name) {
+            HASH_FIND_STR(editor->kmap_map, editor->kmap_init_name, editor->kmap_init);
+        }
+        if (!editor->kmap_init) {
+            editor->kmap_init = editor->kmap_normal;
+        }
+    }
+    return editor->kmap_init;
 }
 
 // Called by mlbuf after edits

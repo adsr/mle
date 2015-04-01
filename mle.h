@@ -71,7 +71,6 @@ struct editor_s {
     size_t macro_apply_input_index;
     int is_recording_macro;
     cmd_funcref_t* func_map;
-    char* kmap_init;
     kmap_t* kmap_map;
     kmap_t* kmap_normal;
     kmap_t* kmap_prompt_input;
@@ -81,6 +80,8 @@ struct editor_s {
     kmap_t* kmap_prompt_menu;
     kmap_t* kmap_less;
     kmap_t* kmap_isearch;
+    char* kmap_init_name;
+    kmap_t* kmap_init;
     async_proc_t* async_procs;
     FILE* tty;
     int ttyfd;
@@ -113,8 +114,7 @@ struct syntax_node_s {
 
 // syntax_t
 struct syntax_s {
-#define MLE_SYNTAX_NAME_MAX_LEN 16
-    char name[MLE_SYNTAX_NAME_MAX_LEN + 1];
+    char* name;
     char* path_pattern;
     srule_node_t* srules;
     UT_hash_handle hh;
@@ -191,8 +191,7 @@ struct cursor_s {
 
 // kmacro_t
 struct kmacro_s {
-#define MLE_KMACRO_NAME_MAX_LEN 16
-    char name[MLE_KMACRO_NAME_MAX_LEN + 1];
+    char* name;
     kinput_t* inputs;
     size_t inputs_len;
     size_t inputs_cap;
@@ -202,15 +201,23 @@ struct kmacro_s {
 // cmd_funcref_t
 struct cmd_funcref_s {
 #define MLE_FUNCREF(pcmdfn) (cmd_funcref_t){ #pcmdfn, (pcmdfn), NULL }
+#define MLE_FUNCREF_NONE (cmd_funcref_t){ NULL, NULL, NULL }
     char* name;
     cmd_func_t func;
     UT_hash_handle hh;
 };
 
+// kbinding_def_t
+struct kbinding_def_s {
+#define MLE_KBINDING_DEF(pcmdfn, pkey) { { #pcmdfn, (pcmdfn), NULL }, (pkey) }
+    cmd_funcref_t funcref;
+    char* key;
+};
+
 // kbinding_t
 struct kbinding_s {
     kinput_t input;
-    cmd_funcref_t funcref;
+    cmd_funcref_t* funcref;
     UT_hash_handle hh;
 };
 
@@ -222,17 +229,9 @@ struct kmap_node_s {
     kmap_node_t* prev;
 };
 
-// kbinding_def_t
-struct kbinding_def_s {
-#define MLE_KBINDING_DEF(pcmdfn, pkey) { { #pcmdfn, (pcmdfn), NULL }, (pkey) }
-    cmd_funcref_t funcref;
-    char* key;
-};
-
 // kmap_t
 struct kmap_s {
-#define MLE_KMAP_NAME_MAX_LEN 16
-    char name[MLE_KMAP_NAME_MAX_LEN + 1];
+    char* name;
     kbinding_t* bindings;
     int allow_fallthru;
     cmd_funcref_t* default_funcref;
@@ -286,6 +285,7 @@ int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_l
 int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu);
 int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line);
 int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer);
+int editor_register_cmd(editor_t* editor, char* name, cmd_func_t opt_func, cmd_funcref_t** optret_funcref);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -417,7 +417,6 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] command prompt
 [ ] trie keymap, "c i ?" => cmd_change
 [ ] buffer_add_srule memleak
 [ ] more elegant menu/prompt_menu
@@ -432,6 +431,7 @@ TODO
 [ ] configurable colors
 [ ] configurable status bar
 [ ] configurable caption bar
+[ ] command prompt
 */
 
 #endif
