@@ -831,6 +831,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
 #define MLE_KEY_DEF(pckey, pmod, pch, pkey) \
     } else if (keylen == strlen((pckey)) && !strncmp((pckey), key, keylen)) { \
         ret_input->mod = (pmod); \
+        ret_input->ch = (pch); \
         ret_input->key = (pkey); \
         return MLE_OK;
     if (keylen < 1) {
