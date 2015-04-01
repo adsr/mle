@@ -256,6 +256,7 @@ struct loop_context_s {
 #define MLE_LOOP_CTX_MAX__PARAMS 8
     bview_t* invoker;
     char num[MLE_LOOP_CTX_MAX_NUM_LEN + 1];
+    kbinding_t* num_node;
     int num_len;
     uintmax_t num_params[MLE_LOOP_CTX_MAX_NUM_PARAMS];
     int num_params_len;

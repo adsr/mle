@@ -7,7 +7,7 @@
 #include "mle.h"
 #include "mlbuf.h"
 
-static kbinding_t* _editor_get_kbinding_node(kbinding_t* parent, kinput_t* input, loop_context_t* loop_ctx);
+static kbinding_t* _editor_get_kbinding_node(kbinding_t* parent, kinput_t* input, loop_context_t* loop_ctx, int* ret_again);
 static int _editor_count_bviews_by_buffer_inner(bview_t* bview, buffer_t* buffer);
 static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle);
 static int _editor_bview_edit_count_inner(bview_t* bview);
@@ -685,36 +685,43 @@ static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input) {
 
 // Return command for input
 static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input) {
-    kbinding_t* trie;
+    kbinding_t* node;
     kbinding_t* binding;
     kmap_node_t* kmap_node;
     int is_top;
+    int again;
 
     // Init some vars
     kmap_node = editor->active->kmap_tail;
-    trie = loop_ctx->binding_node;
-    is_top = (trie == NULL ? 1 : 0);
+    node = loop_ctx->binding_node;
+    is_top = (node == NULL ? 1 : 0);
     loop_ctx->need_more_input = 0;
     loop_ctx->binding_node = NULL;
 
     // Look for key binding
     while (kmap_node) {
-        if (is_top) trie = kmap_node->kmap->bindings->children;
-        binding = _editor_get_kbinding_node(trie, input, loop_ctx);
+        if (is_top) node = kmap_node->kmap->bindings;
+        again = 0;
+        binding = _editor_get_kbinding_node(node, input, loop_ctx, &again);
         if (binding) {
-            if (binding->funcref) {
-                // Found leaf in trie
+            if (again) {
+                // Need more input on current node
+                loop_ctx->need_more_input = 1;
+                loop_ctx->binding_node = binding;
+                return NULL;
+            } else if (binding->funcref) {
+                // Found leaf!
                 return _editor_resolve_funcref(editor, binding->funcref);
             } else if (binding->children) {
-                // Need more input
+                // Need more input on next node
                 loop_ctx->need_more_input = 1;
-                loop_ctx->binding_node = binding->children;
+                loop_ctx->binding_node = binding;
                 return NULL;
             } else {
                 // This shouldn't happen... TODO err
                 return NULL;
             }
-        } else if (trie == kmap_node->kmap->bindings->children) {
+        } else if (node == kmap_node->kmap->bindings) {
             // Binding not found at top level
             if (kmap_node->kmap->default_funcref) {
                 // Fallback to default
@@ -739,20 +746,24 @@ static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx
 }
 
 // Find binding by input in trie, taking into account numeric and wildcards patterns
-static kbinding_t* _editor_get_kbinding_node(kbinding_t* trie, kinput_t* input, loop_context_t* loop_ctx) {
+static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, loop_context_t* loop_ctx, int* ret_again) {
     kbinding_t* binding;
     kinput_t input_tmp;
     memset(&input_tmp, 0, sizeof(kinput_t));
 
     // Look for numeric .. TODO can be more efficient about this
     if (input->ch >= '0' && input->ch <= '9') {
-        input_tmp = MLE_KINPUT_NUMERIC;
-        HASH_FIND(hh, trie, &input_tmp, sizeof(kinput_t), binding);
-        if (binding) {
+        if (!loop_ctx->num_node) {
+            input_tmp = MLE_KINPUT_NUMERIC;
+            HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
+            loop_ctx->num_node = binding;
+        }
+        if (loop_ctx->num_node) {
             if (loop_ctx->num_len < MLE_LOOP_CTX_MAX_NUM_LEN) {
                 loop_ctx->num[loop_ctx->num_len] = (char)input->ch;
                 loop_ctx->num_len += 1;
-                return trie; // Note, returning same node
+                *ret_again = 1;
+                return node; // Need more input on this node
             }
             return NULL; // Ran out of `num` buffer .. TODO err
         }
@@ -765,21 +776,24 @@ static kbinding_t* _editor_get_kbinding_node(kbinding_t* trie, kinput_t* input, 
             loop_ctx->num_params[loop_ctx->num_params_len] = strtoul(loop_ctx->num, NULL, 10);
             loop_ctx->num_params_len += 1;
             loop_ctx->num_len = 0;
+            node = loop_ctx->num_node; // Resume on numeric's children
+            loop_ctx->num_node = NULL;
         } else {
             loop_ctx->num_len = 0;
+            loop_ctx->num_node = NULL;
             return NULL; // Ran out of `num_params` space .. TODO err
         }
     }
 
     // Look for input
-    HASH_FIND(hh, trie, input, sizeof(kinput_t), binding);
+    HASH_FIND(hh, node->children, input, sizeof(kinput_t), binding);
     if (binding) {
         return binding;
     }
 
     // Look for wildcard
     input_tmp = MLE_KINPUT_WILDCARD;
-    HASH_FIND(hh, trie, &input_tmp, sizeof(kinput_t), binding);
+    HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
     if (binding) {
         if (loop_ctx->wildcard_params_len < MLE_LOOP_CTX_MAX_WILDCARD_PARAMS) {
             loop_ctx->wildcard_params[loop_ctx->wildcard_params_len] = input->ch;
@@ -904,7 +918,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_cut, "C-k"),
         MLE_KBINDING_DEF(cmd_copy, "C-c"),
         MLE_KBINDING_DEF(cmd_uncut, "C-u"),
-        MLE_KBINDING_DEF(cmd_change, "C-y c **"),
+        MLE_KBINDING_DEF(cmd_change, "C-y ## c **"),
         MLE_KBINDING_DEF(cmd_next, "M-n"),
         MLE_KBINDING_DEF(cmd_prev, "M-p"),
         MLE_KBINDING_DEF(cmd_split_vertical, "M-v"),
