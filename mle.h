@@ -211,13 +211,14 @@ struct cmd_funcref_s {
 struct kbinding_def_s {
 #define MLE_KBINDING_DEF(pcmdfn, pkey) { { #pcmdfn, (pcmdfn), NULL }, (pkey) }
     cmd_funcref_t funcref;
-    char* key;
+    char* key_patt;
 };
 
 // kbinding_t
 struct kbinding_s {
     kinput_t input;
     cmd_funcref_t* funcref;
+    kbinding_t* children;
     UT_hash_handle hh;
 };
 
@@ -250,9 +251,18 @@ struct cmd_context_s {
 // loop_context_t
 struct loop_context_s {
 #define MLE_LOOP_CTX_MAX_NUM_LEN 20
+#define MLE_LOOP_CTX_MAX_NUM_PARAMS 8
+#define MLE_LOOP_CTX_MAX_WILDCARD_PARAMS 8
+#define MLE_LOOP_CTX_MAX__PARAMS 8
     bview_t* invoker;
     char num[MLE_LOOP_CTX_MAX_NUM_LEN + 1];
     int num_len;
+    uintmax_t num_params[MLE_LOOP_CTX_MAX_NUM_PARAMS];
+    int num_params_len;
+    uint32_t wildcard_params[MLE_LOOP_CTX_MAX_WILDCARD_PARAMS];
+    int wildcard_params_len;
+    kbinding_t* binding_node;
+    int need_more_input;
     int should_exit;
     char* prompt_answer;
     cmd_func_t prompt_callback;
@@ -340,6 +350,7 @@ int cmd_delete_word_after(cmd_context_t* ctx);
 int cmd_cut(cmd_context_t* ctx);
 int cmd_copy(cmd_context_t* ctx);
 int cmd_uncut(cmd_context_t* ctx);
+int cmd_change(cmd_context_t* ctx);
 int cmd_next(cmd_context_t* ctx);
 int cmd_prev(cmd_context_t* ctx);
 int cmd_split_vertical(cmd_context_t* ctx);
@@ -414,6 +425,12 @@ extern editor_t _editor;
     ? (pmax) \
     : ( (pcol) <= 0 ? 0 : (pline)->chars[(pcol)].vcol ) \
 )
+
+// Sentinel values for numeric and wildcard kinputs
+#define MLE_KINPUT_NUMERIC (kinput_t){ 0x40, 0xffffffff, 0xffff }
+#define MLE_KINPUT_WILDCARD (kinput_t){ 0x80, 0xffffffff, 0xffff }
+#define MLE_KINPUT_IS_NUMERIC(pk) ((pk)->mod == 0x40 && (pk)->ch == 0xffffffff && (pk)->key == 0xffff)
+#define MLE_KINPUT_IS_WILDCARD(pk) ((pk)->mod == 0x80 && (pk)->ch == 0xffffffff && (pk)->key == 0xffff)
 
 /*
 TODO

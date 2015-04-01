@@ -7,6 +7,7 @@
 #include "mle.h"
 #include "mlbuf.h"
 
+static kbinding_t* _editor_get_kbinding_node(kbinding_t* parent, kinput_t* input, loop_context_t* loop_ctx);
 static int _editor_count_bviews_by_buffer_inner(bview_t* bview, buffer_t* buffer);
 static int _editor_bview_exists_inner(bview_t* parent, bview_t* needle);
 static int _editor_bview_edit_count_inner(bview_t* bview);
@@ -30,7 +31,7 @@ static void _editor_display(editor_t* editor);
 static void _editor_get_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input);
-static cmd_func_t _editor_get_command(editor_t* editor, kinput_t input);
+static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input);
 static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref);
 static int _editor_key_to_input(char* key, kinput_t* ret_input);
 static void _editor_init_signal_handlers(editor_t* editor);
@@ -39,8 +40,9 @@ static void _editor_init_kmaps(editor_t* editor);
 static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, cmd_funcref_t default_funcref, int allow_fallthru, kbinding_def_t* defs);
 static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, char* cmd_name, char* key);
 static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* str);
+static int _editor_init_kmap_add_binding_to_trie(kbinding_t** parent, char* key_patt, cmd_funcref_t* funcref);
 static int _editor_init_kmap_add_binding_by_str(editor_t* editor, kmap_t* kmap, char* str);
-static void _editor_destroy_kmap(kmap_t* kmap);
+static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* parent);
 static int _editor_add_macro_by_str(editor_t* editor, char* str);
 static void _editor_init_syntaxes(editor_t* editor);
 static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, srule_def_t* defs);
@@ -131,7 +133,8 @@ int editor_deinit(editor_t* editor) {
     }
     HASH_ITER(hh, editor->kmap_map, kmap, kmap_tmp) {
         HASH_DEL(editor->kmap_map, kmap);
-        _editor_destroy_kmap(kmap);
+        _editor_destroy_kmap(kmap, kmap->bindings->children);
+        free(kmap->bindings);
     }
     HASH_ITER(hh, editor->macro_map, macro, macro_tmp) {
         HASH_DEL(editor->macro_map, macro);
@@ -158,6 +161,7 @@ int editor_deinit(editor_t* editor) {
 int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, bview_listener_cb_t opt_prompt_cb, char** optret_answer) {
     bview_t* bview_tmp;
     loop_context_t loop_ctx;
+    memset(&loop_ctx, 0, sizeof(loop_context_t));
 
     // Disallow nested prompts
     if (editor->prompt) {
@@ -520,11 +524,18 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             continue;
         }
 
-        // Execute command
-        if ((cmd_fn = _editor_get_command(editor, cmd_ctx.input)) != NULL) {
+        // Find command in trie
+        if ((cmd_fn = _editor_get_command(editor, loop_ctx, &cmd_ctx.input)) != NULL) {
+            // Found, now execute
             cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
             cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
             cmd_fn(&cmd_ctx);
+            loop_ctx->binding_node = NULL;
+        } else if (loop_ctx->need_more_input) {
+            // Need more input to find
+        } else {
+            // Not found, bad command
+            loop_ctx->binding_node = NULL;
         }
     }
 }
@@ -673,25 +684,112 @@ static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input) {
 }
 
 // Return command for input
-static cmd_func_t _editor_get_command(editor_t* editor, kinput_t input) {
-    kmap_node_t* kmap_node;
+static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input) {
+    kbinding_t* trie;
     kbinding_t* binding;
+    kmap_node_t* kmap_node;
+    int is_top;
 
+    // Init some vars
     kmap_node = editor->active->kmap_tail;
-    binding = NULL;
+    trie = loop_ctx->binding_node;
+    is_top = (trie == NULL ? 1 : 0);
+    loop_ctx->need_more_input = 0;
+    loop_ctx->binding_node = NULL;
+
+    // Look for key binding
     while (kmap_node) {
-        HASH_FIND(hh, kmap_node->kmap->bindings, &input, sizeof(kinput_t), binding);
+        if (is_top) trie = kmap_node->kmap->bindings->children;
+        binding = _editor_get_kbinding_node(trie, input, loop_ctx);
         if (binding) {
-            return _editor_resolve_funcref(editor, binding->funcref);
-        } else if (kmap_node->kmap->default_funcref) {
-            return _editor_resolve_funcref(editor, kmap_node->kmap->default_funcref);
-        }
-        if (kmap_node->kmap->allow_fallthru) {
-            kmap_node = kmap_node->prev;
+            if (binding->funcref) {
+                // Found leaf in trie
+                return _editor_resolve_funcref(editor, binding->funcref);
+            } else if (binding->children) {
+                // Need more input
+                loop_ctx->need_more_input = 1;
+                loop_ctx->binding_node = binding->children;
+                return NULL;
+            } else {
+                // This shouldn't happen... TODO err
+                return NULL;
+            }
+        } else if (trie == kmap_node->kmap->bindings->children) {
+            // Binding not found at top level
+            if (kmap_node->kmap->default_funcref) {
+                // Fallback to default
+                return _editor_resolve_funcref(editor, kmap_node->kmap->default_funcref);
+            }
+            if (kmap_node->kmap->allow_fallthru) {
+                // Fallback to previous kmap on stack
+                kmap_node = kmap_node->prev;
+                is_top = 1;
+            } else {
+                // Fallback not allowed
+                return NULL;
+            }
         } else {
-            kmap_node = NULL;
+            // Binding not found
+            return NULL;
         }
     }
+
+    // No more kmaps
+    return NULL;
+}
+
+// Find binding by input in trie, taking into account numeric and wildcards patterns
+static kbinding_t* _editor_get_kbinding_node(kbinding_t* trie, kinput_t* input, loop_context_t* loop_ctx) {
+    kbinding_t* binding;
+    kinput_t input_tmp;
+    memset(&input_tmp, 0, sizeof(kinput_t));
+
+    // Look for numeric .. TODO can be more efficient about this
+    if (input->ch >= '0' && input->ch <= '9') {
+        input_tmp = MLE_KINPUT_NUMERIC;
+        HASH_FIND(hh, trie, &input_tmp, sizeof(kinput_t), binding);
+        if (binding) {
+            if (loop_ctx->num_len < MLE_LOOP_CTX_MAX_NUM_LEN) {
+                loop_ctx->num[loop_ctx->num_len] = (char)input->ch;
+                loop_ctx->num_len += 1;
+                return trie; // Note, returning same node
+            }
+            return NULL; // Ran out of `num` buffer .. TODO err
+        }
+    }
+
+    // Parse/reset num buffer
+    if (loop_ctx->num_len > 0) {
+        if (loop_ctx->num_params_len < MLE_LOOP_CTX_MAX_NUM_PARAMS) {
+            loop_ctx->num[loop_ctx->num_len] = '\0';
+            loop_ctx->num_params[loop_ctx->num_params_len] = strtoul(loop_ctx->num, NULL, 10);
+            loop_ctx->num_params_len += 1;
+            loop_ctx->num_len = 0;
+        } else {
+            loop_ctx->num_len = 0;
+            return NULL; // Ran out of `num_params` space .. TODO err
+        }
+    }
+
+    // Look for input
+    HASH_FIND(hh, trie, input, sizeof(kinput_t), binding);
+    if (binding) {
+        return binding;
+    }
+
+    // Look for wildcard
+    input_tmp = MLE_KINPUT_WILDCARD;
+    HASH_FIND(hh, trie, &input_tmp, sizeof(kinput_t), binding);
+    if (binding) {
+        if (loop_ctx->wildcard_params_len < MLE_LOOP_CTX_MAX_WILDCARD_PARAMS) {
+            loop_ctx->wildcard_params[loop_ctx->wildcard_params_len] = input->ch;
+            loop_ctx->wildcard_params_len += 1;
+        } else {
+            return NULL; // Ran out of `wildcard_params` space .. TODO err
+        }
+        return binding;
+    }
+
     return NULL;
 }
 
@@ -806,6 +904,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_cut, "C-k"),
         MLE_KBINDING_DEF(cmd_copy, "C-c"),
         MLE_KBINDING_DEF(cmd_uncut, "C-u"),
+        MLE_KBINDING_DEF(cmd_change, "C-y c **"),
         MLE_KBINDING_DEF(cmd_next, "M-n"),
         MLE_KBINDING_DEF(cmd_prev, "M-p"),
         MLE_KBINDING_DEF(cmd_split_vertical, "M-v"),
@@ -862,13 +961,14 @@ static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, c
     kmap = calloc(1, sizeof(kmap_t));
     kmap->name = strdup(name);
     kmap->allow_fallthru = allow_fallthru;
+    kmap->bindings = calloc(1, sizeof(kbinding_t));
     if (default_funcref.name) {
         editor_register_cmd(editor, default_funcref.name, default_funcref.func, &kmap->default_funcref);
     }
 
-    while (defs && defs->key) {
+    while (defs && defs->key_patt) {
         editor_register_cmd(editor, defs->funcref.name, defs->funcref.func, &funcref);
-        _editor_init_kmap_add_binding(editor, kmap, defs->funcref.name, defs->key);
+        _editor_init_kmap_add_binding(editor, kmap, defs->funcref.name, defs->key_patt);
         defs++;
     }
 
@@ -877,18 +977,55 @@ static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, c
 }
 
 // Add a binding to a kmap
-static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, char* cmd_name, char* key) {
-    kbinding_t* binding;
+static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, char* cmd_name, char* key_patt) {
+    cmd_funcref_t* funcref;
+    char* key_patt_dup;
+    key_patt_dup = strdup(key_patt);
+    editor_register_cmd(editor, cmd_name, NULL, &funcref);
+    _editor_init_kmap_add_binding_to_trie(&kmap->bindings->children, key_patt_dup, funcref);
+    free(key_patt_dup);
+}
 
-    binding = calloc(1, sizeof(kbinding_t));
-    editor_register_cmd(editor, cmd_name, NULL, &binding->funcref);
+// Add a binding to a kmap trie
+static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* key_patt, cmd_funcref_t* funcref) {
+    char* next_key;
+    kbinding_t* node;
 
-    if (_editor_key_to_input(key, &binding->input) != MLE_OK) {
-        free(binding);
-        return;
+    // Find next_key and add nullchar to key_patt for this key
+    next_key = strchr(key_patt, ' ');
+    if (next_key != NULL) {
+        *next_key = '\0';
+        next_key += 1;
     }
 
-    HASH_ADD(hh, kmap->bindings, input, sizeof(kinput_t), binding);
+    // Make kbinding node for this key
+    node = calloc(1, sizeof(kbinding_t));
+    if (strcmp("##", key_patt) == 0) {
+        node->input = MLE_KINPUT_NUMERIC;
+    } else if (strcmp("**", key_patt) == 0) {
+        node->input = MLE_KINPUT_WILDCARD;
+    } else if (_editor_key_to_input(key_patt, &node->input) == MLE_OK) {
+        // Hi mom!
+    } else {
+        free(node);
+        return MLE_ERR;
+    }
+
+    // Add binding node to trie
+    HASH_ADD(hh, *trie, input, sizeof(kinput_t), node);
+
+    if (next_key) {
+        // Recurse for next key
+        if (_editor_init_kmap_add_binding_to_trie(&node->children, next_key, funcref) != MLE_OK) {
+            free(node);
+            return MLE_ERR;
+        }
+    } else {
+        // Leaf node, set funcref
+        node->funcref = funcref;
+    }
+
+    return MLE_OK;
 }
 
 // Proxy for _editor_init_kmap with str in format '<name>,<default_cmd>,<allow_fallthru>'
@@ -912,15 +1049,24 @@ static int _editor_init_kmap_add_binding_by_str(editor_t* editor, kmap_t* kmap, 
 
 
 // Destroy a kmap
-static void _editor_destroy_kmap(kmap_t* kmap) {
+static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* trie) {
     kbinding_t* binding;
     kbinding_t* binding_tmp;
-    HASH_ITER(hh, kmap->bindings, binding, binding_tmp) {
-        HASH_DELETE(hh, kmap->bindings, binding);
+    int is_top;
+    is_top = (trie == kmap->bindings ? 1 : 0);
+    HASH_ITER(hh, trie, binding, binding_tmp) {
+        if (binding->children) {
+            _editor_destroy_kmap(kmap, binding->children);
+        }
+        HASH_DELETE(hh, trie, binding);
         free(binding);
     }
-    if (kmap->name) free(kmap->name);
-    free(kmap);
+    if (is_top) {
+        //free(trie);
+        if (kmap->name) free(kmap->name);
+        //if (kmap->bindings) free(kmap->bindings);
+        free(kmap);
+    }
 }
 
 // Add a macro by str with format '<name> <key1> <key2> ... <keyN>'

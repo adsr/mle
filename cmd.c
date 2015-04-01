@@ -376,6 +376,14 @@ int cmd_uncut(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Change text
+int cmd_change(cmd_context_t* ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        mark_insert_before(cursor->mark, "todo!", 5);
+    );
+    return MLE_OK;
+}
+
 // Switch focus to next/prev bview (cmd_next, cmd_prev)
 #define MLE_IMPL_CMD_NEXTPREV(pthis, pend) \
 int cmd_ ## pthis (cmd_context_t* ctx) { \
