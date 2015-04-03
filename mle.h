@@ -86,7 +86,7 @@ struct editor_s {
     FILE* tty;
     int ttyfd;
     char* syntax_override;
-    int rel_linenums; // TODO linenum_type ~ rel, abs, rel+abs, hybrid
+    int linenum_type;
     int tab_width;
     int tab_to_space;
     int highlight_bracket_pairs;
@@ -152,7 +152,6 @@ struct bview_s {
     int split_is_vertical;
     char* prompt_str;
     char* path;
-    int is_unsaved;
     kmap_node_t* kmap_stack;
     kmap_node_t* kmap_tail;
     cursor_t* cursors;
@@ -434,6 +433,10 @@ extern editor_t _editor;
 #define MLE_KINPUT_WILDCARD (kinput_t){ 0x80, 0xffffffff, 0xffff }
 #define MLE_KINPUT_IS_NUMERIC(pk) ((pk)->mod == 0x40 && (pk)->ch == 0xffffffff && (pk)->key == 0xffff)
 #define MLE_KINPUT_IS_WILDCARD(pk) ((pk)->mod == 0x80 && (pk)->ch == 0xffffffff && (pk)->key == 0xffff)
+
+#define MLE_LINENUM_TYPE_ABS 0
+#define MLE_LINENUM_TYPE_REL 1
+#define MLE_LINENUM_TYPE_BOTH 2
 
 /*
 TODO

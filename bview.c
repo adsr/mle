@@ -27,8 +27,9 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
     self = calloc(1, sizeof(bview_t));
     self->editor = editor;
     self->path = strndup(opt_path, opt_path_len);
-    self->rect_caption.bg = TB_REVERSE; // TODO configurable
-    self->rect_lines.fg = TB_YELLOW;
+    self->rect_caption.fg = TB_WHITE;
+    self->rect_caption.bg = TB_BLACK;
+    self->rect_lines.fg = TB_WHITE;
     self->rect_lines.bg = TB_BLACK;
     self->rect_margin_left.fg = TB_RED;
     self->rect_margin_right.fg = TB_RED;
@@ -157,24 +158,27 @@ int bview_draw(bview_t* self) {
 
 // Set cursor to screen
 int bview_draw_cursor(bview_t* self, int set_real_cursor) {
+    cursor_t* cursor;
     mark_t* mark;
     int screen_x;
     int screen_y;
     struct tb_cell* cell;
-    mark = self->active_cursor->mark;
-    if (_bview_get_screen_coords(self, mark, &screen_x, &screen_y, &cell) != MLE_OK) {
-        // Out of bounds
-        return MLE_OK;
-    }
-    if (set_real_cursor) {
-        // Set terminal cursor
-        tb_set_cursor(screen_x, screen_y);
-    } else {
-        // Set fake cursor
-        tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | TB_CYAN); // TODO configurable
-    }
-    if (self->editor->highlight_bracket_pairs) {
-        _bview_highlight_bracket_pair(self, mark);
+    DL_FOREACH(self->cursors, cursor) {
+        mark = cursor->mark;
+        if (_bview_get_screen_coords(self, mark, &screen_x, &screen_y, &cell) != MLE_OK) {
+            // Out of bounds
+            return MLE_OK;
+        }
+        if (set_real_cursor && cursor == self->active_cursor) {
+            // Set terminal cursor
+            tb_set_cursor(screen_x, screen_y);
+        } else {
+            // Set fake cursor
+            tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | (cursor->is_asleep ? TB_RED : TB_CYAN)); // TODO configurable
+        }
+        if (self->editor->highlight_bracket_pairs) {
+            _bview_highlight_bracket_pair(self, mark);
+        }
     }
     return MLE_OK;
 }
@@ -444,13 +448,21 @@ static int _bview_set_linenum_width(bview_t* self) {
     int orig;
     orig = self->linenum_width;
     self->abs_linenum_width = MLE_MAX(1, (int)(floor(log10((double)self->buffer->line_count))) + 1);
-    if (self->editor->rel_linenums) {
-        self->rel_linenum_width = MLE_MAX(1, (int)(floor(log10((double)self->rect_buffer.h))) + 1);
+    if (self->editor->linenum_type != MLE_LINENUM_TYPE_ABS) {
+        self->rel_linenum_width = MLE_MAX(
+            self->editor->linenum_type == MLE_LINENUM_TYPE_BOTH ? 1 : self->abs_linenum_width,
+            (int)(floor(log10((double)self->rect_buffer.h))) + 1
+        );
     } else {
         self->rel_linenum_width = 0;
     }
-    self->linenum_width = self->abs_linenum_width
-        + (self->rel_linenum_width > 0 ? self->rel_linenum_width + 1 : 0);
+    if (self->editor->linenum_type == MLE_LINENUM_TYPE_ABS) {
+        self->linenum_width = self->abs_linenum_width;
+    } else if (self->editor->linenum_type == MLE_LINENUM_TYPE_REL) {
+        self->linenum_width = self->abs_linenum_width > self->rel_linenum_width ? self->abs_linenum_width : self->rel_linenum_width;
+    } else if (self->editor->linenum_type == MLE_LINENUM_TYPE_BOTH) {
+        self->linenum_width = self->abs_linenum_width + 1 + self->rel_linenum_width;
+    }
     return orig == self->linenum_width ? 0 : 1;
 }
 
@@ -566,6 +578,9 @@ static void _bview_draw_status(bview_t* self) {
     mark_t* mark;
     active = self->editor->active;
     mark = active->active_cursor->mark;
+
+    
+
     // TODO
     tb_printf(self->editor->rect_status, 0, 0, 0, 0,
         "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer %p",
@@ -592,6 +607,8 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     int min_w;
     int min_h;
     int rect_y;
+    int fg_attr;
+    int bg_attr;
     bline_t* bline;
 
     // Handle split
@@ -626,12 +643,17 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
 
     // Render caption
+    fg_attr = self->editor->active_edit == self ? TB_BOLD : 0;
+    bg_attr = self->editor->active_edit == self ? TB_BLUE : 0;
+    tb_printf(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.*s", self->rect_caption.w, self->rect_caption.w, " ");
     if (self->buffer->path) {
-        tb_printf(self->rect_caption, 0, 0, 0, 0, "%s %c",
-            self->buffer->path, self->is_unsaved ? '*' : ' ');
+        tb_printf(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.s%s %c",
+            self->linenum_width, " ",
+            self->buffer->path, self->buffer->is_unsaved ? '*' : ' ');
     } else {
-        tb_printf(self->rect_caption, 0, 0, 0, 0, "<buffer-%p> %c",
-            self->buffer, self->is_unsaved ? '*' : ' ');
+        tb_printf(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.s<buffer-%p> %c",
+            self->linenum_width, " ",
+            self->buffer, self->buffer->is_unsaved ? '*' : ' ');
     }
 
     // Render lines and margins
@@ -680,9 +702,16 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     // Draw linenums and margins
     if (MLE_BVIEW_IS_EDIT(self)) {
         int linenum_fg = is_cursor_line ? TB_BOLD : 0;
-        tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->abs_linenum_width, (int)(bline->line_index + 1) % (int)pow(10, self->linenum_width));
-        if (self->editor->rel_linenums) {
-            tb_printf(self->rect_lines, self->abs_linenum_width, rect_y, linenum_fg, 0, " %*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
+        if (self->editor->linenum_type == MLE_LINENUM_TYPE_ABS
+            || self->editor->linenum_type == MLE_LINENUM_TYPE_BOTH
+            || (self->editor->linenum_type == MLE_LINENUM_TYPE_REL && is_cursor_line)
+        ) {
+            tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->abs_linenum_width, (int)(bline->line_index + 1) % (int)pow(10, self->linenum_width));
+            if (self->editor->linenum_type == MLE_LINENUM_TYPE_BOTH) {
+                tb_printf(self->rect_lines, self->abs_linenum_width, rect_y, linenum_fg, 0, " %*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
+            }
+        } else if (self->editor->linenum_type == MLE_LINENUM_TYPE_REL) {
+            tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
         }
         tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
         tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');

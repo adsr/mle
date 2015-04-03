@@ -1277,7 +1277,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while ((c = getopt(argc, argv, "habc:K:k:M:m:n:rS:s:t:vx:y:")) != -1) {
+    while ((c = getopt(argc, argv, "habc:K:k:l:M:m:n:S:s:t:vx:y:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1288,10 +1288,10 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -c <column>  Color column\n");
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
+                printf("    -l <ltype>   Set linenum type\n");
                 printf("    -M <macro>   Add a macro\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
-                printf("    -r           Use relative line numbers\n");
                 printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
@@ -1302,6 +1302,7 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    file:line    At start up, open file at line\n");
                 printf("    kdef         '<name>,<default_cmd>,<allow_fallthru>'\n");
                 printf("    kbind        '<cmd>,<key>'\n");
+                printf("    ltype        0=absolute, 1=relative, 2=both\n");
                 printf("    macro        '<name> <key1> <key2> ... <keyN>'\n");
                 printf("    syndef       '<name>,<path_pattern>'\n");
                 printf("    synrule      '<start>,<end>,<fg>,<bg>'\n");
@@ -1327,6 +1328,10 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                     exit(EXIT_FAILURE);
                 }
                 break;
+            case 'l':
+                editor->linenum_type = atoi(optarg);
+                if (editor->linenum_type < 0 || editor->linenum_type > 2) editor->linenum_type = 0;
+                break;
             case 'M':
                 if (_editor_add_macro_by_str(editor, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not add macro by str: %s\n", optarg);
@@ -1341,9 +1346,6 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'n':
                 editor->kmap_init_name = strdup(optarg);
-                break;
-            case 'r':
-                editor->rel_linenums = 1;
                 break;
             case 'S':
                 if (_editor_init_syntax_by_str(editor, &cur_syntax, optarg) != MLE_OK) {
