@@ -52,8 +52,8 @@ struct bview_rect_s {
 struct editor_s {
     int w;
     int h;
-    bview_t* bviews;
-    bview_t* bviews_tail;
+    bview_t* top_bviews;
+    bview_t* all_bviews;
     bview_t* active;
     bview_t* active_edit;
     bview_t* active_edit_root;
@@ -164,8 +164,10 @@ struct bview_s {
     cmd_func_t menu_callback;
     int is_menu;
     bview_listener_t* listeners;
-    bview_t* next;
-    bview_t* prev;
+    bview_t* top_next;
+    bview_t* top_prev;
+    bview_t* all_next;
+    bview_t* all_prev;
 };
 
 // bview_listener_t
@@ -286,8 +288,8 @@ struct async_proc_s {
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
 int editor_run(editor_t* editor);
-int editor_open_bview(editor_t* editor, int type, char* opt_path, int opt_path_len, int make_active, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
-int editor_close_bview(editor_t* editor, bview_t* bview);
+int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
+int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed);
 int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_bview_exists(editor_t* editor, bview_t* bview);

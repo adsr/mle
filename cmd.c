@@ -384,26 +384,18 @@ int cmd_change(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-// Switch focus to next/prev bview (cmd_next, cmd_prev)
-#define MLE_IMPL_CMD_NEXTPREV(pthis, pend) \
-int cmd_ ## pthis (cmd_context_t* ctx) { \
-    bview_t* tmp; \
-    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK; \
-    for (tmp = ctx->bview->pthis; tmp != ctx->bview; tmp = tmp->pthis) { \
-        if (tmp == NULL) { \
-            tmp = (pend); \
-            if (tmp == NULL) break; \
-        } \
-        if (MLE_BVIEW_IS_EDIT(tmp)) { \
-            editor_set_active(ctx->editor, tmp); \
-            break; \
-        } \
-    } \
-    return MLE_OK; \
+
+// Go to next bview
+int cmd_next(cmd_context_t* ctx) {
+    editor_set_active(ctx->editor, ctx->bview->all_prev);
+    return MLE_OK;
 }
-MLE_IMPL_CMD_NEXTPREV(next, ctx->editor->bviews)
-MLE_IMPL_CMD_NEXTPREV(prev, ctx->editor->bviews_tail)
-#undef MLE_IMPL_CMD_NEXTPREV
+
+// Go to prev bview
+int cmd_prev(cmd_context_t* ctx) {
+    editor_set_active(ctx->editor, ctx->bview->all_next);
+    return MLE_OK;
+}
 
 // Split a bview vertically
 int cmd_split_vertical(cmd_context_t* ctx) {
@@ -430,7 +422,7 @@ int cmd_fsearch(cmd_context_t* ctx) {
     aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "fzf -f ''");
     editor_prompt_menu(ctx->editor, "Fuzzy path?", NULL, 0, _cmd_fsearch_prompt_cb, aproc, &path);
     if (path) {
-        editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
         free(path);
     }
     return MLE_OK;
@@ -457,14 +449,14 @@ int cmd_new_open(cmd_context_t* ctx) {
     char* path;
     editor_prompt(ctx->editor, "File?", NULL, 0, NULL, NULL, &path);
     if (!path) return MLE_OK;
-    editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
     free(path);
     return MLE_OK;
 }
 
 // Open empty buffer in a new bview
 int cmd_new(cmd_context_t* ctx) {
-    editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &ctx->editor->rect_edit, NULL, NULL);
     return MLE_OK;
 }
 
@@ -493,12 +485,13 @@ int cmd_replace_new(cmd_context_t* ctx) {
 
 // Close bview
 int cmd_close(cmd_context_t* ctx) {
-    int should_exit;
+    int num_open;
+    int num_closed;
     if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
-    should_exit = editor_bview_edit_count(ctx->editor) <= 1 ? 1 : 0;
-    editor_close_bview(ctx->editor, ctx->bview);
-    ctx->loop_ctx->should_exit = should_exit;
+    num_open = editor_bview_edit_count(ctx->editor);
+    editor_close_bview(ctx->editor, ctx->bview, &num_closed);
+    ctx->loop_ctx->should_exit = num_closed == num_open ? 1 : 0;
     return MLE_OK;
 }
 
@@ -506,7 +499,7 @@ int cmd_close(cmd_context_t* ctx) {
 int cmd_quit(cmd_context_t* ctx) {
     bview_t* bview;
     bview_t* tmp;
-    DL_FOREACH_SAFE(ctx->editor->bviews, bview, tmp) {
+    DL_FOREACH_SAFE2(ctx->editor->top_bviews, bview, tmp, top_next) {
         if (!MLE_BVIEW_IS_EDIT(bview)) {
             continue;
         } else if (!_cmd_quit_inner(ctx->editor, bview)) {
@@ -545,7 +538,7 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
     } else if (!_cmd_pre_close(editor, bview)) {
         return 0;
     }
-    editor_close_bview(editor, bview);
+    editor_close_bview(editor, bview, NULL);
     return 1;
 }
 
@@ -728,14 +721,14 @@ static int _cmd_browse_cb(cmd_context_t* ctx) {
     } else if (strcmp(line, "..") == 0) {
         path = "..";
     }
-    editor_close_bview(ctx->editor, ctx->bview);
+    editor_close_bview(ctx->editor, ctx->bview, NULL);
     if (path) {
         if (util_dir_exists(path)) {
             chdir(path);
             ctx->bview = ctx->editor->active_edit;
             cmd_browse(ctx);
         } else {
-            editor_open_bview(ctx->editor, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+            editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
         }
     }
     free(line);

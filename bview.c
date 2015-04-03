@@ -217,7 +217,7 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     }
 
     // Make child
-    editor_open_bview(self->editor, self->type, NULL, 0, 1, NULL, self->buffer, &child);
+    editor_open_bview(self->editor, self, self->type, NULL, 0, 1, NULL, self->buffer, &child);
     child->split_parent = self;
     self->split_child = child;
     self->split_factor = factor;
@@ -406,7 +406,6 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
     editor_t* editor;
     bview_t* self;
     bview_t* active;
-    bview_t* bview_tmp;
     bview_listener_t* listener;
 
     self = (bview_t*)udata;
@@ -418,23 +417,21 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
         bview_rectify_viewport(active);
     }
 
-    #define BVIEW_ITERATE_FOR_BUFFER(bview_tmp) \
-        for (bview_tmp = editor->bviews; bview_tmp; bview_tmp = bview_tmp->next) \
-            if (bview_tmp->buffer == buffer)
     if (action && action->line_delta != 0) {
-        // Adjust linenum_width
-        BVIEW_ITERATE_FOR_BUFFER(bview_tmp) {
-            if (_bview_set_linenum_width(bview_tmp)) {
-                bview_resize(bview_tmp, bview_tmp->x, bview_tmp->y, bview_tmp->w, bview_tmp->h);
+        bview_t* bview;
+        bview_t* tmp1;
+        bview_t* tmp2;
+        CDL_FOREACH_SAFE2(editor->all_bviews, bview, tmp1, tmp2, all_prev, all_next) {
+            if (bview->buffer == buffer) {
+                // Adjust linenum_width
+                if (_bview_set_linenum_width(bview)) {
+                    bview_resize(bview, bview->x, bview->y, bview->w, bview->h);
+                }
+                // Adjust viewport_bline
+                buffer_get_bline(bview->buffer, bview->viewport_y, &bview->viewport_bline);
             }
         }
-
-        // Adjust viewport_bline
-        BVIEW_ITERATE_FOR_BUFFER(bview_tmp) {
-            buffer_get_bline(bview_tmp->buffer, bview_tmp->viewport_y, &bview_tmp->viewport_bline);
-        }
     }
-    #undef BVIEW_ITERATE_FOR_BUFFER
 
     // Call bview listeners
     DL_FOREACH(self->listeners, listener) {
