@@ -26,6 +26,7 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
 static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
 static void _cmd_fsearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_browse_cb(cmd_context_t* ctx);
+static int _cmd_grep_cb(cmd_context_t* ctx);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -419,7 +420,7 @@ int cmd_split_horizontal(cmd_context_t* ctx) {
 int cmd_fsearch(cmd_context_t* ctx) {
     async_proc_t* aproc;
     char* path;
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "fzf -f ''");
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "fzf -f '' 2>/dev/null");
     editor_prompt_menu(ctx->editor, "Fuzzy path?", NULL, 0, _cmd_fsearch_prompt_cb, aproc, &path);
     if (path) {
         editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
@@ -428,11 +429,29 @@ int cmd_fsearch(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Grep for pattern in cwd
+int cmd_grep(cmd_context_t* ctx) {
+    async_proc_t* aproc;
+    char* path;
+    char* path_arg;
+    char* cmd;
+    editor_prompt(ctx->editor, "Pattern?", NULL, 0, NULL, NULL, &path);
+    if (!path) return MLE_OK;
+    path_arg = util_escape_shell_arg(path, strlen(path));
+    asprintf(&cmd, "grep --color=never -P -i -I -r %s . 2>/dev/null", path_arg);
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
+    free(path);
+    free(path_arg);
+    free(cmd);
+    editor_menu(ctx->editor, _cmd_grep_cb, NULL, 0, aproc, NULL);
+    return MLE_OK;
+}
+
 // Browse directory via tree
 int cmd_browse(cmd_context_t* ctx) {
     bview_t* menu;
     async_proc_t* aproc;
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "tree --charset C -n -f");
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "tree --charset C -n -f 2>/dev/null");
     editor_menu(ctx->editor, _cmd_browse_cb, ".", 1, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
     return MLE_OK;
@@ -709,6 +728,22 @@ static void _cmd_fsearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
     menu->async_proc = async_proc_new(menu, 1, 0, _cmd_aproc_passthru_cb, shell_cmd);
     free(shell_arg);
     free(shell_cmd);
+}
+
+// Callback from cmd_grep
+static int _cmd_grep_cb(cmd_context_t* ctx) {
+    char* line;
+    char* colon;
+    line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
+    colon = strstr(line, ":");
+    if (colon == NULL) {
+        free(line);
+        return MLE_OK;
+    }
+    editor_close_bview(ctx->editor, ctx->bview, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, line, (int)(colon - line), 1, &ctx->editor->rect_edit, NULL, NULL);
+    free(line);
+    return MLE_OK;
 }
 
 // Callback from cmd_browse

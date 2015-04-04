@@ -29,7 +29,7 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
     self->path = strndup(opt_path, opt_path_len);
     self->rect_caption.fg = TB_WHITE;
     self->rect_caption.bg = TB_BLACK;
-    self->rect_lines.fg = TB_WHITE;
+    self->rect_lines.fg = TB_YELLOW;
     self->rect_lines.bg = TB_BLACK;
     self->rect_margin_left.fg = TB_RED;
     self->rect_margin_right.fg = TB_RED;

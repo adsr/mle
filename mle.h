@@ -365,6 +365,7 @@ int cmd_replace_new(cmd_context_t* ctx);
 int cmd_replace_open(cmd_context_t* ctx);
 int cmd_fsearch(cmd_context_t* ctx);
 int cmd_browse(cmd_context_t* ctx);
+int cmd_grep(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 
