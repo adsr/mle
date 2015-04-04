@@ -321,7 +321,9 @@ int editor_bview_edit_count(editor_t* editor) {
     int count;
     bview_t* bview;
     count = 0;
-    CDL_COUNT2(editor->all_bviews, bview, count, all_next);
+    CDL_FOREACH2(editor->all_bviews, bview, all_next) {
+        if (MLE_BVIEW_IS_EDIT(bview)) count += 1;
+    }
     return count;
 }
 
@@ -473,6 +475,8 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
 
     // Loop until editor should exit
     while (!loop_ctx->should_exit) {
+        // Set loop_ctx
+        editor->loop_ctx = loop_ctx;
 
         // Display editor
         if (!editor->is_display_disabled) {
@@ -526,7 +530,7 @@ static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
         editor->is_recording_macro = 0;
     } else {
         // Get macro name and start recording
-        editor_prompt(editor, "Macro name?", NULL, 0, NULL, NULL, &name);
+        editor_prompt(editor, "record_macro: Name?", NULL, 0, NULL, NULL, &name);
         if (!name) return 1;
         editor->macro_record = calloc(1, sizeof(kmacro_t));
         editor->macro_record->name = name;
@@ -1066,7 +1070,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
     macro = NULL;
 
     // Tokenize by space
-    token = strtok(str, " ");
+    token = strtok(str, ",");
     while (token) {
         if (!macro) {
             // Make macro with <name> on first token
@@ -1084,7 +1088,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
             has_input = 1;
         }
         // Get next token
-        token = strtok(NULL, " ");
+        token = strtok(NULL, ",");
     }
 
     // Add macro to map if has_input
@@ -1103,7 +1107,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, NULL, "mle_generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (srule_def_t[]){
+    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
@@ -1489,4 +1493,3 @@ static int _editor_drain_async_procs(editor_t* editor) {
 
     return 1;
 }
-

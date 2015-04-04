@@ -93,6 +93,7 @@ struct editor_s {
     int color_col;
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
+    loop_context_t* loop_ctx;
     bint_t startup_linenum;
     int is_in_init;
 };
@@ -382,6 +383,7 @@ int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int len);
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
+int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 
 // Globals
 extern editor_t _editor;
@@ -441,21 +443,23 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] trie keymap, "c i ?" => cmd_change
-[ ] buffer_add_srule memleak
-[ ] more elegant menu/prompt_menu
-[ ] bview_config_t
-[ ] incremental search (use prompt_callback)
-[ ] hooks
-[ ] more sane key defaults
-[ ] user scripts
+[ ] cmd_isearch
 [ ] display error messages / MLE_RETURN_ERR
-[ ] macro record icon
-[ ] less mode
-[ ] configurable colors
-[ ] configurable status bar
-[ ] configurable caption bar
+[ ] sane key defaults
+[ ] add cmd_undo,redo
+[ ] --
+[ ] scriptability + hooks
+[ ] cmd_var_set, _clear, _append, _prepend, _print, _incr, _decr
+[ ] buffer_repeat
+[ ] multi-level undo/redo
+[ ] nested prompts?
+[ ] bview_config_t
+[ ] more elegant menu/prompt_menu
 [ ] command prompt
+[ ] command wildcard param order
+[ ] configurable colors
+[ ] configurable status line
+[ ] configurable caption line
 */
 
 #endif

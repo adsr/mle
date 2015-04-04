@@ -549,6 +549,7 @@ static void _bview_set_syntax(bview_t* self) {
             buffer_add_srule(self->buffer, srule_node->srule);
         }
         buffer_set_styles_enabled(self->buffer, 1);
+        self->syntax = use_syntax;
     }
 }
 
@@ -574,30 +575,99 @@ static void _bview_draw_prompt(bview_t* self) {
 }
 
 static void _bview_draw_status(bview_t* self) {
+    editor_t* editor;
     bview_t* active;
+    bview_t* active_edit;
     mark_t* mark;
-    active = self->editor->active;
-    mark = active->active_cursor->mark;
 
-    
+    editor = self->editor;
+    active = editor->active;
+    active_edit = editor->active_edit;
+    mark = active_edit->active_cursor->mark;
 
-    // TODO
-    tb_printf(self->editor->rect_status, 0, 0, 0, 0,
-        "prompt [%s], line %lu/%lu, col %lu/%lu, vcol %lu/%lu, view %dx%d, rect %dx%d, a %p, ae %p, aer %p",
-        self->editor->active == self->editor->prompt ? self->editor->prompt->prompt_str : "",
-        mark->bline->line_index,
-        active->buffer->line_count,
-        mark->col,
-        mark->bline->char_count,
-        MLE_MARK_COL_TO_VCOL(mark),
-        mark->bline->char_vwidth,
-        active->viewport_x,
-        active->viewport_y,
-        active->rect_buffer.w,
-        active->rect_buffer.h,
-        self->editor->active,
-        self->editor->active_edit,
-        self->editor->active_edit_root
+    // Prompt
+    if (active == editor->prompt) {
+        tb_printf(editor->rect_status, 0, 0, TB_GREEN | TB_BOLD, TB_BLACK, "%-*.*s", editor->rect_status.w, editor->rect_status.w, self->editor->prompt->prompt_str);
+        return;
+    }
+
+    // Macro indicator
+    int i_macro_fg, i_macro_bg;
+    char* i_macro;
+    if (editor->is_recording_macro) {
+        i_macro_fg = TB_RED | TB_BOLD;
+        i_macro_bg = TB_WHITE;
+        i_macro = "\xe2\x97\x8f";
+    } else if (editor->macro_apply) {
+        i_macro_fg = TB_WHITE | TB_BOLD;
+        i_macro_bg = TB_GREEN;
+        i_macro = "\xe2\x96\xb6";
+    } else {
+        i_macro_fg = 0;
+        i_macro_bg = 0;
+        i_macro = ".";
+    }
+
+    // Async indicator
+    int i_async_fg, i_async_bg;
+    char* i_async;
+    static int i_async_idx = 0;
+    if (editor->async_procs) {
+        i_async_fg = TB_BLACK | TB_BOLD;
+        i_async_bg = TB_YELLOW;
+        if (i_async_idx < 100)      i_async = "\xe2\x96\x9d";
+        else if (i_async_idx < 200) i_async = "\xe2\x96\x97";
+        else if (i_async_idx < 300) i_async = "\xe2\x96\x96";
+        else if (i_async_idx < 400) i_async = "\xe2\x96\x98";
+        if (++i_async_idx >= 400) i_async_idx = 0;
+    } else {
+        i_async_fg = 0;
+        i_async_bg = 0;
+        i_async = ".";
+    }
+
+    // Need-more-input icon
+    int i_needinput_fg;
+    int i_needinput_bg;
+    char* i_needinput;
+    if (editor->loop_ctx->need_more_input) {
+        i_needinput_fg = TB_BLACK;
+        i_needinput_bg = TB_BLUE;
+        i_needinput = "\xe2\x80\xa6";
+    } else {
+        i_needinput_fg = 0;
+        i_needinput_bg = 0;
+        i_needinput = ".";
+    }
+
+    // Bview num .. TODO pre-compute this
+    bview_t* bview_tmp;
+    int bview_count = 0;
+    int bview_num = 0;
+    CDL_FOREACH2(editor->all_bviews, bview_tmp, all_next) {
+        if (MLE_BVIEW_IS_EDIT(bview_tmp)) {
+            bview_count += 1;
+            if (bview_tmp == active_edit) bview_num = bview_count;
+        }
+    }
+
+    // Render status line
+    tb_printf(self->editor->rect_status, 0, 0, 0, 0, "%*.*s", self->editor->rect_status.w, self->editor->rect_status.w, " ");
+    tb_printf_attr(self->editor->rect_status, 0, 0,
+        "@%d,%d;%s@%d,%d;"                             // mle_normal    mode
+        "(@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;)  "       // (...)         need_input,macro,async
+        "buf[@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;]  "     // buf[1/2]      bview num
+        "<@%d,%d;%s@%d,%d;>  "                         // <php>         syntax
+        "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  " // line:1/100    line
+        "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d; ",  // col:0/80      col
+        TB_MAGENTA | TB_BOLD, 0, active->kmap_tail->kmap->name, 0, 0,
+        i_needinput_fg, i_needinput_bg, i_needinput,
+        i_macro_fg, i_macro_bg, i_macro,
+        i_async_fg, i_async_bg, i_async, 0, 0,
+        TB_BLUE | TB_BOLD, 0, bview_num, 0, 0, TB_BLUE | TB_BOLD, 0, bview_count, 0, 0,
+        TB_CYAN | TB_BOLD, 0, active_edit->syntax ? active_edit->syntax->name : "-", 0, 0,
+        TB_YELLOW | TB_BOLD, 0, mark->bline->line_index + 1, 0, 0, TB_YELLOW, 0, active_edit->buffer->line_count, 0, 0,
+        TB_YELLOW | TB_BOLD, 0, mark->col, 0, 0, TB_YELLOW, 0, mark->bline->char_count, 0, 0
     );
 }
 

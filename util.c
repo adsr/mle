@@ -93,7 +93,8 @@ char* util_escape_shell_arg(char* str, int l) {
 // Adapted from termbox src/demo/keyboard.c
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str) {
     uint32_t uni;
-    int c = 0;
+    int c;
+    c = 0;
     while (*str) {
         str += utf8_char_to_unicode(&uni, str, NULL);
         tb_change_cell(x, y, uni, fg, bg);
@@ -110,6 +111,59 @@ int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const c
     va_start(vl, fmt);
     vsnprintf(buf, sizeof(buf), fmt, vl);
     va_end(vl);
-    return tb_print(rect.x + x, rect.y + y, rect.fg | fg, rect.bg | bg, buf);
+    return tb_print(rect.x + x, rect.y + y, fg ? fg : rect.fg, bg ? bg : rect.bg, buf);
 }
 
+// Like tb_printf, but accepts @fg,bg; attributes inside the string. To print
+// a literal '@', use '@@' in the format string. Specify fg or bg of 0 to
+// reset that attribute.
+int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
+    char bufo[4096];
+    char* buf;
+    int fg;
+    int bg;
+    int tfg;
+    int tbg;
+    int c;
+    uint32_t uni;
+
+    va_list vl;
+    va_start(vl, fmt);
+    vsnprintf(bufo, sizeof(bufo), fmt, vl);
+    va_end(vl);
+
+    fg = rect.fg;
+    bg = rect.bg;
+    x = rect.x + x;
+    y = rect.y + y;
+
+    c = 0;
+    buf = bufo;
+    while (*buf) {
+        buf += utf8_char_to_unicode(&uni, buf, NULL);
+        if (uni == '@') {
+            if (!*buf) break;
+            utf8_char_to_unicode(&uni, buf, NULL);
+            if (uni != '@') {
+                tfg = strtol(buf, &buf, 10);
+                if (!*buf) break;
+                utf8_char_to_unicode(&uni, buf, NULL);
+                if (uni == ',') {
+                    buf++;
+                    if (!*buf) break;
+                    tbg = strtol(buf, &buf, 10);
+                    fg = tfg <= 0 ? rect.fg : tfg;
+                    bg = tbg <= 0 ? rect.bg : tbg;
+                    if (!*buf) break;
+                    utf8_char_to_unicode(&uni, buf, NULL);
+                    if (uni == ';') buf++;
+                    continue;
+                }
+            }
+        }
+        tb_change_cell(x, y, uni, fg, bg);
+        x++;
+        c++;
+    }
+    return c;
+}
