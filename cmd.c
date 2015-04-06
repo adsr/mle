@@ -25,6 +25,7 @@ static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
 static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
 static void _cmd_fsearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
+static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_browse_cb(cmd_context_t* ctx);
 static int _cmd_grep_cb(cmd_context_t* ctx);
 
@@ -348,7 +349,14 @@ int cmd_replace(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Incremental search
 int cmd_isearch(cmd_context_t* ctx) {
+    editor_prompt(ctx->editor, "isearch: Regex?", NULL, 0, ctx->editor->kmap_prompt_isearch, _cmd_isearch_prompt_cb, NULL);
+    if (ctx->bview->isearch_rule) {
+        buffer_remove_srule(ctx->bview->buffer, ctx->bview->isearch_rule);
+        srule_destroy(ctx->bview->isearch_rule);
+        ctx->bview->isearch_rule = NULL;
+    }
     return MLE_OK;
 }
 
@@ -506,6 +514,7 @@ int cmd_replace_new(cmd_context_t* ctx) {
 int cmd_close(cmd_context_t* ctx) {
     int num_open;
     int num_closed;
+    if (ctx->editor->loop_depth > 1) return MLE_OK;
     if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
     num_open = editor_bview_edit_count(ctx->editor);
@@ -518,6 +527,7 @@ int cmd_close(cmd_context_t* ctx) {
 int cmd_quit(cmd_context_t* ctx) {
     bview_t* bview;
     bview_t* tmp;
+    if (ctx->editor->loop_depth > 1) return MLE_OK;
     DL_FOREACH_SAFE2(ctx->editor->top_bviews, bview, tmp, top_next) {
         if (!MLE_BVIEW_IS_EDIT(bview)) {
             continue;
@@ -702,6 +712,33 @@ static void _cmd_aproc_passthru_cb(async_proc_t* aproc, char* buf, size_t buf_le
     bview_rectify_viewport(aproc->invoker);
 
     if (is_cursor_at_zero) mark_move_beginning(active_mark);
+}
+
+// Incremental search prompt callback
+static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, void* udata) {
+    bview_t* bview;
+    char* regex;
+    int regex_len;
+
+    bview = bview_prompt->editor->active_edit;
+
+    if (bview->isearch_rule) {
+        buffer_remove_srule(bview->buffer, bview->isearch_rule);
+        srule_destroy(bview->isearch_rule);
+        bview->isearch_rule = NULL;
+    }
+
+    regex = bview_prompt->buffer->first_line->data;
+    regex_len = bview_prompt->buffer->first_line->data_len;
+
+    if (regex_len > 0) {
+        bview->isearch_rule = srule_new_single(regex, regex_len, 0, TB_YELLOW);
+        buffer_add_srule(bview->buffer, bview->isearch_rule);
+        mark_move_by(bview->active_cursor->mark, -1);
+        if (mark_move_next_cre(bview->active_cursor->mark, bview->isearch_rule->cre) != MLBUF_OK) {
+            mark_move_by(bview->active_cursor->mark, 1);
+        }
+    }
 }
 
 // Fuzzy path search prompt callback

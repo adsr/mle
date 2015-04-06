@@ -76,10 +76,9 @@ struct editor_s {
     kmap_t* kmap_prompt_input;
     kmap_t* kmap_prompt_yn;
     kmap_t* kmap_prompt_ok;
-    kmap_t* kmap_menu;
+    kmap_t* kmap_prompt_isearch;
     kmap_t* kmap_prompt_menu;
-    kmap_t* kmap_less;
-    kmap_t* kmap_isearch;
+    kmap_t* kmap_menu;
     char* kmap_init_name;
     kmap_t* kmap_init;
     async_proc_t* async_procs;
@@ -94,6 +93,7 @@ struct editor_s {
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     loop_context_t* loop_ctx;
+    int loop_depth;
     bint_t startup_linenum;
     int is_in_init;
 };
@@ -158,6 +158,7 @@ struct bview_s {
     cursor_t* cursors;
     cursor_t* active_cursor;
     char* last_search;
+    srule_t* isearch_rule;
     int tab_to_space;
     syntax_t* syntax;
     async_proc_t* async_proc;
@@ -443,9 +444,10 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] sane key defaults, cmd_change, cmd_isearch, others from vim
+[ ] sane key defaults, cmd_change, others from vim
 [ ] display error messages / MLE_RETURN_ERR
 [ ] add cmd_undo,redo
+[ ] can't match ^$
 [ ] --
 [ ] scriptability + hooks
 [ ] cmd_var_set, _clear, _append, _prepend, _print, _incr, _decr
@@ -459,6 +461,7 @@ TODO
 [ ] configurable colors
 [ ] configurable status line
 [ ] configurable caption line
+[ ] protect against invalid api use, e.g., srule_destroy active srule
 */
 
 #endif

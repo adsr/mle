@@ -19,6 +19,8 @@ static int _editor_prompt_menu_up(cmd_context_t* ctx);
 static int _editor_prompt_menu_down(cmd_context_t* ctx);
 static int _editor_prompt_menu_page_up(cmd_context_t* ctx);
 static int _editor_prompt_menu_page_down(cmd_context_t* ctx);
+static int _editor_prompt_isearch_next(cmd_context_t* ctx);
+static int _editor_prompt_isearch_prev(cmd_context_t* ctx);
 static void _editor_startup(editor_t* editor);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
@@ -454,6 +456,24 @@ static int _editor_prompt_menu_page_down(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Invoked when user hits down in a prompt_isearch
+static int _editor_prompt_isearch_next(cmd_context_t* ctx) {
+    if (ctx->editor->active_edit->isearch_rule) {
+        mark_move_next_cre(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
+        bview_zero_viewport_y(ctx->editor->active_edit);
+    }
+    return MLE_OK;
+}
+
+// Invoked when user hits up in a prompt_isearch
+static int _editor_prompt_isearch_prev(cmd_context_t* ctx) {
+    if (ctx->editor->active_edit->isearch_rule) {
+        mark_move_prev_cre(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
+        bview_zero_viewport_y(ctx->editor->active_edit);
+    }
+    return MLE_OK;
+}
+
 // Run startup actions. This is before any user-input is processed.
 static void _editor_startup(editor_t* editor) {
     // Jump to line in current bview if specified
@@ -463,10 +483,14 @@ static void _editor_startup(editor_t* editor) {
     }
 }
 
+
 // Run editor loop
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
     cmd_context_t cmd_ctx;
     cmd_func_t cmd_fn;
+
+    // Increment loop_depth
+    editor->loop_depth += 1;
 
     // Init cmd_context
     memset(&cmd_ctx, 0, sizeof(cmd_context_t));
@@ -510,6 +534,9 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             loop_ctx->binding_node = NULL;
         }
     }
+
+    // Decrement loop_depth
+    editor->loop_depth -= 1;
 }
 
 // If input == editor->macro_toggle_key, toggle macro mode and return 1. Else
@@ -939,6 +966,13 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_menu_down, "right"),
         MLE_KBINDING_DEF(_editor_prompt_menu_page_up, "page-up"),
         MLE_KBINDING_DEF(_editor_prompt_menu_page_down, "page-down"),
+        MLE_KBINDING_DEF(NULL, NULL)
+    });
+    _editor_init_kmap(editor, &editor->kmap_prompt_isearch, "mle_prompt_isearch", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "enter"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
+        MLE_KBINDING_DEF(_editor_prompt_isearch_prev, "up"),
+        MLE_KBINDING_DEF(_editor_prompt_isearch_next, "down"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
 }
