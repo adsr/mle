@@ -656,7 +656,7 @@ static void _bview_draw_status(bview_t* self) {
     tb_printf_attr(self->editor->rect_status, 0, 0,
         "@%d,%d;%s@%d,%d;"                             // mle_normal    mode
         "(@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;)  "       // (...)         need_input,macro,async
-        "buf[@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;]  "     // buf[1/2]      bview num
+        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "     // buf[1/2]      bview num
         "<@%d,%d;%s@%d,%d;>  "                         // <php>         syntax
         "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  " // line:1/100    line
         "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d; ",  // col:0/80      col
@@ -664,8 +664,8 @@ static void _bview_draw_status(bview_t* self) {
         i_needinput_fg, i_needinput_bg, i_needinput,
         i_macro_fg, i_macro_bg, i_macro,
         i_async_fg, i_async_bg, i_async, 0, 0,
-        TB_BLUE | TB_BOLD, 0, bview_num, 0, 0, TB_BLUE | TB_BOLD, 0, bview_count, 0, 0,
-        TB_CYAN | TB_BOLD, 0, active_edit->syntax ? active_edit->syntax->name : "-", 0, 0,
+        TB_BLUE | TB_BOLD, 0, bview_num, 0, 0, TB_BLUE, 0, bview_count, 0, 0,
+        TB_CYAN | TB_BOLD, 0, active_edit->syntax ? active_edit->syntax->name : "none", 0, 0,
         TB_YELLOW | TB_BOLD, 0, mark->bline->line_index + 1, 0, 0, TB_YELLOW, 0, active_edit->buffer->line_count, 0, 0,
         TB_YELLOW | TB_BOLD, 0, mark->col, 0, 0, TB_YELLOW, 0, mark->bline->char_count, 0, 0
     );

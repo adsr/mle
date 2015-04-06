@@ -443,9 +443,8 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] cmd_isearch
+[ ] sane key defaults, cmd_change, cmd_isearch, others from vim
 [ ] display error messages / MLE_RETURN_ERR
-[ ] sane key defaults
 [ ] add cmd_undo,redo
 [ ] --
 [ ] scriptability + hooks
