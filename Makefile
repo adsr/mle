@@ -16,9 +16,15 @@ test: mle
 	make -C mlbuf test
 	./mle -v
 
+install: mle
+	cp -v mle /usr/bin/mle && chown -v 755 /usr/bin/mle
+
 clean:
 	rm -f *.o
+	rm -f mle.bak.*
 	rm -f gmon.out
 	rm -f mle
 	make -C mlbuf clean
 	pushd termbox; ./waf clean; popd
+
+.PHONY: all mle test install clean
