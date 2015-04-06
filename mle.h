@@ -26,7 +26,6 @@ typedef struct kbinding_s kbinding_t; // A single binding in a keymap
 typedef struct syntax_s syntax_t; // A syntax definition
 typedef struct syntax_node_s syntax_node_t; // A node in a linked list of syntaxes
 typedef struct srule_def_s srule_def_t; // A definition of a syntax
-typedef struct srule_node_s srule_node_t; // A node in a linked list of srules
 typedef struct async_proc_s async_proc_t; // An asynchronous process
 typedef void (*async_proc_cb_t)(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout); // An async_proc_t callback
 typedef struct tb_event tb_event_t; // A termbox event
