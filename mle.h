@@ -74,6 +74,7 @@ struct editor_s {
     kmap_t* kmap_normal;
     kmap_t* kmap_prompt_input;
     kmap_t* kmap_prompt_yn;
+    kmap_t* kmap_prompt_yna;
     kmap_t* kmap_prompt_ok;
     kmap_t* kmap_prompt_isearch;
     kmap_t* kmap_prompt_menu;
@@ -211,15 +212,18 @@ struct cmd_funcref_s {
 
 // kbinding_def_t
 struct kbinding_def_s {
-#define MLE_KBINDING_DEF(pcmdfn, pkey) { { #pcmdfn, (pcmdfn), NULL }, (pkey) }
+#define MLE_KBINDING_DEF(pcmdfn, pkey) { { #pcmdfn, (pcmdfn), NULL }, (pkey), NULL }
+#define MLE_KBINDING_DEF_EX(pcmdfn, pkey, pstatic) { { #pcmdfn, (pcmdfn), NULL }, (pkey), (pstatic) }
     cmd_funcref_t funcref;
     char* key_patt;
+    char* static_param;
 };
 
 // kbinding_t
 struct kbinding_s {
     kinput_t input;
     cmd_funcref_t* funcref;
+    char* static_param;
     kbinding_t* children;
     UT_hash_handle hh;
 };
@@ -247,21 +251,22 @@ struct cmd_context_s {
     bview_t* bview;
     cursor_t* cursor;
     kinput_t input;
+    char* static_param;
     loop_context_t* loop_ctx;
 };
 
 // loop_context_t
 struct loop_context_s {
-#define MLE_LOOP_CTX_MAX_NUM_LEN 20
-#define MLE_LOOP_CTX_MAX_NUM_PARAMS 8
+#define MLE_LOOP_CTX_MAX_NUMERIC_LEN 20
+#define MLE_LOOP_CTX_MAX_NUMERIC_PARAMS 8
 #define MLE_LOOP_CTX_MAX_WILDCARD_PARAMS 8
 #define MLE_LOOP_CTX_MAX__PARAMS 8
     bview_t* invoker;
-    char num[MLE_LOOP_CTX_MAX_NUM_LEN + 1];
-    kbinding_t* num_node;
-    int num_len;
-    uintmax_t num_params[MLE_LOOP_CTX_MAX_NUM_PARAMS];
-    int num_params_len;
+    char numeric[MLE_LOOP_CTX_MAX_NUMERIC_LEN + 1];
+    kbinding_t* numeric_node;
+    int numeric_len;
+    uintmax_t numeric_params[MLE_LOOP_CTX_MAX_NUMERIC_PARAMS];
+    int numeric_params_len;
     uint32_t wildcard_params[MLE_LOOP_CTX_MAX_WILDCARD_PARAMS];
     int wildcard_params_len;
     kbinding_t* binding_node;
@@ -347,13 +352,13 @@ int cmd_remove_extra_cursors(cmd_context_t* ctx);
 int cmd_search(cmd_context_t* ctx);
 int cmd_search_next(cmd_context_t* ctx);
 int cmd_replace(cmd_context_t* ctx);
+int cmd_find_word(cmd_context_t* ctx);
 int cmd_isearch(cmd_context_t* ctx);
 int cmd_delete_word_before(cmd_context_t* ctx);
 int cmd_delete_word_after(cmd_context_t* ctx);
 int cmd_cut(cmd_context_t* ctx);
 int cmd_copy(cmd_context_t* ctx);
 int cmd_uncut(cmd_context_t* ctx);
-int cmd_change(cmd_context_t* ctx);
 int cmd_next(cmd_context_t* ctx);
 int cmd_prev(cmd_context_t* ctx);
 int cmd_split_vertical(cmd_context_t* ctx);
@@ -367,6 +372,13 @@ int cmd_replace_open(cmd_context_t* ctx);
 int cmd_fsearch(cmd_context_t* ctx);
 int cmd_browse(cmd_context_t* ctx);
 int cmd_grep(cmd_context_t* ctx);
+int cmd_move_until_forward(cmd_context_t* ctx);
+int cmd_move_until_back(cmd_context_t* ctx);
+int cmd_copy_by(cmd_context_t* ctx);
+int cmd_cut_by(cmd_context_t* ctx);
+int cmd_apply_macro_by(cmd_context_t* ctx);
+int cmd_undo(cmd_context_t* ctx);
+int cmd_redo(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 
@@ -375,7 +387,7 @@ async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec
 int async_proc_destroy(async_proc_t* aproc);
 
 // util functions
-int util_is_bracket_char(uint32_t ch);
+int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
 int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
 int util_dir_exists(char* path);
 int util_pcre_match(char* subject, char* re);
@@ -396,10 +408,11 @@ extern editor_t _editor;
 
 #define MLE_PROMPT_YES "yes"
 #define MLE_PROMPT_NO "no"
+#define MLE_PROMPT_ALL "all"
 
 #define MLE_DEFAULT_TAB_WIDTH 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
-#define MLE_DEFAULT_MACRO_TOGGLE_KEY "C-q"
+#define MLE_DEFAULT_MACRO_TOGGLE_KEY "M-r"
 
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \
@@ -434,33 +447,42 @@ extern editor_t _editor;
 // Sentinel values for numeric and wildcard kinputs
 #define MLE_KINPUT_NUMERIC (kinput_t){ 0x40, 0xffffffff, 0xffff }
 #define MLE_KINPUT_WILDCARD (kinput_t){ 0x80, 0xffffffff, 0xffff }
-#define MLE_KINPUT_IS_NUMERIC(pk) ((pk)->mod == 0x40 && (pk)->ch == 0xffffffff && (pk)->key == 0xffff)
-#define MLE_KINPUT_IS_WILDCARD(pk) ((pk)->mod == 0x80 && (pk)->ch == 0xffffffff && (pk)->key == 0xffff)
 
 #define MLE_LINENUM_TYPE_ABS 0
 #define MLE_LINENUM_TYPE_REL 1
 #define MLE_LINENUM_TYPE_BOTH 2
 
+#define MLE_PARAM_WILDCARD(pctx, pn) ( \
+    (pn) < (pctx)->loop_ctx->wildcard_params_len \
+    ? (pctx)->loop_ctx->wildcard_params[(pn)] \
+    : 0 \
+)
+
+#define MLE_BRACKET_PAIR_MAX_SEARCH 10000
+
 /*
 TODO
-[ ] sane key defaults, cmd_change, others from vim
+[ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
-[ ] add cmd_undo,redo
-[ ] can't match ^$
+[ ] cmd_replace back references
 [ ] --
+[ ] can't match ^$
+[ ] flash messages "replaced N instances"
 [ ] scriptability + hooks
+[ ] history per prompt?
 [ ] cmd_var_set, _clear, _append, _prepend, _print, _incr, _decr
+[ ] count allocs/frees, ensure 0 at exit
 [ ] buffer_repeat
 [ ] multi-level undo/redo
 [ ] nested prompts?
 [ ] bview_config_t
-[ ] more elegant menu/prompt_menu
+[ ] more elegant menu/prompt_menu code
 [ ] command prompt
 [ ] command wildcard param order
 [ ] configurable colors
 [ ] configurable status line
 [ ] configurable caption line
-[ ] protect against invalid api use, e.g., srule_destroy active srule
+[ ] protect against invalid api use, e.g., prevent srule_destroy on active srule
 */
 
 #endif

@@ -20,7 +20,7 @@
 static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview);
-static void _cmd_cut_copy(cursor_t* cursor, int is_cut);
+static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules);
 static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
 static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
@@ -28,6 +28,9 @@ static void _cmd_fsearch_prompt_cb(bview_t* bview, baction_t* action, void* udat
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_browse_cb(cmd_context_t* ctx);
 static int _cmd_grep_cb(cmd_context_t* ctx);
+static int _cmd_select_by(cursor_t* cursor, char* strat);
+static int _cmd_select_by_bracket(cursor_t* cursor);
+static int _cmd_select_by_word(cursor_t* cursor);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -282,6 +285,7 @@ int cmd_replace(cmd_context_t* ctx) {
     char* regex;
     char* replacement;
     int wrapped;
+    int all;
     char* yn;
     mark_t* search_mark;
     mark_t* search_mark_end;
@@ -295,6 +299,7 @@ int cmd_replace(cmd_context_t* ctx) {
     wrapped = 0;
     search_mark = NULL;
     search_mark_end = NULL;
+    all = 0;
 
     do {
         editor_prompt(ctx->editor, "replace: Search regex?", NULL, 0, NULL, NULL, &regex);
@@ -308,27 +313,32 @@ int cmd_replace(cmd_context_t* ctx) {
             if (mark_find_next_re(search_mark, regex, strlen(regex), &bline, &col, &char_count) == MLBUF_OK) {
                 mark_move_to(search_mark, bline->line_index, col);
                 mark_move_to(search_mark_end, bline->line_index, col + char_count);
-                highlight = srule_new_range(search_mark, search_mark_end, 0, TB_REVERSE);
-                buffer_add_srule(ctx->bview->buffer, highlight);
                 mark_join(ctx->cursor->mark, search_mark);
-                bview_rectify_viewport(ctx->bview);
-                bview_draw(ctx->bview);
                 yn = NULL;
-                editor_prompt(ctx->editor, "replace: OK to replace? (y=yes, n=no, C-c=stop)",
-                    NULL,
-                    0,
-                    ctx->editor->kmap_prompt_yn,
-                    NULL,
-                    &yn
-                );
-                buffer_remove_srule(ctx->bview->buffer, highlight);
-                srule_destroy(highlight);
-                bview_draw(ctx->bview);
+                if (all) {
+                    yn = MLE_PROMPT_YES;
+                } else {
+                    highlight = srule_new_range(search_mark, search_mark_end, 0, TB_REVERSE);
+                    buffer_add_srule(ctx->bview->buffer, highlight);
+                    bview_rectify_viewport(ctx->bview);
+                    bview_draw(ctx->bview);
+                    editor_prompt(ctx->editor, "replace: OK to replace? (y=yes, n=no, a=all, C-c=stop)",
+                        NULL,
+                        0,
+                        ctx->editor->kmap_prompt_yna,
+                        NULL,
+                        &yn
+                    );
+                    buffer_remove_srule(ctx->bview->buffer, highlight);
+                    srule_destroy(highlight);
+                    bview_draw(ctx->bview);
+                }
                 if (!yn) {
                     break;
-                } else if (0 == strcmp(yn, MLE_PROMPT_YES)) {
+                } else if (0 == strcmp(yn, MLE_PROMPT_YES) || 0 == strcmp(yn, MLE_PROMPT_ALL)) {
                     mark_delete_between_mark(search_mark, search_mark_end);
                     mark_insert_before(search_mark, replacement, strlen(replacement));
+                    if (0 == strcmp(yn, MLE_PROMPT_ALL)) all = 1;
                 } else {
                     mark_move_by(search_mark, 1);
                 }
@@ -346,6 +356,25 @@ int cmd_replace(cmd_context_t* ctx) {
     if (search_mark) mark_destroy(search_mark);
     if (search_mark_end) mark_destroy(search_mark_end);
 
+    bview_rectify_viewport(ctx->bview);
+    bview_draw(ctx->bview);
+
+    return MLE_OK;
+}
+
+// Find next occurence of word under cursor
+int cmd_find_word(cmd_context_t* ctx) {
+    char* word;
+    bint_t word_len;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (_cmd_select_by(cursor, "word") == MLE_OK) {
+            mark_get_between_mark(cursor->mark, cursor->sel_bound, &word, &word_len);
+            _cmd_toggle_sel_bound(cursor, 0);
+            mark_move_next_str(cursor->mark, word, word_len);
+            free(word);
+        }
+    );
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
@@ -363,7 +392,7 @@ int cmd_isearch(cmd_context_t* ctx) {
 // Cut text
 int cmd_cut(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_cut_copy(cursor, 1);
+        _cmd_cut_copy(cursor, 1, 1);
     );
     return MLE_OK;
 }
@@ -371,7 +400,7 @@ int cmd_cut(cmd_context_t* ctx) {
 // Copy text
 int cmd_copy(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_cut_copy(cursor, 0);
+        _cmd_cut_copy(cursor, 0, 1);
     );
     return MLE_OK;
 }
@@ -385,14 +414,25 @@ int cmd_uncut(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-// Change text
-int cmd_change(cmd_context_t* ctx) {
+// Copy in between chars
+int cmd_copy_by(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        mark_insert_before(cursor->mark, "todo!", 5);
+        if (_cmd_select_by(cursor, ctx->static_param) == MLE_OK) {
+            _cmd_cut_copy(cursor, 0, 0);
+        }
     );
     return MLE_OK;
 }
 
+// Cut in between chars
+int cmd_cut_by(cmd_context_t* ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (_cmd_select_by(cursor, ctx->static_param) == MLE_OK) {
+            _cmd_cut_copy(cursor, 1, 0);
+        }
+    );
+    return MLE_OK;
+}
 
 // Go to next bview
 int cmd_next(cmd_context_t* ctx) {
@@ -491,7 +531,7 @@ int cmd_new(cmd_context_t* ctx) {
 int cmd_replace_open(cmd_context_t* ctx) {
     char* path;
     if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
-    if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
+    if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     path = NULL;
     editor_prompt(ctx->editor, "replace_open: Path?", NULL, 0, NULL, NULL, &path);
     if (!path) return MLE_OK;
@@ -504,7 +544,7 @@ int cmd_replace_open(cmd_context_t* ctx) {
 // Open empty buffer into current bview
 int cmd_replace_new(cmd_context_t* ctx) {
     if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
-    if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
+    if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     bview_open(ctx->bview, NULL, 0);
     bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
     return MLE_OK;
@@ -516,7 +556,7 @@ int cmd_close(cmd_context_t* ctx) {
     int num_closed;
     if (ctx->editor->loop_depth > 1) return MLE_OK;
     if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
-    if (!_cmd_pre_close(ctx->editor, ctx->bview)) return MLE_OK;
+    if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     num_open = editor_bview_edit_count(ctx->editor);
     editor_close_bview(ctx->editor, ctx->bview, &num_closed);
     ctx->loop_ctx->should_exit = num_closed == num_open ? 1 : 0;
@@ -531,13 +571,29 @@ int cmd_quit(cmd_context_t* ctx) {
     DL_FOREACH_SAFE2(ctx->editor->top_bviews, bview, tmp, top_next) {
         if (!MLE_BVIEW_IS_EDIT(bview)) {
             continue;
-        } else if (!_cmd_quit_inner(ctx->editor, bview)) {
+        } else if (_cmd_quit_inner(ctx->editor, bview) == MLE_ERR) {
             return MLE_OK;
         }
     }
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
+
+// Apply a macro with single-char name
+int cmd_apply_macro_by(cmd_context_t* ctx) {
+    kmacro_t* macro;
+    uint32_t ch;
+    char name[6] = { 0 };
+    ch = MLE_PARAM_WILDCARD(ctx, 0);
+    if (!ch) return MLE_OK;
+    utf8_unicode_to_char(name, ch);
+    HASH_FIND_STR(ctx->editor->macro_map, name, macro);
+    if (!macro) return MLE_ERR;
+    ctx->editor->macro_apply = macro;
+    ctx->editor->macro_apply_input_index = 0;
+    return MLE_OK;
+}
+
 
 // Apply a macro
 int cmd_apply_macro(cmd_context_t* ctx) {
@@ -559,26 +615,103 @@ int cmd_noop(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-// Recursively close bviews, prompting to save unsaved changes.  Return 1 if
-// it's OK to continue closing, or 0 if the action was cancelled.
-static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
-    if (bview->split_child && !_cmd_quit_inner(editor, bview->split_child)) {
-        return 0;
-    } else if (!_cmd_pre_close(editor, bview)) {
-        return 0;
-    }
-    editor_close_bview(editor, bview, NULL);
-    return 1;
+// Move forward til a certain char
+int cmd_move_until_forward(cmd_context_t* ctx) {
+    uint32_t ch;
+    char str[6] = { 0 };
+    ch = MLE_PARAM_WILDCARD(ctx, 0);
+    if (!ch) return MLE_OK;
+    utf8_unicode_to_char(str, ch);
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str, str, strlen(str));
+    return MLE_OK;
 }
 
-// Prompt to save unsaved changes on close. Return 1 if it's OK to continue
-// closing the bview, or 0 if the action was cancelled.
+// Move back til a certain char
+int cmd_move_until_back(cmd_context_t* ctx) {
+    uint32_t ch;
+    char str[6] = { 0 };
+    ch = MLE_PARAM_WILDCARD(ctx, 0);
+    if (!ch) return MLE_OK;
+    utf8_unicode_to_char(str, ch);
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, str, strlen(str));
+    return MLE_OK;
+}
+
+// Undo
+int cmd_undo(cmd_context_t* ctx) {
+    buffer_undo(ctx->bview->buffer);
+    return MLE_OK;
+}
+
+// Redo
+int cmd_redo(cmd_context_t* ctx) {
+    buffer_redo(ctx->bview->buffer);
+    return MLE_OK;
+}
+
+// Place marks for cmd_(cut|copy)_by
+static int _cmd_select_by(cursor_t* cursor, char* strat) {
+    if (cursor->is_sel_bound_anchored) {
+        return MLE_ERR;
+    }
+    if (strcmp(strat, "bracket") == 0) {
+        return _cmd_select_by_bracket(cursor);
+    } else if (strcmp(strat, "word") == 0) {
+        return _cmd_select_by_word(cursor);
+    } else if (strcmp(strat, "eol") == 0 && !mark_is_at_eol(cursor->mark)) {
+        _cmd_toggle_sel_bound(cursor, 0);
+        mark_move_eol(cursor->sel_bound);
+    } else if (strcmp(strat, "bol") == 0 && !mark_is_at_bol(cursor->mark)) {
+        _cmd_toggle_sel_bound(cursor, 0);
+        mark_move_bol(cursor->sel_bound);
+    } else {
+        return MLE_ERR;
+    }
+    return MLE_OK;
+}
+
+// Select by bracket
+static int _cmd_select_by_bracket(cursor_t* cursor) {
+    mark_t* orig;
+    orig = mark_clone(cursor->mark);
+    if (mark_move_bracket_top(cursor->mark, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
+        return MLE_ERR;
+    }
+    _cmd_toggle_sel_bound(cursor, 0);
+    if (mark_move_bracket_pair(cursor->sel_bound, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
+        _cmd_toggle_sel_bound(cursor, 0);
+        mark_join(cursor->mark, orig);
+        mark_destroy(orig);
+        return MLE_ERR;
+    }
+    mark_move_by(cursor->mark, 1);
+    return MLE_OK;
+}
+
+static int _cmd_select_by_word(cursor_t* cursor) {
+    return MLE_ERR;
+}
+
+// Recursively close bviews, prompting to save unsaved changes. Return MLE_OK if
+// it's OK to continue closing, or MLE_ERR if the action was cancelled.
+static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
+    if (bview->split_child && _cmd_quit_inner(editor, bview->split_child) == MLE_ERR) {
+        return MLE_ERR;
+    } else if (_cmd_pre_close(editor, bview) == MLE_ERR) {
+        return MLE_ERR;
+    }
+    editor_close_bview(editor, bview, NULL);
+    return MLE_OK;
+}
+
+// Prompt to save unsaved changes on close. Return MLE_OK if it's OK to continue
+// closing the bview, or MLE_ERR if the action was cancelled.
 static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
     char* yn;
     if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)
         || editor_count_bviews_by_buffer(editor, bview->buffer) > 1
     ) {
-        return 1;
+        return MLE_OK;
     }
 
     editor_set_active(editor, bview);
@@ -592,16 +725,16 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
         &yn
     );
     if (!yn) {
-        return 0;
+        return MLE_ERR;
     } else if (0 == strcmp(yn, MLE_PROMPT_NO)) {
-        return 1;
+        return MLE_OK;
     }
 
     return _cmd_save(editor, bview);
 }
 
-// Prompt to save changes. Return 1 if file was saved or 0 if the action was
-// cancelled.
+// Prompt to save changes. Return MLE_OK if file was saved or MLE_ERR if the action
+// was cancelled.
 static int _cmd_save(editor_t* editor, bview_t* bview) {
     int rc;
     char* path;
@@ -614,18 +747,16 @@ static int _cmd_save(editor_t* editor, bview_t* bview) {
             NULL,
             &path
         );
-        if (!path) return 0;
+        if (!path) return MLE_ERR;
         rc = buffer_save_as(bview->buffer, path, strlen(path)); // TODO display error
         free(path);
     } while (rc == MLBUF_ERR);
-    return 1;
+    return MLE_OK;
 }
 
 // Cut or copy text
-static void _cmd_cut_copy(cursor_t* cursor, int is_cut) {
-    int use_srules;
+static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules) {
     bint_t cut_len;
-    use_srules = 1;
     if (cursor->cut_buffer) {
         free(cursor->cut_buffer);
         cursor->cut_buffer = NULL;
@@ -664,11 +795,11 @@ static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules) {
     }
 }
 
-// Move cursor to next occurrence of term, wrap if necessary. Return 1 if
-// there was a match, or 0 if no match.
+// Move cursor to next occurrence of term, wrap if necessary. Return MLE_OK if
+// there was a match, or MLE_ERR if no match.
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len) {
     int rc;
-    rc = 0;
+    rc = MLE_ERR;
 
     // Move search_mark to cursor
     mark_join(search_mark, cursor->mark);
@@ -676,14 +807,14 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
     if (mark_move_next_re(search_mark, regex, regex_len) == MLBUF_OK) {
         // Match! Move there
         mark_join(cursor->mark, search_mark);
-        rc = 1;
+        rc = MLE_OK;
     } else {
         // No match, try from beginning
         mark_move_beginning(search_mark);
         if (mark_move_next_re(search_mark, regex, regex_len) == MLBUF_OK) {
             // Match! Move there
             mark_join(cursor->mark, search_mark);
-            rc =1;
+            rc = MLE_OK;
         }
     }
 

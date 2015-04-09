@@ -4,12 +4,20 @@
 #include <unistd.h>
 #include "mle.h"
 
-// Return 1 if ch is a bracket character
-int util_is_bracket_char(uint32_t ch) {
-    return (ch == '[' || ch == ']'
-        || ch == '(' || ch == ')'
-        || ch == '{' || ch == '}'
-        || ch == '<' || ch == '>') ? 1 : 0;
+// Return paired bracket if ch is a bracket, else return 0
+int util_get_bracket_pair(uint32_t ch, int* optret_is_closing) {
+    switch (ch) {
+        case '[': if (optret_is_closing) *optret_is_closing = 0; return ']';
+        case '(': if (optret_is_closing) *optret_is_closing = 0; return ')';
+        case '{': if (optret_is_closing) *optret_is_closing = 0; return '}';
+        case '<': if (optret_is_closing) *optret_is_closing = 0; return '>';
+        case ']': if (optret_is_closing) *optret_is_closing = 1; return '[';
+        case ')': if (optret_is_closing) *optret_is_closing = 1; return '(';
+        case '}': if (optret_is_closing) *optret_is_closing = 1; return '{';
+        case '>': if (optret_is_closing) *optret_is_closing = 1; return '<';
+        default: return 0;
+    }
+    return 0;
 }
 
 // Return 1 if path is file

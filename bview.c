@@ -829,16 +829,17 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
 // Highlight matching bracket pair under mark
 static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
     bline_t* line;
+    char brkt;
     bint_t col;
     mark_t pair;
     int screen_x;
     int screen_y;
     struct tb_cell* cell;
-    if (mark_is_at_eol(mark) || !util_is_bracket_char(mark->bline->chars[mark->col].ch)) {
+    if (mark_is_at_eol(mark) || !util_get_bracket_pair(mark->bline->chars[mark->col].ch, NULL)) {
         // Not a bracket
         return;
     }
-    if (mark_find_bracket_pair(mark, 10000, &line, &col, NULL) != MLBUF_OK) {
+    if (mark_find_bracket_pair(mark, MLE_BRACKET_PAIR_MAX_SEARCH, &line, &col, (bint_t*)&brkt) != MLBUF_OK) {
         // No pair found
         return;
     }
@@ -848,7 +849,7 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
         // Out of bounds
         return;
     }
-    tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | TB_CYAN); // TODO configurable
+    tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | TB_REVERSE); // TODO configurable
 }
 
 // Find screen coordinates for a mark
