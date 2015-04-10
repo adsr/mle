@@ -96,6 +96,7 @@ struct editor_s {
     int loop_depth;
     bint_t startup_linenum;
     int is_in_init;
+    int exit_code;
 };
 
 // srule_def_t

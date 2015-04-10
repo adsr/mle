@@ -50,62 +50,69 @@ static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, c
 static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def);
 static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str);
 static void _editor_destroy_syntax_map(syntax_t* map);
-static void _editor_init_from_rc(editor_t* editor, FILE* rc);
-static void _editor_init_from_args(editor_t* editor, int argc, char** argv);
+static int _editor_init_from_rc(editor_t* editor, FILE* rc);
+static int _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 static int _editor_drain_async_procs(editor_t* editor);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
+    int rv;
     FILE* rc;
     char *home_rc;
+    rv = MLE_OK;
+    do {
+        // Set editor defaults
+        editor->is_in_init = 1;
+        editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
+        editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
+        editor->viewport_scope_x = -4;
+        editor->viewport_scope_y = -4;
+        editor->startup_linenum = -1;
+        editor->color_col = -1;
+        editor->exit_code = EXIT_SUCCESS;
+        editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
 
-    // Set editor defaults
-    editor->is_in_init = 1;
-    editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
-    editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
-    editor->viewport_scope_x = -4;
-    editor->viewport_scope_y = -4;
-    editor->startup_linenum = -1;
-    editor->color_col = -1;
-    editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
+        // Init signal handlers
+        _editor_init_signal_handlers(editor);
 
-    // Init signal handlers
-    _editor_init_signal_handlers(editor);
+        // Init kmaps
+        _editor_init_kmaps(editor);
 
-    // Init kmaps
-    _editor_init_kmaps(editor);
+        // Init syntaxes
+        _editor_init_syntaxes(editor);
 
-    // Init syntaxes
-    _editor_init_syntaxes(editor);
-
-    // Parse rc files
-    home_rc = NULL;
-    if (getenv("HOME")) {
-        asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
-        if (util_file_exists(home_rc, "rb", &rc)) {
-            _editor_init_from_rc(editor, rc);
+        // Parse rc files
+        home_rc = NULL;
+        if (getenv("HOME")) {
+            asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
+            if (util_file_exists(home_rc, "rb", &rc)) {
+                rv = _editor_init_from_rc(editor, rc);
+            }
+            fclose(rc);
+            free(home_rc);
         }
-        fclose(rc);
-        free(home_rc);
-    }
-    if (util_file_exists("/etc/mlerc", "rb", &rc)) {
-        _editor_init_from_rc(editor, rc);
-        fclose(rc);
-    }
+        if (rv != MLE_OK) break;
+        if (util_file_exists("/etc/mlerc", "rb", &rc)) {
+            rv = _editor_init_from_rc(editor, rc);
+            fclose(rc);
+        }
+        if (rv != MLE_OK) break;
 
-    // Parse cli args
-    _editor_init_from_args(editor, argc, argv);
+        // Parse cli args
+        rv = _editor_init_from_args(editor, argc, argv);
+        if (rv != MLE_OK) break;
 
-    // Init status bar
-    _editor_init_status(editor);
+        // Init status bar
+        _editor_init_status(editor);
 
-    // Init bviews
-    _editor_init_bviews(editor, argc, argv);
+        // Init bviews
+        _editor_init_bviews(editor, argc, argv);
+    } while(0);
 
     editor->is_in_init = 0;
-    return MLE_OK;
+    return rv;
 }
 
 // Run editor
@@ -129,7 +136,7 @@ int editor_deinit(editor_t* editor) {
     kmacro_t* macro_tmp;
     cmd_funcref_t* funcref;
     cmd_funcref_t* funcref_tmp;
-    bview_destroy(editor->status);
+    if (editor->status) bview_destroy(editor->status);
     CDL_FOREACH_SAFE2(editor->all_bviews, bview, bview_tmp1, bview_tmp2, all_prev, all_next) {
         CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
         bview_destroy(bview);
@@ -1299,7 +1306,8 @@ static void _editor_destroy_syntax_map(syntax_t* map) {
 }
 
 // Parse rc file
-static void _editor_init_from_rc(editor_t* editor, FILE* rc) {
+static int _editor_init_from_rc(editor_t* editor, FILE* rc) {
+    int rv;
     long size;
     char *rc_data;
     char *rc_data_stop;
@@ -1307,6 +1315,7 @@ static void _editor_init_from_rc(editor_t* editor, FILE* rc) {
     char* bol;
     int fargc;
     char** fargv;
+    rv = MLE_OK;
 
     // Read all from rc
     fseek(rc, 0L, SEEK_END);
@@ -1343,23 +1352,27 @@ static void _editor_init_from_rc(editor_t* editor, FILE* rc) {
 
     // Parse args
     if (fargv) {
-        _editor_init_from_args(editor, fargc, fargv);
+        rv = _editor_init_from_args(editor, fargc, fargv);
         free(fargv);
     }
 
     free(rc_data);
+
+    return rv;
 }
 
 // Parse cli args
-static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
+static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
+    int rv;
     kmap_t* cur_kmap;
     syntax_t* cur_syntax;
     int c;
+    rv = MLE_OK;
 
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while ((c = getopt(argc, argv, "habc:K:k:l:M:m:n:S:s:t:vx:y:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "habc:K:k:l:M:m:n:S:s:t:vx:y:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1388,7 +1401,8 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    macro        '<name> <key1> <key2> ... <keyN>'\n");
                 printf("    syndef       '<name>,<path_pattern>'\n");
                 printf("    synrule      '<start>,<end>,<fg>,<bg>'\n");
-                exit(EXIT_SUCCESS);
+                rv = MLE_ERR;
+                break;
             case 'a':
                 editor->tab_to_space = 0;
                 break;
@@ -1401,13 +1415,15 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
             case 'K':
                 if (_editor_init_kmap_by_str(editor, &cur_kmap, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not init kmap by str: %s\n", optarg);
-                    exit(EXIT_FAILURE);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
                 }
                 break;
             case 'k':
                 if (!cur_kmap || _editor_init_kmap_add_binding_by_str(editor, cur_kmap, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not add key binding to kmap %p by str: %s\n", cur_kmap, optarg);
-                    exit(EXIT_FAILURE);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
                 }
                 break;
             case 'l':
@@ -1417,13 +1433,15 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
             case 'M':
                 if (_editor_add_macro_by_str(editor, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not add macro by str: %s\n", optarg);
-                    exit(EXIT_FAILURE);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
                 }
                 break;
             case 'm':
                 if (editor_set_macro_toggle_key(editor, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not set macro key to: %s\n", optarg);
-                    exit(EXIT_FAILURE);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
                 }
                 break;
             case 'n':
@@ -1432,13 +1450,15 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
             case 'S':
                 if (_editor_init_syntax_by_str(editor, &cur_syntax, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not init syntax by str: %s\n", optarg);
-                    exit(EXIT_FAILURE);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
                 }
                 break;
             case 's':
                 if (!cur_syntax || _editor_init_syntax_add_rule_by_str(cur_syntax, optarg) != MLE_OK) {
                     MLE_LOG_ERR("Could not add style rule to syntax %p by str: %s\n", cur_syntax, optarg);
-                    exit(EXIT_FAILURE);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
                 }
                 break;
             case 't':
@@ -1446,14 +1466,18 @@ static void _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'v':
                 printf("mle version %s\n", MLE_VERSION);
-                exit(EXIT_SUCCESS);
+                rv = MLE_ERR;
+                break;
             case 'y':
                 editor->syntax_override = optarg;
                 break;
             default:
-                exit(EXIT_FAILURE);
+                rv = MLE_ERR;
+                break;
         }
     }
+
+    return rv;
 }
 
 // Init status bar
