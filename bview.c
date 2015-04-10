@@ -264,6 +264,11 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
         if (el == cursor) {
             self->active_cursor = el->prev && el->prev != el ? el->prev : el->next;
             DL_DELETE(self->cursors, el);
+            if (el->sel_rule) {
+                buffer_remove_srule(el->bview->buffer, el->sel_rule);
+                srule_destroy(el->sel_rule);
+                el->sel_rule = NULL;
+            }
             free(el);
             return MLE_OK;
         }

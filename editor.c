@@ -31,7 +31,7 @@ static void _editor_display(editor_t* editor);
 static void _editor_get_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
 static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input);
-static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input, char** ret_static_param);
+static cmd_funcref_t* _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input, char** ret_static_param);
 static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref);
 static int _editor_key_to_input(char* key, kinput_t* ret_input);
 static void _editor_init_signal_handlers(editor_t* editor);
@@ -505,6 +505,7 @@ static void _editor_startup(editor_t* editor) {
 
 // Run editor loop
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
+    cmd_funcref_t* cmd_ref;
     cmd_context_t cmd_ctx;
     cmd_func_t cmd_fn;
 
@@ -540,14 +541,18 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         }
 
         // Find command in trie
-        if ((cmd_fn = _editor_get_command(editor, loop_ctx, &cmd_ctx.input, &cmd_ctx.static_param)) != NULL) {
-            // Found, now execute
-            cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
-            cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
-            cmd_fn(&cmd_ctx);
-            loop_ctx->binding_node = NULL;
-            loop_ctx->wildcard_params_len = 0;
-            loop_ctx->numeric_params_len = 0;
+        if ((cmd_ref = _editor_get_command(editor, loop_ctx, &cmd_ctx.input, &cmd_ctx.static_param)) != NULL) {
+            // Found, now resolve
+            if ((cmd_fn = _editor_resolve_funcref(editor, cmd_ref)) != NULL) {
+                // Resolved, now execute
+                cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
+                cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
+                cmd_fn(&cmd_ctx);
+                loop_ctx->binding_node = NULL;
+                loop_ctx->wildcard_params_len = 0;
+                loop_ctx->numeric_params_len = 0;
+                loop_ctx->last_cmd = cmd_ref;
+            }
         } else if (loop_ctx->need_more_input) {
             // Need more input to find
         } else {
@@ -706,7 +711,7 @@ static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input) {
 }
 
 // Return command for input
-static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input, char** ret_static_param) {
+static cmd_funcref_t* _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input, char** ret_static_param) {
     kbinding_t* node;
     kbinding_t* binding;
     kmap_node_t* kmap_node;
@@ -734,7 +739,7 @@ static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx
             } else if (binding->funcref) {
                 // Found leaf!
                 *ret_static_param = binding->static_param;
-                return _editor_resolve_funcref(editor, binding->funcref);
+                return binding->funcref;
             } else if (binding->children) {
                 // Need more input on next node
                 loop_ctx->need_more_input = 1;
@@ -748,7 +753,7 @@ static cmd_func_t _editor_get_command(editor_t* editor, loop_context_t* loop_ctx
             // Binding not found at top level
             if (kmap_node->kmap->default_funcref) {
                 // Fallback to default
-                return _editor_resolve_funcref(editor, kmap_node->kmap->default_funcref);
+                return kmap_node->kmap->default_funcref;
             }
             if (kmap_node->kmap->allow_fallthru) {
                 // Fallback to previous kmap on stack
@@ -963,6 +968,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_new_open, "C-o"),
         MLE_KBINDING_DEF(cmd_replace_new, "C-w n"),
         MLE_KBINDING_DEF(cmd_replace_open, "C-w o"),
+        MLE_KBINDING_DEF(cmd_indent, "M-]"),
+        MLE_KBINDING_DEF(cmd_outdent, "M-["),
         MLE_KBINDING_DEF(cmd_close, "M-c"),
         MLE_KBINDING_DEF(cmd_quit, "C-x"),
         MLE_KBINDING_DEF(NULL, NULL)

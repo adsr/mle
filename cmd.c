@@ -20,7 +20,7 @@
 static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview);
-static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules);
+static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
 static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
 static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
@@ -31,6 +31,8 @@ static int _cmd_grep_cb(cmd_context_t* ctx);
 static int _cmd_select_by(cursor_t* cursor, char* strat);
 static int _cmd_select_by_bracket(cursor_t* cursor);
 static int _cmd_select_by_word(cursor_t* cursor);
+static int _cmd_indent(cmd_context_t* ctx, int outdent);
+static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -391,8 +393,10 @@ int cmd_isearch(cmd_context_t* ctx) {
 
 // Cut text
 int cmd_cut(cmd_context_t* ctx) {
+    int append;
+    append = ctx->loop_ctx->last_cmd && ctx->loop_ctx->last_cmd->func == cmd_cut ? 1 : 0;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_cut_copy(cursor, 1, 1);
+        _cmd_cut_copy(cursor, 1, 1, append);
     );
     return MLE_OK;
 }
@@ -400,7 +404,7 @@ int cmd_cut(cmd_context_t* ctx) {
 // Copy text
 int cmd_copy(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_cut_copy(cursor, 0, 1);
+        _cmd_cut_copy(cursor, 0, 1, 0);
     );
     return MLE_OK;
 }
@@ -418,7 +422,7 @@ int cmd_uncut(cmd_context_t* ctx) {
 int cmd_copy_by(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (_cmd_select_by(cursor, ctx->static_param) == MLE_OK) {
-            _cmd_cut_copy(cursor, 0, 0);
+            _cmd_cut_copy(cursor, 0, 0, 0);
         }
     );
     return MLE_OK;
@@ -428,7 +432,7 @@ int cmd_copy_by(cmd_context_t* ctx) {
 int cmd_cut_by(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (_cmd_select_by(cursor, ctx->static_param) == MLE_OK) {
-            _cmd_cut_copy(cursor, 1, 0);
+            _cmd_cut_copy(cursor, 1, 0, 0);
         }
     );
     return MLE_OK;
@@ -649,6 +653,69 @@ int cmd_redo(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Indent line(s)
+int cmd_indent(cmd_context_t* ctx) {
+    return _cmd_indent(ctx, 0);
+}
+
+// Outdent line(s)
+int cmd_outdent(cmd_context_t* ctx) {
+    return _cmd_indent(ctx, 1);
+}
+
+// Indent or outdent line(s)
+static int _cmd_indent(cmd_context_t* ctx, int outdent) {
+    bline_t* start;
+    bline_t* end;
+    bline_t* cur;
+    int use_tabs;
+    use_tabs = ctx->bview->tab_to_space ? 0 : 1;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        start = ctx->cursor->mark->bline;
+        if (ctx->cursor->is_sel_bound_anchored) {
+            end = ctx->cursor->sel_bound->bline;
+            if (start->line_index > end->line_index) {
+                cur = end;
+                end = start;
+                start = cur;
+            }
+        } else {
+            end = start;
+        }
+        for (cur = start; cur != end->next; cur = cur->next) {
+            _cmd_indent_line(cur, use_tabs, outdent);
+        }
+    );
+    return MLE_OK;
+}
+
+// Indent/outdent a line, optionally using tabs
+static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {
+    char tab_char;
+    int num_chars;
+    int num_to_del;
+    int i;
+    bint_t ig;
+    tab_char = use_tabs ? '\t' : ' ';
+    num_chars = use_tabs ? 1 : bline->buffer->tab_width;
+    if (outdent) {
+        num_to_del = 0;
+        for (i = 0; i < num_chars; i++) {
+            if (bline->char_count > i && bline->chars[i].ch == tab_char) {
+                num_to_del += 1;
+            }
+        }
+        if (num_to_del > 0) bline_delete(bline, 0, num_to_del);
+    } else {
+        if (bline->char_count > 0) {
+            for (i = 0; i < num_chars; i++) {
+                bline_insert(bline, 0, &tab_char, 1, &ig);
+            }
+        }
+    }
+    return MLE_OK;
+}
+
 // Place marks for cmd_(cut|copy)_by
 static int _cmd_select_by(cursor_t* cursor, char* strat) {
     if (cursor->is_sel_bound_anchored) {
@@ -755,9 +822,10 @@ static int _cmd_save(editor_t* editor, bview_t* bview) {
 }
 
 // Cut or copy text
-static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules) {
-    bint_t cut_len;
-    if (cursor->cut_buffer) {
+static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append) {
+    char* cutbuf;
+    bint_t cutbuf_len;
+    if (!append && cursor->cut_buffer) {
         free(cursor->cut_buffer);
         cursor->cut_buffer = NULL;
     }
@@ -768,7 +836,15 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules) {
         mark_move_eol(cursor->sel_bound);
         mark_move_by(cursor->sel_bound, 1);
     }
-    mark_get_between_mark(cursor->mark, cursor->sel_bound, &cursor->cut_buffer, &cut_len);
+    mark_get_between_mark(cursor->mark, cursor->sel_bound, &cutbuf, &cutbuf_len);
+    if (append && cursor->cut_buffer) {
+        bint_t cur_len = strlen(cursor->cut_buffer);
+        cursor->cut_buffer = realloc(cursor->cut_buffer, cur_len + cutbuf_len + 1);
+        strncat(cursor->cut_buffer, cutbuf, cutbuf_len);
+        free(cutbuf);
+    } else {
+        cursor->cut_buffer = cutbuf;
+    }
     if (is_cut) {
         mark_delete_between_mark(cursor->mark, cursor->sel_bound);
     }

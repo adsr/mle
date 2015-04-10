@@ -275,6 +275,7 @@ struct loop_context_s {
     int should_exit;
     char* prompt_answer;
     cmd_func_t prompt_callback;
+    cmd_funcref_t* last_cmd;
 };
 
 // async_proc_t
@@ -381,6 +382,8 @@ int cmd_apply_macro_by(cmd_context_t* ctx);
 int cmd_undo(cmd_context_t* ctx);
 int cmd_redo(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
+int cmd_indent(cmd_context_t* ctx);
+int cmd_outdent(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 
 // async functions
@@ -463,8 +466,6 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] buffered cut
-[ ] cmd_indent,deindent
 [ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
 [ ] cmd_replace back references
