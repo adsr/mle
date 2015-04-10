@@ -1,5 +1,6 @@
 SHELL=/bin/bash
 CC=$(shell if which colorgcc>/dev/null; then echo colorgcc; else echo gcc; fi)
+BINDIR=/usr/bin
 
 all: mle
 
@@ -17,7 +18,7 @@ test: mle
 	./mle -v
 
 install: mle
-	cp -v mle /usr/bin/mle && chown -v 755 /usr/bin/mle
+	cp -v mle $(BINDIR)/mle && chown -v 755 $(BINDIR)/mle
 
 clean:
 	rm -f *.o
