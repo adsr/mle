@@ -463,6 +463,8 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] buffered cut
+[ ] cmd_indent,deindent
 [ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
 [ ] cmd_replace back references
