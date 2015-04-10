@@ -472,12 +472,18 @@ int cmd_split_horizontal(cmd_context_t* ctx) {
 int cmd_fsearch(cmd_context_t* ctx) {
     async_proc_t* aproc;
     char* path;
+    int replace_view;
+    replace_view = ctx->static_param && strcmp(ctx->static_param, "replace") == 0 ? 1 : 0;
+    if (replace_view && _cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "fzf -f '' 2>/dev/null");
     editor_prompt_menu(ctx->editor, "fsearch: Fuzzy path?", NULL, 0, _cmd_fsearch_prompt_cb, aproc, &path);
-    if (path) {
+    if (replace_view) {
+        bview_open(ctx->bview, path, path ? strlen(path) : 0);
+        bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
+    } else if (path) {
         editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
-        free(path);
     }
+    if (path) free(path);
     return MLE_OK;
 }
 
@@ -516,7 +522,7 @@ int cmd_save(cmd_context_t* ctx) {
 }
 
 // Open file in a new bview
-int cmd_new_open(cmd_context_t* ctx) {
+int cmd_open_file(cmd_context_t* ctx) {
     char* path;
     editor_prompt(ctx->editor, "new_open: File?", NULL, 0, NULL, NULL, &path);
     if (!path) return MLE_OK;
@@ -526,13 +532,13 @@ int cmd_new_open(cmd_context_t* ctx) {
 }
 
 // Open empty buffer in a new bview
-int cmd_new(cmd_context_t* ctx) {
+int cmd_open_new(cmd_context_t* ctx) {
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &ctx->editor->rect_edit, NULL, NULL);
     return MLE_OK;
 }
 
 // Open file into current bview
-int cmd_replace_open(cmd_context_t* ctx) {
+int cmd_open_replace_file(cmd_context_t* ctx) {
     char* path;
     if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
@@ -546,7 +552,7 @@ int cmd_replace_open(cmd_context_t* ctx) {
 }
 
 // Open empty buffer into current bview
-int cmd_replace_new(cmd_context_t* ctx) {
+int cmd_open_replace_new(cmd_context_t* ctx) {
     if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     bview_open(ctx->bview, NULL, 0);
