@@ -44,7 +44,7 @@ int util_pcre_match(char* subject, char* re) {
     pcre* cre;
     const char *error;
     int erroffset;
-    cre = pcre_compile((const char*)re, PCRE_NO_AUTO_CAPTURE, &error, &erroffset, NULL);
+    cre = pcre_compile((const char*)re, PCRE_NO_AUTO_CAPTURE | PCRE_CASELESS, &error, &erroffset, NULL);
     if (!cre) return 0;
     rc = pcre_exec(cre, NULL, subject, strlen(subject), 0, 0, NULL, 0);
     pcre_free(cre);

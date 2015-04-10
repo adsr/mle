@@ -405,7 +405,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "0.5"
+#define MLE_VERSION "0.6"
 
 #define MLE_OK 0
 #define MLE_ERR 1
@@ -468,8 +468,8 @@ extern editor_t _editor;
 TODO
 [ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
-[ ] cmd_replace back references
 [ ] --
+[ ] cmd_replace back references
 [ ] can't match ^$
 [ ] flash messages "replaced N instances"
 [ ] scriptability + hooks

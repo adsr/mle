@@ -895,7 +895,7 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
     }
 
     // Rectify viewport if needed
-    if (rc) bview_rectify_viewport(bview);
+    if (rc == MLE_OK) bview_rectify_viewport(bview);
 
     return rc;
 }
