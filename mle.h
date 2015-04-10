@@ -464,6 +464,10 @@ extern editor_t _editor;
 
 #define MLE_BRACKET_PAIR_MAX_SEARCH 10000
 
+#define MLE_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
+#define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
+
+
 /*
 TODO
 [ ] last cmd status code indicator

@@ -834,7 +834,7 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
 // Highlight matching bracket pair under mark
 static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
     bline_t* line;
-    char brkt;
+    bint_t brkt;
     bint_t col;
     mark_t pair;
     int screen_x;
@@ -844,7 +844,7 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
         // Not a bracket
         return;
     }
-    if (mark_find_bracket_pair(mark, MLE_BRACKET_PAIR_MAX_SEARCH, &line, &col, (bint_t*)&brkt) != MLBUF_OK) {
+    if (mark_find_bracket_pair(mark, MLE_BRACKET_PAIR_MAX_SEARCH, &line, &col, &brkt) != MLBUF_OK) {
         // No pair found
         return;
     }

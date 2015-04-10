@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <unistd.h>
 #include "mle.h"
 
@@ -178,13 +179,13 @@ int cmd_move_to_line(cmd_context_t* ctx) {
 
 // Move one word forward
 int cmd_move_word_forward(cmd_context_t* ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re, "((?<=\\w)\\W|$)", sizeof("((?<=\\w)\\W|$)")-1);
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     return MLE_OK;
 }
 
 // Move one word back
 int cmd_move_word_back(cmd_context_t* ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, "((?<=\\W)\\w|^)", sizeof("((?<=\\W)\\w|^)")-1);
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     return MLE_OK;
 }
 
@@ -761,8 +762,18 @@ static int _cmd_select_by_bracket(cursor_t* cursor) {
     return MLE_OK;
 }
 
+// Select by word
 static int _cmd_select_by_word(cursor_t* cursor) {
-    return MLE_ERR;
+    char after;
+    if (mark_is_at_eol(cursor->mark)) return MLE_ERR;
+    after = mark_get_char_after(cursor->mark);
+    if (!isalnum(after) && after != '_') return MLE_ERR;
+    if (!mark_is_at_word_bound(cursor->mark, -1)) {
+        mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+    }
+    _cmd_toggle_sel_bound(cursor, 0);
+    mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+    return MLE_OK;
 }
 
 // Recursively close bviews, prompting to save unsaved changes. Return MLE_OK if
@@ -943,14 +954,15 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
 
     regex = bview_prompt->buffer->first_line->data;
     regex_len = bview_prompt->buffer->first_line->data_len;
+    if (regex_len < 1) return;
 
-    if (regex_len > 0) {
-        bview->isearch_rule = srule_new_single(regex, regex_len, 0, TB_YELLOW);
-        buffer_add_srule(bview->buffer, bview->isearch_rule);
-        mark_move_by(bview->active_cursor->mark, -1);
-        if (mark_move_next_cre(bview->active_cursor->mark, bview->isearch_rule->cre) != MLBUF_OK) {
-            mark_move_by(bview->active_cursor->mark, 1);
-        }
+    bview->isearch_rule = srule_new_single(regex, regex_len, 0, TB_YELLOW);
+    if (!bview->isearch_rule) return;
+
+    buffer_add_srule(bview->buffer, bview->isearch_rule);
+    mark_move_by(bview->active_cursor->mark, -1);
+    if (mark_move_next_cre(bview->active_cursor->mark, bview->isearch_rule->cre) != MLBUF_OK) {
+        mark_move_by(bview->active_cursor->mark, 1);
     }
 }
 
