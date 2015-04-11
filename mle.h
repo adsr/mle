@@ -367,6 +367,7 @@ int cmd_split_vertical(cmd_context_t* ctx);
 int cmd_split_horizontal(cmd_context_t* ctx);
 int cmd_close(cmd_context_t* ctx);
 int cmd_save(cmd_context_t* ctx);
+int cmd_save_as(cmd_context_t* ctx);
 int cmd_open_new(cmd_context_t* ctx);
 int cmd_open_file(cmd_context_t* ctx);
 int cmd_open_replace_new(cmd_context_t* ctx);
@@ -467,12 +468,25 @@ extern editor_t _editor;
 #define MLE_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
 #define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
-
 /*
 TODO
+[ ] smart home
+[ ] on vm, ctrl-v broken? pcre issue maybe?
+[ ] slow indent
+[ ] isearch default caseless
+[ ] isearch segfault if '('
+[ ] hili rule for hashbang
+[ ] cmd_save without prompt, cmd_save_as with
+[ ] crap hili: only_if { schemanator_context == "development" or schemanator_install_type == "relbase" }
+[ ] segfaults: { "(?<=^\\s*)# .*$", NULL, TB_CYAN, TB_DEFAULT },
+[ ] C-d w bork ? (maybe just on vm?)
+[ ] vm segfault fix (bint_t* vs char* in mark_find_bracket_pair)
+[ ] cmd_grep segfault?
 [ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
+[ ] click to set cursor/focus
+[ ] do not draw screen input continuous user inputs
 [ ] cmd_replace back references
 [ ] can't match ^$
 [ ] flash messages "replaced N instances"

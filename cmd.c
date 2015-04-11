@@ -20,7 +20,7 @@
 
 static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
-static int _cmd_save(editor_t* editor, bview_t* bview);
+static int _cmd_save(editor_t* editor, bview_t* bview, int save_as);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
 static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
@@ -516,9 +516,15 @@ int cmd_browse(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Save-as file
+int cmd_save_as(cmd_context_t* ctx) {
+    _cmd_save(ctx->editor, ctx->bview, 1);
+    return MLE_OK;
+}
+
 // Save file
 int cmd_save(cmd_context_t* ctx) {
-    _cmd_save(ctx->editor, ctx->bview);
+    _cmd_save(ctx->editor, ctx->bview, 0);
     return MLE_OK;
 }
 
@@ -814,24 +820,27 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
         return MLE_OK;
     }
 
-    return _cmd_save(editor, bview);
+    return _cmd_save(editor, bview, 1);
 }
 
 // Prompt to save changes. Return MLE_OK if file was saved or MLE_ERR if the action
 // was cancelled.
-static int _cmd_save(editor_t* editor, bview_t* bview) {
+static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
     int rc;
     char* path;
     do {
-        path = NULL;
-        editor_prompt(editor, "save: Save as? (C-c=cancel)",
-            bview->buffer->path,
-            bview->buffer->path ? strlen(bview->buffer->path) : 0,
-            NULL,
-            NULL,
-            &path
-        );
-        if (!path) return MLE_ERR;
+        if (!bview->buffer->path || save_as) {
+            editor_prompt(editor, "save: Save as? (C-c=cancel)",
+                bview->buffer->path ? bview->buffer->path : "",
+                bview->buffer->path ? strlen(bview->buffer->path) : 0,
+                NULL,
+                NULL,
+                &path
+            );
+            if (!path) return MLE_ERR;
+        } else {
+            path = strdup(bview->buffer->path);
+        }
         rc = buffer_save_as(bview->buffer, path, strlen(path)); // TODO display error
         free(path);
     } while (rc == MLBUF_ERR);
@@ -956,7 +965,7 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
     regex_len = bview_prompt->buffer->first_line->data_len;
     if (regex_len < 1) return;
 
-    bview->isearch_rule = srule_new_single(regex, regex_len, 0, TB_YELLOW);
+    bview->isearch_rule = srule_new_single(regex, regex_len, 1, 0, TB_YELLOW);
     if (!bview->isearch_rule) return;
 
     buffer_add_srule(bview->buffer, bview->isearch_rule);
