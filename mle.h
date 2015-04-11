@@ -470,26 +470,16 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] smart home
-[ ] on vm, ctrl-v broken? pcre issue maybe?
-[ ] slow indent
-[ ] isearch default caseless
-[ ] isearch segfault if '('
-[ ] hili rule for hashbang
-[ ] cmd_save without prompt, cmd_save_as with
-[ ] crap hili: only_if { schemanator_context == "development" or schemanator_install_type == "relbase" }
-[ ] segfaults: { "(?<=^\\s*)# .*$", NULL, TB_CYAN, TB_DEFAULT },
-[ ] C-d w bork ? (maybe just on vm?)
-[ ] vm segfault fix (bint_t* vs char* in mark_find_bracket_pair)
-[ ] cmd_grep segfault?
 [ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
+[ ] srule priority / isearch hili in middle of multiline rule
+[ ] slow indent
 [ ] click to set cursor/focus
 [ ] do not draw screen input continuous user inputs
 [ ] cmd_replace back references
 [ ] can't match ^$
-[ ] flash messages "replaced N instances"
+[ ] flash messages "replaced N instances", "wrote N bytes"
 [ ] scriptability + hooks
 [ ] history per prompt?
 [ ] cmd_var_set, _clear, _append, _prepend, _print, _incr, _decr

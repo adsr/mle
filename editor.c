@@ -1231,10 +1231,11 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "\\b[A-Z_][A-Z0-9_]*\\b", NULL, TB_RED | TB_BOLD, TB_DEFAULT },
         { "\\b(-?(0x)?[0-9]+|true|false|null)\\b", NULL, TB_BLUE | TB_BOLD, TB_DEFAULT },
         { "/([^/]|\\\\/)+/(?!/)", NULL, TB_YELLOW, TB_DEFAULT },
-        { "'([^']|\\')*'", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
-        { "\"([^\"]|\\\")*\"", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
+        { "'([^']|\\')*?'", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
+        { "\"([^\"]|\\\")*?\"", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
         { "/" "/.*$", NULL, TB_CYAN, TB_DEFAULT },
         { "^\\s*#( .*|)$", NULL, TB_CYAN, TB_DEFAULT },
+        { "^#!/.*$", NULL, TB_CYAN, TB_DEFAULT },
         { "/\\" "*", "\\*" "/", TB_CYAN, TB_DEFAULT },
         { "<\\?(php)?|\\?" ">", NULL, TB_GREEN, TB_DEFAULT },
         { "\\?" ">", "<\\?(php)?", TB_WHITE, TB_DEFAULT },
@@ -1280,7 +1281,7 @@ static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def) {
     } else {
         node->srule = srule_new_single(def.re, strlen(def.re), 0, def.fg, def.bg);
     }
-    DL_APPEND(syntax->srules, node);
+    if (node->srule) DL_APPEND(syntax->srules, node);
 }
 
 // Proxy for _editor_init_syntax_add_rule with str in format '<start>,<end>,<fg>,<bg>' or '<regex>,<fg>,<bg>'

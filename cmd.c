@@ -95,7 +95,18 @@ int cmd_delete_after(cmd_context_t* ctx) {
 
 // Move cursor to beginning of line
 int cmd_move_bol(cmd_context_t* ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_bol);
+    mark_t* mark;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        mark = mark_clone(ctx->cursor->mark);
+        mark_move_bol(mark);
+        mark_move_next_re(mark, "\\S", 2);
+        if (mark->col < ctx->cursor->mark->col) {
+            mark_join(ctx->cursor->mark, mark);
+        } else {
+            mark_move_bol(ctx->cursor->mark);
+        }
+        mark_destroy(mark);
+    );
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
@@ -194,7 +205,7 @@ int cmd_delete_word_before(cmd_context_t* ctx) {
     mark_t* tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         tmark = mark_clone(cursor->mark);
-        mark_move_prev_re(tmark, "((?<=\\W)\\w|^)", sizeof("((?<=\\W)\\w|^)")-1);
+        mark_move_prev_re(tmark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
     );
@@ -206,7 +217,7 @@ int cmd_delete_word_after(cmd_context_t* ctx) {
     mark_t* tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         tmark = mark_clone(cursor->mark);
-        mark_move_next_re(tmark, "((?<=\\w)\\W|$)", sizeof("((?<=\\w)\\W|$)")-1);
+        mark_move_next_re(tmark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
     );
@@ -367,14 +378,21 @@ int cmd_replace(cmd_context_t* ctx) {
 
 // Find next occurence of word under cursor
 int cmd_find_word(cmd_context_t* ctx) {
+    char* re;
     char* word;
+    bint_t re_len;
     bint_t word_len;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (_cmd_select_by(cursor, "word") == MLE_OK) {
             mark_get_between_mark(cursor->mark, cursor->sel_bound, &word, &word_len);
-            _cmd_toggle_sel_bound(cursor, 0);
-            mark_move_next_str(cursor->mark, word, word_len);
+            re_len = asprintf(&re, "\\b%s\\b", word);
             free(word);
+            _cmd_toggle_sel_bound(cursor, 0);
+            if (mark_move_next_re(cursor->mark, re, re_len) == MLBUF_ERR) {
+                mark_move_beginning(cursor->mark);
+                mark_move_next_re(cursor->mark, re, re_len);
+            }
+            free(re);
         }
     );
     bview_rectify_viewport(ctx->bview);
