@@ -295,7 +295,7 @@ struct async_proc_s {
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
 int editor_run(editor_t* editor);
-int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
+int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed);
 int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
@@ -470,6 +470,8 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] segfault hunt
+[ ] drop/goto mark with char
 [ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --

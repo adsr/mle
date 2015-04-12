@@ -221,7 +221,7 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     }
 
     // Make child
-    editor_open_bview(self->editor, self, self->type, NULL, 0, 1, NULL, self->buffer, &child);
+    editor_open_bview(self->editor, self, self->type, NULL, 0, 1, 0, NULL, self->buffer, &child);
     child->split_parent = self;
     self->split_child = child;
     self->split_factor = factor;
@@ -567,6 +567,10 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_
     }
     if (!buffer) {
         buffer = buffer_new();
+        if (opt_path && opt_path_len > 0) {
+            buffer->path = strndup(opt_path, opt_path_len);
+            buffer->is_unsaved = 1;
+        }
     }
     buffer_set_callback(buffer, _bview_buffer_callback, self);
     if (buffer->tab_width != self->editor->tab_width) {

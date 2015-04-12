@@ -95,11 +95,15 @@ int cmd_delete_after(cmd_context_t* ctx) {
 
 // Move cursor to beginning of line
 int cmd_move_bol(cmd_context_t* ctx) {
+    uint32_t ch;
     mark_t* mark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark = mark_clone(ctx->cursor->mark);
         mark_move_bol(mark);
-        mark_move_next_re(mark, "\\S", 2);
+        ch = mark_get_char_after(mark);
+        if (isspace((int)ch)) {
+            mark_move_next_re(mark, "\\S", 2);
+        }
         if (mark->col < ctx->cursor->mark->col) {
             mark_join(ctx->cursor->mark, mark);
         } else {
@@ -500,7 +504,7 @@ int cmd_fsearch(cmd_context_t* ctx) {
         bview_open(ctx->bview, path, path ? strlen(path) : 0);
         bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
     } else if (path) {
-        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
     }
     if (path) free(path);
     return MLE_OK;
@@ -515,7 +519,7 @@ int cmd_grep(cmd_context_t* ctx) {
     editor_prompt(ctx->editor, "grep: Pattern?", NULL, 0, NULL, NULL, &path);
     if (!path) return MLE_OK;
     path_arg = util_escape_shell_arg(path, strlen(path));
-    asprintf(&cmd, "grep --color=never -P -i -I -r %s . 2>/dev/null", path_arg);
+    asprintf(&cmd, "grep --color=never -P -i -I -n -r %s . 2>/dev/null", path_arg);
     aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
     free(path);
     free(path_arg);
@@ -551,14 +555,14 @@ int cmd_open_file(cmd_context_t* ctx) {
     char* path;
     editor_prompt(ctx->editor, "new_open: File?", NULL, 0, NULL, NULL, &path);
     if (!path) return MLE_OK;
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
     free(path);
     return MLE_OK;
 }
 
 // Open empty buffer in a new bview
 int cmd_open_new(cmd_context_t* ctx) {
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &ctx->editor->rect_edit, NULL, NULL);
     return MLE_OK;
 }
 
@@ -861,8 +865,8 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
         }
         rc = buffer_save_as(bview->buffer, path, strlen(path)); // TODO display error
         free(path);
-    } while (rc == MLBUF_ERR);
-    return MLE_OK;
+    } while (rc == MLBUF_ERR && (!bview->buffer->path || save_as));
+    return rc == MLBUF_OK ? MLE_OK : MLE_ERR;
 }
 
 // Cut or copy text
@@ -1021,16 +1025,22 @@ static void _cmd_fsearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
 
 // Callback from cmd_grep
 static int _cmd_grep_cb(cmd_context_t* ctx) {
+    bint_t linenum;
     char* line;
     char* colon;
     line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
-    colon = strstr(line, ":");
+    colon = strchr(line, ':');
     if (colon == NULL) {
         free(line);
         return MLE_OK;
     }
+    if (colon + 1 != '\0' && strchr(colon + 1, ':') != NULL) {
+        linenum = strtoll(colon + 1, NULL, 10);
+    } else {
+        linenum = 0;
+    }
     editor_close_bview(ctx->editor, ctx->bview, NULL);
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, line, (int)(colon - line), 1, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, line, (int)(colon - line), 1, linenum, &ctx->editor->rect_edit, NULL, NULL);
     free(line);
     return MLE_OK;
 }
@@ -1052,7 +1062,7 @@ static int _cmd_browse_cb(cmd_context_t* ctx) {
             ctx->bview = ctx->editor->active_edit;
             cmd_browse(ctx);
         } else {
-            editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, &ctx->editor->rect_edit, NULL, NULL);
+            editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
         }
     }
     free(line);

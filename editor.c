@@ -187,7 +187,7 @@ int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_l
     loop_ctx.prompt_answer = NULL;
 
     // Init prompt
-    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, &editor->rect_prompt, NULL, &editor->prompt);
+    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, 0, &editor->rect_prompt, NULL, &editor->prompt);
     if (opt_prompt_cb) bview_add_listener(editor->prompt, opt_prompt_cb, NULL);
     editor->prompt->prompt_str = prompt;
     bview_push_kmap(editor->prompt, opt_kmap ? opt_kmap : editor->kmap_prompt_input);
@@ -221,7 +221,7 @@ int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_l
 // Open dialog menu
 int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu) {
     bview_t* menu;
-    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, &menu);
+    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, &menu);
     menu->is_menu = 1;
     bview_push_kmap(menu, editor->kmap_menu);
     if (opt_buf_data) {
@@ -243,7 +243,7 @@ int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int o
     bview_t* orig;
     char* prompt_answer;
     orig = editor->active;
-    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, &menu);
+    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, &menu);
     menu->is_menu = 1;
     if (opt_aproc) {
         opt_aproc->editor = editor;
@@ -268,7 +268,7 @@ int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int o
 }
 
 // Open a bview
-int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview) {
+int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
     bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
     bview->type = type;
@@ -283,6 +283,10 @@ int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_pat
     }
     if (opt_rect) {
         bview_resize(bview, opt_rect->x, opt_rect->y, opt_rect->w, opt_rect->h);
+    }
+    if (linenum > 0) {
+        mark_move_to(bview->active_cursor->mark, linenum - 1, 0);
+        bview_center_viewport_y(bview);
     }
     if (optret_bview) {
         *optret_bview = bview;
@@ -385,7 +389,7 @@ static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optr
         } else if (bview->all_next && MLE_BVIEW_IS_EDIT(bview->all_next)) {
             editor_set_active(editor, bview->all_next);
         } else {
-            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, NULL);
+            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, NULL);
         }
     }
     if (!bview->split_parent) {
@@ -959,6 +963,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_prev, "M-p"),
         MLE_KBINDING_DEF(cmd_split_vertical, "M-v"),
         MLE_KBINDING_DEF(cmd_split_horizontal, "M-h"),
+        MLE_KBINDING_DEF(cmd_split_vertical, "M-="),
+        MLE_KBINDING_DEF(cmd_split_horizontal, "M--"),
         MLE_KBINDING_DEF(cmd_grep, "C-q"),
         MLE_KBINDING_DEF(cmd_fsearch, "C-p"),
         MLE_KBINDING_DEF(cmd_browse, "C-b"),
@@ -1509,21 +1515,21 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
     // Open bviews
     if (optind >= argc) {
         // Open blank
-        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, &editor->rect_edit, NULL, NULL);
+        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, NULL);
     } else {
         // Open files
         for (i = optind; i < argc; i++) {
             path = argv[i];
             path_len = strlen(path);
             if (util_file_exists(path, NULL, NULL)) {
-                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, &editor->rect_edit, NULL, NULL);
+                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
             } else if ((colon = strrchr(path, ':')) != NULL) {
                 path_len = colon - path;
                 editor->startup_linenum = strtoul(colon + 1, NULL, 10);
                 if (editor->startup_linenum > 0) editor->startup_linenum -= 1;
-                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, &editor->rect_edit, NULL, NULL);
+                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
             } else {
-                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, &editor->rect_edit, NULL, NULL);
+                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
             }
         }
     }
