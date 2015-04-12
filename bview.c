@@ -215,9 +215,9 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     bview_t* child;
 
     if (self->split_child) {
-        MLE_RETURN_ERR("bview %p is already split\n", self);
+        MLE_RETURN_ERR(self->editor, "bview %p is already split", self);
     } else if (!MLE_BVIEW_IS_EDIT(self)) {
-        MLE_RETURN_ERR("bview %p is not an edit bview\n", self);
+        MLE_RETURN_ERR(self->editor, "bview %p is not an edit bview", self);
     }
 
     // Make child
@@ -597,7 +597,7 @@ static void _bview_draw_status(bview_t* self) {
     // Prompt
     if (active == editor->prompt) {
         tb_printf(editor->rect_status, 0, 0, TB_GREEN | TB_BOLD, TB_BLACK, "%-*.*s", editor->rect_status.w, editor->rect_status.w, self->editor->prompt->prompt_str);
-        return;
+        goto _bview_draw_status_end;
     }
 
     // Macro indicator
@@ -661,11 +661,11 @@ static void _bview_draw_status(bview_t* self) {
     }
 
     // Render status line
-    tb_printf(self->editor->rect_status, 0, 0, 0, 0, "%*.*s", self->editor->rect_status.w, self->editor->rect_status.w, " ");
-    tb_printf_attr(self->editor->rect_status, 0, 0,
+    tb_printf(editor->rect_status, 0, 0, 0, 0, "%*.*s", editor->rect_status.w, editor->rect_status.w, " ");
+    tb_printf_attr(editor->rect_status, 0, 0,
         "@%d,%d;%s@%d,%d;"                             // mle_normal    mode
         "(@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;)  "       // (...)         need_input,macro,async
-        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "     // buf[1/2]      bview num
+        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "      // buf[1/2]      bview num
         "<@%d,%d;%s@%d,%d;>  "                         // <php>         syntax
         "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  " // line:1/100    line
         "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d; ",  // col:0/80      col
@@ -678,6 +678,14 @@ static void _bview_draw_status(bview_t* self) {
         TB_YELLOW | TB_BOLD, 0, mark->bline->line_index + 1, 0, 0, TB_YELLOW, 0, active_edit->buffer->line_count, 0, 0,
         TB_YELLOW | TB_BOLD, 0, mark->col, 0, 0, TB_YELLOW, 0, mark->bline->char_count, 0, 0
     );
+
+    // Overlay errstr if present
+_bview_draw_status_end:
+    if (editor->errstr[0] != '\0') {
+        int errstrlen = strlen(editor->errstr) + 5; // Add 5 for "err! "
+        tb_printf(editor->rect_status, editor->rect_status.w - errstrlen, 0, TB_WHITE | TB_BOLD, TB_RED, "err! %s", editor->errstr);
+        editor->errstr[0] = '\0'; // Clear errstr
+    }
 }
 
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {

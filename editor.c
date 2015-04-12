@@ -307,9 +307,9 @@ int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed)
 // Set the active bview
 int editor_set_active(editor_t* editor, bview_t* bview) {
     if (!editor_bview_exists(editor, bview)) {
-        MLE_RETURN_ERR("No bview %p in editor->all_bviews\n", bview);
+        MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", bview);
     } else if (editor->prompt) {
-        MLE_RETURN_ERR("Cannot abandon prompt for bview %p\n", bview);
+        MLE_RETURN_ERR(editor, "Cannot abandon prompt for bview %p", bview);
     }
     editor->active = bview;
     if (MLE_BVIEW_IS_EDIT(bview)) {
@@ -375,7 +375,7 @@ int editor_register_cmd(editor_t* editor, char* name, cmd_func_t opt_func, cmd_f
 // Close a bview
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optret_num_closed) {
     if (!editor_bview_exists(editor, bview)) {
-        MLE_RETURN_ERR("No bview %p in editor->all_bviews\n", bview);
+        MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", bview);
     }
     if (bview->split_child) {
         _editor_close_bview_inner(editor, bview->split_child, optret_num_closed);
@@ -867,7 +867,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
         ret_input->key = (pkey); \
         return MLE_OK;
     if (keylen < 1) {
-        MLE_RETURN_ERR("key has length %d\n", keylen);
+        return MLE_ERR;
 #include "keys.h"
     }
 #undef MLE_KEY_DEF

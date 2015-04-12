@@ -96,6 +96,8 @@ struct editor_s {
     int loop_depth;
     bint_t startup_linenum;
     int is_in_init;
+    #define MLE_ERRSTR_SIZE 256
+    char errstr[MLE_ERRSTR_SIZE];
     int exit_code;
 };
 
@@ -124,9 +126,9 @@ struct syntax_s {
 
 // bview_t
 struct bview_s {
-#define MLE_BVIEW_TYPE_EDIT 0
-#define MLE_BVIEW_TYPE_STATUS 1
-#define MLE_BVIEW_TYPE_PROMPT 2
+    #define MLE_BVIEW_TYPE_EDIT 0
+    #define MLE_BVIEW_TYPE_STATUS 1
+    #define MLE_BVIEW_TYPE_PROMPT 2
     editor_t* editor;
     int x;
     int y;
@@ -258,10 +260,10 @@ struct cmd_context_s {
 
 // loop_context_t
 struct loop_context_s {
-#define MLE_LOOP_CTX_MAX_NUMERIC_LEN 20
-#define MLE_LOOP_CTX_MAX_NUMERIC_PARAMS 8
-#define MLE_LOOP_CTX_MAX_WILDCARD_PARAMS 8
-#define MLE_LOOP_CTX_MAX__PARAMS 8
+    #define MLE_LOOP_CTX_MAX_NUMERIC_LEN 20
+    #define MLE_LOOP_CTX_MAX_NUMERIC_PARAMS 8
+    #define MLE_LOOP_CTX_MAX_WILDCARD_PARAMS 8
+    #define MLE_LOOP_CTX_MAX__PARAMS 8
     bview_t* invoker;
     char numeric[MLE_LOOP_CTX_MAX_NUMERIC_LEN + 1];
     kbinding_t* numeric_node;
@@ -423,8 +425,8 @@ extern editor_t _editor;
     fprintf(stderr, (fmt), __VA_ARGS__); \
 } while (0)
 
-#define MLE_RETURN_ERR(fmt, ...) do { \
-    MLE_LOG_ERR((fmt), __VA_ARGS__); \
+#define MLE_RETURN_ERR(editor, fmt, ...) do { \
+    snprintf((editor)->errstr, MLE_ERRSTR_SIZE, fmt, __VA_ARGS__); \
     return MLE_ERR; \
 } while (0)
 
@@ -470,9 +472,11 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] clobber warning
 [ ] segfault hunt
 [ ] drop/goto mark with char
 [ ] last cmd status code indicator
+[ ] prevent e.g., 'C-w p' inside prompt
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
 [ ] srule priority / isearch hili in middle of multiline rule
