@@ -569,7 +569,6 @@ int cmd_open_new(cmd_context_t* ctx) {
 // Open file into current bview
 int cmd_open_replace_file(cmd_context_t* ctx) {
     char* path;
-    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     path = NULL;
     editor_prompt(ctx->editor, "replace_open: Path?", NULL, 0, NULL, NULL, &path);
@@ -582,7 +581,6 @@ int cmd_open_replace_file(cmd_context_t* ctx) {
 
 // Open empty buffer into current bview
 int cmd_open_replace_new(cmd_context_t* ctx) {
-    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     bview_open(ctx->bview, NULL, 0);
     bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
@@ -593,8 +591,6 @@ int cmd_open_replace_new(cmd_context_t* ctx) {
 int cmd_close(cmd_context_t* ctx) {
     int num_open;
     int num_closed;
-    if (ctx->editor->loop_depth > 1) return MLE_OK;
-    if (!MLE_BVIEW_IS_EDIT(ctx->bview)) return MLE_OK;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     num_open = editor_bview_edit_count(ctx->editor);
     editor_close_bview(ctx->editor, ctx->bview, &num_closed);
@@ -627,7 +623,7 @@ int cmd_apply_macro_by(cmd_context_t* ctx) {
     if (!ch) return MLE_OK;
     utf8_unicode_to_char(name, ch);
     HASH_FIND_STR(ctx->editor->macro_map, name, macro);
-    if (!macro) return MLE_ERR;
+    if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found with name '%s'", name);
     ctx->editor->macro_apply = macro;
     ctx->editor->macro_apply_input_index = 0;
     return MLE_OK;
@@ -638,12 +634,12 @@ int cmd_apply_macro_by(cmd_context_t* ctx) {
 int cmd_apply_macro(cmd_context_t* ctx) {
     char* name;
     kmacro_t* macro;
-    if (ctx->editor->macro_apply) return MLE_ERR;
+    if (ctx->editor->macro_apply) MLE_RETURN_ERR(ctx->editor, "Cannot nest macros%s", "");
     editor_prompt(ctx->editor, "apply_macro: Name?", NULL, 0, NULL, NULL, &name);
     if (!name) return MLE_OK;
     HASH_FIND_STR(ctx->editor->macro_map, name, macro);
     free(name);
-    if (!macro) return MLE_ERR;
+    if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found%s", "");
     ctx->editor->macro_apply = macro;
     ctx->editor->macro_apply_input_index = 0;
     return MLE_OK;
@@ -767,7 +763,7 @@ static int _cmd_select_by(cursor_t* cursor, char* strat) {
         _cmd_toggle_sel_bound(cursor, 0);
         mark_move_bol(cursor->sel_bound);
     } else {
-        return MLE_ERR;
+        MLE_RETURN_ERR(cursor->bview->editor, "Unrecognized _cmd_select_by strat '%s'", strat);
     }
     return MLE_OK;
 }
@@ -820,7 +816,12 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
 // closing the bview, or MLE_ERR if the action was cancelled.
 static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
     char* yn;
-    if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)
+
+    if (!MLE_BVIEW_IS_EDIT(bview)) {
+        MLE_RETURN_ERR(editor, "Cannot close non-edit bview %p", bview);
+    } else if (editor->loop_depth > 1) {
+        MLE_RETURN_ERR(editor, "Cannot close bview %p when loop_depth > 1", bview);
+    } else if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)
         || editor_count_bviews_by_buffer(editor, bview->buffer) > 1
     ) {
         return MLE_OK;
