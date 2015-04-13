@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-CC=$(shell if which colorgcc>/dev/null; then echo colorgcc; else echo gcc; fi)
+CC=$(shell if which colorgcc >/dev/null 2>&1; then echo colorgcc; else echo gcc; fi)
 BINDIR=/usr/bin
 
 all: mle
