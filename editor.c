@@ -89,8 +89,8 @@ int editor_init(editor_t* editor, int argc, char** argv) {
             asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
             if (util_file_exists(home_rc, "rb", &rc)) {
                 rv = _editor_init_from_rc(editor, rc);
+                fclose(rc);
             }
-            fclose(rc);
             free(home_rc);
         }
         if (rv != MLE_OK) break;
