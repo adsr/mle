@@ -387,6 +387,7 @@ int cmd_redo(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
 int cmd_indent(cmd_context_t* ctx);
 int cmd_outdent(cmd_context_t* ctx);
+int cmd_shell(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 
 // async functions
@@ -394,6 +395,7 @@ async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec
 int async_proc_destroy(async_proc_t* aproc);
 
 // util functions
+int util_popen2(char* cmd, int* ret_fdread, int* ret_fdwrite);
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
 int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
 int util_dir_exists(char* path);
@@ -472,11 +474,12 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] clobber warning
+[ ] replace in sel bounds when anchored
+[ ] fix sel in/outdent
+[ ] file clobber warning
 [ ] segfault hunt
 [ ] drop/goto mark with char
 [ ] last cmd status code indicator
-[ ] prevent e.g., 'C-w p' inside prompt
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
 [ ] srule priority / isearch hili in middle of multiline rule

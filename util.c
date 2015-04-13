@@ -4,6 +4,46 @@
 #include <unistd.h>
 #include "mle.h"
 
+// Like popen, but bidirectional. Returns 1 on success, 0 on failure.
+int util_popen2(char* cmd, int* ret_fdread, int* ret_fdwrite) {
+    FILE* fr;
+    pid_t pid;
+    int pin[2];
+    int pout[2];
+
+    // Make pipes
+    if (pipe(pin)) return 0;
+    if (pipe(pout)) return 0;
+
+    // Fork
+    pid = fork();
+    if (pid < 0) {
+        // Fork failed
+        return 0;
+    } else if (pid == 0) {
+        // Child
+        close(pout[0]);
+        dup2(pout[1], STDOUT_FILENO);
+        close(pout[1]);
+
+        close(pin[1]);
+        dup2(pin[0], STDIN_FILENO);
+        close(pin[0]);
+
+        execlp("sh", "sh", "-c", cmd, NULL);
+        exit(EXIT_FAILURE);
+    }
+    // Parent
+    close(pout[1]);
+    close(pin[0]);
+    fr = fdopen(dup(pout[0]), "r");
+    setvbuf(fr, NULL, _IONBF, 0);
+    fclose(fr);
+    *ret_fdread = pout[0];
+    *ret_fdwrite = pin[1];
+    return 1;
+}
+
 // Return paired bracket if ch is a bracket, else return 0
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing) {
     switch (ch) {

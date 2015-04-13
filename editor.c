@@ -978,6 +978,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF_EX(cmd_fsearch, "C-w p", "replace"),
         MLE_KBINDING_DEF(cmd_indent, "M-]"),
         MLE_KBINDING_DEF(cmd_outdent, "M-["),
+        MLE_KBINDING_DEF(cmd_shell, "M-e"),
         MLE_KBINDING_DEF(cmd_close, "M-c"),
         MLE_KBINDING_DEF(cmd_quit, "C-x"),
         MLE_KBINDING_DEF(NULL, NULL)

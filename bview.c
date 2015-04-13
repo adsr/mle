@@ -269,6 +269,7 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
                 srule_destroy(el->sel_rule);
                 el->sel_rule = NULL;
             }
+            if (el->cut_buffer) free(el->cut_buffer);
             free(el);
             return MLE_OK;
         }
@@ -569,7 +570,6 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_
         buffer = buffer_new();
         if (opt_path && opt_path_len > 0) {
             buffer->path = strndup(opt_path, opt_path_len);
-            buffer->is_unsaved = 1;
         }
     }
     buffer_set_callback(buffer, _bview_buffer_callback, self);

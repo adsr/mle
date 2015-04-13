@@ -1,4 +1,6 @@
 #include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include "mle.h"
 
@@ -694,6 +696,122 @@ int cmd_outdent(cmd_context_t* ctx) {
     return _cmd_indent(ctx, 1);
 }
 
+// Shell
+int cmd_shell(cmd_context_t* ctx) {
+    char* cmd;
+    char* input;
+    char* input_orig;
+    bint_t input_len;
+    int readfd;
+    int writefd;
+    char* readbuf;
+    size_t readbuf_len;
+    size_t readbuf_size;
+    ssize_t rc;
+    ssize_t nbytes;
+    fd_set readfds;
+    struct timeval timeout;
+
+    // Get shell cmd
+    if (ctx->static_param) {
+        cmd = strdup(ctx->static_param);
+    } else {
+        editor_prompt(ctx->editor, "shell: Cmd?", NULL, 0, NULL, NULL, &cmd);
+        if (!cmd) return MLE_OK;
+    }
+
+    // Loop for each cursor
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        // Open cmd
+        if (!util_popen2(cmd, &readfd, &writefd)) {
+            MLE_RETURN_ERR(ctx->editor, "Failed to exec shell cmd: %s", cmd);
+        }
+
+        // Get data to send to stdin
+        if (ctx->cursor->is_sel_bound_anchored) {
+            mark_get_between_mark(cursor->mark, cursor->sel_bound, &input, &input_len);
+            // Add a newline
+            input = realloc(input, input_len + 2);
+            input[input_len] = '\n';
+            input[input_len+1] = '\0';
+            input_len += 1;
+            input_orig = input;
+        } else {
+            input = NULL;
+            input_len = 0;
+            close(writefd);
+        }
+
+        // Read-write loop
+        readbuf = NULL;
+        readbuf_len = 0;
+        readbuf_size = 0;
+        do {
+            // Write to shell cmd if input is remaining
+            if (input_len > 0) {
+                rc = write(writefd, input, MLE_MIN(input_len, 512));
+                if (rc > 0) {
+                    input += rc;
+                    input_len -= rc;
+                    if (input_len <= 0) {
+                        close(writefd);
+                        writefd = 0;
+                        free(input_orig);
+                        input_orig = NULL;
+                    }
+                } else {
+                    break; // write err
+                }
+            }
+
+            // Read shell cmd, timing out after 1 second
+            timeout.tv_sec = 1;
+            timeout.tv_usec = 0;
+            FD_ZERO(&readfds);
+            FD_SET(readfd, &readfds);
+            rc = select(readfd + 1, &readfds, NULL, NULL, &timeout);
+            if (rc < 0) {
+                break; // select err
+            } else if (rc == 0) {
+                break; // Timed out
+            } else {
+                // Read a kilobyte of data
+                if (readbuf_len + 1024 + 1 > readbuf_size) {
+                    readbuf = realloc(readbuf, readbuf_len + 1024 + 1);
+                    readbuf_size = readbuf_len + 1024 + 1;
+                }
+                nbytes = read(readfd, readbuf + readbuf_len, 1024);
+                if (nbytes < 0) {
+                    // read err or EAGAIN/EWOULDBLOCK
+                    break;
+                } else if (nbytes > 0) {
+                    // Got data
+                    readbuf_len += nbytes;
+                }
+            }
+        } while(nbytes > 0);
+
+        // Close pipes
+        close(readfd);
+        if (writefd) close(writefd);
+
+        // Write shell output to buffer
+        if (readbuf_len > 0) {
+            if (cursor->is_sel_bound_anchored) {
+                mark_delete_between_mark(cursor->mark, cursor->sel_bound);
+            }
+            mark_insert_before(cursor->mark, readbuf, readbuf_len);
+        }
+
+        // Free shell input and output
+        if (input_orig) free(input_orig);
+        if (readbuf) free(readbuf);
+    ); // Loop for next cursor
+
+    free(cmd);
+    return MLE_OK;
+}
+
 // Indent or outdent line(s)
 static int _cmd_indent(cmd_context_t* ctx, int outdent) {
     bline_t* start;
@@ -842,7 +960,6 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
     } else if (0 == strcmp(yn, MLE_PROMPT_NO)) {
         return MLE_OK;
     }
-
     return _cmd_save(editor, bview, 1);
 }
 
