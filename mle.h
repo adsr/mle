@@ -162,6 +162,7 @@ struct bview_s {
     cursor_t* active_cursor;
     char* last_search;
     srule_t* isearch_rule;
+    int tab_width;
     int tab_to_space;
     syntax_t* syntax;
     async_proc_t* async_proc;
@@ -326,6 +327,7 @@ int bview_unsplit(bview_t* parent, bview_t* child);
 int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
 int bview_remove_cursor(bview_t* self, cursor_t* cursor);
 int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata);
+int bview_set_syntax(bview_t* self, char* opt_syntax);
 int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
 bview_t* bview_get_split_root(bview_t* self);
 
@@ -388,6 +390,7 @@ int cmd_quit(cmd_context_t* ctx);
 int cmd_indent(cmd_context_t* ctx);
 int cmd_outdent(cmd_context_t* ctx);
 int cmd_shell(cmd_context_t* ctx);
+int cmd_set_opt(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 
 // async functions
@@ -474,14 +477,27 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] multi-line srule perf
+[ ] isearch should rectify bview
+[ ] fix bug in replace wrapping
+[ ] C-c should exit browse menu
+[ ] set bview setting on the fly (syntax, tab space, tab size, etc)
+[ ] large paste cuts off midway?
+[ ] remove angle bracket from bracket pairs
+[ ] add quote_pairs
+[ ] option to ensure trailing newline
+[ ] reset syntax when filename changes
+[ ] tab completion in file io prompts
+[ ] drop cursors in isearch
 [ ] replace in sel bounds when anchored
 [ ] fix sel in/outdent
 [ ] file clobber warning
 [ ] segfault hunt
 [ ] drop/goto mark with char
-[ ] last cmd status code indicator
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
+[ ] find matching html bracket
+[ ] last cmd status code indicator
 [ ] srule priority / isearch hili in middle of multiline rule
 [ ] slow indent
 [ ] click to set cursor/focus
@@ -503,7 +519,7 @@ TODO
 [ ] configurable colors
 [ ] configurable status line
 [ ] configurable caption line
-[ ] protect against invalid api use, e.g., prevent srule_destroy on active srule
+[ ] guard against invalid api use, e.g., prevent srule_destroy on active srule
 */
 
 #endif

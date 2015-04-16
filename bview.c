@@ -10,7 +10,6 @@ static void _bview_draw_prompt(bview_t* self);
 static void _bview_draw_status(bview_t* self);
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y);
-static void _bview_set_syntax(bview_t* self);
 static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
 static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
 static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol);
@@ -34,6 +33,7 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
     self->rect_margin_left.fg = TB_RED;
     self->rect_margin_right.fg = TB_RED;
     self->rect_buffer.h = 10; // TODO hack to fix _bview_set_linenum_width before bview_resize
+    self->tab_width = editor->tab_width;
     self->tab_to_space = editor->tab_to_space;
     self->viewport_scope_x = editor->viewport_scope_x;
     self->viewport_scope_y = editor->viewport_scope_y;
@@ -392,7 +392,7 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
     bview_push_kmap(self, _bview_get_init_kmap(self->editor));
 
     // Set syntax
-    _bview_set_syntax(self);
+    bview_set_syntax(self, NULL);
 
     // Add a cursor
     bview_add_cursor(self, self->buffer->first_line, 0, &cursor_tmp);
@@ -523,7 +523,7 @@ static void _bview_deinit(bview_t* self) {
 }
 
 // Set syntax on bview buffer
-static void _bview_set_syntax(bview_t* self) {
+int bview_set_syntax(bview_t* self, char* opt_syntax) {
     syntax_t* syntax;
     syntax_t* syntax_tmp;
     syntax_t* use_syntax;
@@ -531,12 +531,15 @@ static void _bview_set_syntax(bview_t* self) {
 
     // Only set syntax on edit bviews
     if (!MLE_BVIEW_IS_EDIT(self)) {
-        return;
+        return MLE_ERR;
     }
 
     use_syntax = NULL;
-    if (self->editor->is_in_init && self->editor->syntax_override) {
-        // Set by override
+    if (opt_syntax) {
+        // Set by opt_syntax
+        HASH_FIND_STR(self->editor->syntax_map, opt_syntax, use_syntax);
+    } else if (self->editor->is_in_init && self->editor->syntax_override) {
+        // Set by override at init
         HASH_FIND_STR(self->editor->syntax_map, self->editor->syntax_override, use_syntax);
     } else if (self->buffer->path) {
         // Set by path
@@ -548,15 +551,27 @@ static void _bview_set_syntax(bview_t* self) {
         }
     }
 
+    buffer_set_styles_enabled(self->buffer, 0);
+
+    // Remove current syntax
+    if (self->syntax) {
+        DL_FOREACH(self->syntax->srules, srule_node) {
+            buffer_remove_srule(self->buffer, srule_node->srule);
+            self->syntax = NULL;
+        }
+    }
+
     // Set syntax if found
     if (use_syntax) {
-        buffer_set_styles_enabled(self->buffer, 0);
         DL_FOREACH(use_syntax->srules, srule_node) {
             buffer_add_srule(self->buffer, srule_node->srule);
         }
-        buffer_set_styles_enabled(self->buffer, 1);
         self->syntax = use_syntax;
     }
+
+    buffer_set_styles_enabled(self->buffer, 1);
+
+    return use_syntax ? MLE_OK : MLE_ERR;
 }
 
 // Open a buffer with an optional path to load, otherwise empty
@@ -573,8 +588,8 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_
         }
     }
     buffer_set_callback(buffer, _bview_buffer_callback, self);
-    if (buffer->tab_width != self->editor->tab_width) {
-        buffer_set_tab_width(buffer, self->editor->tab_width);
+    if (buffer->tab_width != self->tab_width) {
+        buffer_set_tab_width(buffer, self->tab_width);
     }
     return buffer;
 }

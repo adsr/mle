@@ -696,6 +696,29 @@ int cmd_outdent(cmd_context_t* ctx) {
     return _cmd_indent(ctx, 1);
 }
 
+// Set option
+int cmd_set_opt(cmd_context_t* ctx) {
+    char* prompt;
+    char* val;
+    int vali;
+    if (!ctx->static_param) return MLE_ERR;
+    asprintf(&prompt, "set_opt: %s?", ctx->static_param);
+    editor_prompt(ctx->editor, prompt, NULL, 0, NULL, NULL, &val);
+    free(prompt);
+    if (!val) return MLE_OK;
+    vali = atoi(val);
+    if (strcmp(ctx->static_param, "tab_to_space") == 0) {
+        ctx->bview->tab_to_space = vali ? 1 : 0;
+    } else if (strcmp(ctx->static_param, "tab_width") == 0) {
+        ctx->bview->tab_width = MLE_MAX(vali, 1);
+        buffer_set_tab_width(ctx->bview->buffer, ctx->bview->tab_width);
+    } else if (strcmp(ctx->static_param, "syntax") == 0) {
+        bview_set_syntax(ctx->bview, val);
+        buffer_apply_styles(ctx->bview->buffer, ctx->bview->buffer->first_line, ctx->bview->buffer->line_count);
+    }
+    return MLE_OK;
+}
+
 // Shell
 int cmd_shell(cmd_context_t* ctx) {
     char* cmd;
@@ -735,12 +758,12 @@ int cmd_shell(cmd_context_t* ctx) {
             input[input_len] = '\n';
             input[input_len+1] = '\0';
             input_len += 1;
-            input_orig = input;
         } else {
             input = NULL;
             input_len = 0;
             close(writefd);
         }
+        input_orig = input;
 
         // Read-write loop
         readbuf = NULL;
@@ -749,7 +772,7 @@ int cmd_shell(cmd_context_t* ctx) {
         do {
             // Write to shell cmd if input is remaining
             if (input_len > 0) {
-                rc = write(writefd, input, MLE_MIN(input_len, 512));
+                rc = write(writefd, input, input_len);
                 if (rc > 0) {
                     input += rc;
                     input_len -= rc;
@@ -760,7 +783,7 @@ int cmd_shell(cmd_context_t* ctx) {
                         input_orig = NULL;
                     }
                 } else {
-                    break; // write err
+                    // write err
                 }
             }
 
