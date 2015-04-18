@@ -1250,7 +1250,7 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "<\\?(php)?|\\?" ">", NULL, TB_GREEN, TB_DEFAULT },
         { "\\?" ">", "<\\?(php)?", TB_WHITE, TB_DEFAULT },
         { "\"\"\"", "\"\"\"", TB_YELLOW | TB_BOLD, TB_DEFAULT },
-        { "\\t+", NULL, TB_DEFAULT, TB_RED },
+        { "\\t+", NULL, TB_RED | TB_UNDERLINE, TB_DEFAULT },
         { "\\s+$", NULL, TB_DEFAULT, TB_GREEN },
         { NULL, NULL, 0, 0 }
     });

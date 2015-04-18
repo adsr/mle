@@ -477,11 +477,12 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] multi-line srule perf
+[ ] should not prompt for fname if present on exit
+[ ] makefile params
+[ ] styles perf
 [ ] isearch should rectify bview
 [ ] fix bug in replace wrapping
 [ ] C-c should exit browse menu
-[ ] set bview setting on the fly (syntax, tab space, tab size, etc)
 [ ] large paste cuts off midway?
 [ ] remove angle bracket from bracket pairs
 [ ] add quote_pairs
