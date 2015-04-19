@@ -34,6 +34,8 @@ static int _cmd_grep_cb(cmd_context_t* ctx);
 static int _cmd_select_by(cursor_t* cursor, char* strat);
 static int _cmd_select_by_bracket(cursor_t* cursor);
 static int _cmd_select_by_word(cursor_t* cursor);
+static int _cmd_select_by_word_back(cursor_t* cursor);
+static int _cmd_select_by_word_forward(cursor_t* cursor);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 
@@ -897,6 +899,10 @@ static int _cmd_select_by(cursor_t* cursor, char* strat) {
         return _cmd_select_by_bracket(cursor);
     } else if (strcmp(strat, "word") == 0) {
         return _cmd_select_by_word(cursor);
+    } else if (strcmp(strat, "word_back") == 0) {
+        return _cmd_select_by_word_back(cursor);
+    } else if (strcmp(strat, "word_forward") == 0) {
+        return _cmd_select_by_word_forward(cursor);
     } else if (strcmp(strat, "eol") == 0 && !mark_is_at_eol(cursor->mark)) {
         _cmd_toggle_sel_bound(cursor, 0);
         mark_move_eol(cursor->sel_bound);
@@ -924,6 +930,22 @@ static int _cmd_select_by_bracket(cursor_t* cursor) {
         return MLE_ERR;
     }
     mark_move_by(cursor->mark, 1);
+    return MLE_OK;
+}
+
+// Select by word-back
+static int _cmd_select_by_word_back(cursor_t* cursor) {
+    if (mark_is_at_word_bound(cursor->mark, -1)) return MLE_ERR;
+    _cmd_toggle_sel_bound(cursor, 0);
+    mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+    return MLE_OK;
+}
+
+// Select by word-forward
+static int _cmd_select_by_word_forward(cursor_t* cursor) {
+    if (mark_is_at_word_bound(cursor->mark, 1)) return MLE_ERR;
+    _cmd_toggle_sel_bound(cursor, 0);
+    mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     return MLE_OK;
 }
 

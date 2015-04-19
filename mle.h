@@ -477,8 +477,8 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] ensure multi_cursor_code impl for all appropriate
 [ ] figure out weirdness with inserting alt-direction before tabbed content
-[ ] bind delete word back/ahead
 [ ] factor out code into async_proc_read
 [ ] should not prompt for fname if present on exit
 [ ] makefile params
