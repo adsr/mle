@@ -477,6 +477,10 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] overlapping multi rules, range should be separate in styling
+[ ] perf with large files
+[ ] sel_bound -> drop cursors in column
+[ ] indicator for cursor sel_bound anchored
 [ ] ensure multi_cursor_code impl for all appropriate
 [ ] figure out weirdness with inserting alt-direction before tabbed content
 [ ] factor out code into async_proc_read
@@ -500,6 +504,7 @@ TODO
 [ ] drop/goto mark with char
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
+[ ] async style refresh
 [ ] find matching html bracket
 [ ] last cmd status code indicator
 [ ] srule priority / isearch hili in middle of multiline rule
