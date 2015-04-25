@@ -348,6 +348,7 @@ int cmd_move_down(cmd_context_t* ctx);
 int cmd_move_page_up(cmd_context_t* ctx);
 int cmd_move_page_down(cmd_context_t* ctx);
 int cmd_move_to_line(cmd_context_t* ctx);
+int cmd_move_relative(cmd_context_t* ctx);
 int cmd_move_word_forward(cmd_context_t* ctx);
 int cmd_move_word_back(cmd_context_t* ctx);
 int cmd_apply_macro(cmd_context_t* ctx);
@@ -358,6 +359,7 @@ int cmd_remove_extra_cursors(cmd_context_t* ctx);
 int cmd_search(cmd_context_t* ctx);
 int cmd_search_next(cmd_context_t* ctx);
 int cmd_replace(cmd_context_t* ctx);
+int cmd_redraw(cmd_context_t* ctx);
 int cmd_find_word(cmd_context_t* ctx);
 int cmd_isearch(cmd_context_t* ctx);
 int cmd_delete_word_before(cmd_context_t* ctx);
@@ -477,6 +479,9 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] browse if path is a dir when opening
+[ ] surface perms error when saving
+[ ] pipe stderr to devnull on async procs
 [ ] overlapping multi rules, range should be separate in styling
 [ ] perf with large files
 [ ] sel_bound -> drop cursors in column
@@ -487,23 +492,18 @@ TODO
 [ ] should not prompt for fname if present on exit
 [ ] makefile params
 [ ] styles perf
-[ ] isearch should rectify bview
-[ ] fix bug in replace wrapping
-[ ] C-c should exit browse menu
 [ ] large paste cuts off midway?
-[ ] remove angle bracket from bracket pairs
-[ ] add quote_pairs
 [ ] option to ensure trailing newline
 [ ] reset syntax when filename changes
 [ ] tab completion in file io prompts
 [ ] drop cursors in isearch
-[ ] replace in sel bounds when anchored
-[ ] fix sel in/outdent
 [ ] file clobber warning
-[ ] segfault hunt
-[ ] drop/goto mark with char
+[ ] segfault hunt: splits
+[ ] segfault hunt: async proc broken pipe
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
+[ ] drop/goto mark with char
+[ ] add quote_pairs
 [ ] async style refresh
 [ ] find matching html bracket
 [ ] last cmd status code indicator

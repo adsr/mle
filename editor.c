@@ -936,6 +936,10 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_move_page_up, "page-up"),
         MLE_KBINDING_DEF(cmd_move_page_down, "page-down"),
         MLE_KBINDING_DEF(cmd_move_to_line, "M-g"),
+        MLE_KBINDING_DEF_EX(cmd_move_relative, "M-y ## u", "up"),
+        MLE_KBINDING_DEF_EX(cmd_move_relative, "M-y ## d", "down"),
+        MLE_KBINDING_DEF(cmd_move_until_forward, "M-. **"),
+        MLE_KBINDING_DEF(cmd_move_until_back, "M-, **"),
         MLE_KBINDING_DEF(cmd_move_word_forward, "M-f"),
         MLE_KBINDING_DEF(cmd_move_word_back, "M-b"),
         MLE_KBINDING_DEF(cmd_search, "C-f"),
@@ -945,6 +949,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_replace, "C-t"),
         MLE_KBINDING_DEF(cmd_cut, "C-k"),
         MLE_KBINDING_DEF(cmd_uncut, "C-u"),
+        MLE_KBINDING_DEF(cmd_redraw, "C-l"),
         MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c d", "bracket"),
         MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c w", "word"),
         MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c s", "word_back"),
@@ -994,6 +999,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_input_submit, "enter"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_yn, "mle_prompt_yn", MLE_FUNCREF_NONE, 0, (kbinding_def_t[]){
@@ -1001,6 +1007,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_yn_no, "n"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_yna, "mle_prompt_yna", MLE_FUNCREF_NONE, 0, (kbinding_def_t[]){
@@ -1009,6 +1016,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_yna_all, "a"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_ok, "mle_prompt_ok", MLE_FUNCREF(_editor_prompt_cancel), 0, (kbinding_def_t[]){
@@ -1018,6 +1026,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_menu_submit, "enter"),
         MLE_KBINDING_DEF(_editor_menu_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_menu_cancel, "C-x"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_menu, "mle_prompt_menu", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
@@ -1030,6 +1039,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_menu_page_down, "page-down"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_isearch, "mle_prompt_isearch", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
@@ -1038,6 +1048,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_cancel, "enter"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
+        MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
 }
@@ -1214,7 +1225,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cpp|h|hpp|php|py|rb|sh|pl|go|js|java|lua)$", (srule_def_t[]){
+    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua)$", (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
@@ -1246,7 +1257,7 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "\\b(-?(0x)?[0-9]+|true|false|null)\\b", NULL, TB_BLUE | TB_BOLD, TB_DEFAULT },
         { "/([^/]|\\\\/)+/(?!/)", NULL, TB_YELLOW, TB_DEFAULT },
         { "'([^']|\\')*?'", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
-        { "\"([^\"]|\\\")*?\"", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
+        { "\"(\\\"|[^\"])*?\"", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
         { "/" "/.*$", NULL, TB_CYAN, TB_DEFAULT },
         { "^\\s*#( .*|)$", NULL, TB_CYAN, TB_DEFAULT },
         { "^#!/.*$", NULL, TB_CYAN, TB_DEFAULT },

@@ -50,11 +50,9 @@ int util_get_bracket_pair(uint32_t ch, int* optret_is_closing) {
         case '[': if (optret_is_closing) *optret_is_closing = 0; return ']';
         case '(': if (optret_is_closing) *optret_is_closing = 0; return ')';
         case '{': if (optret_is_closing) *optret_is_closing = 0; return '}';
-        case '<': if (optret_is_closing) *optret_is_closing = 0; return '>';
         case ']': if (optret_is_closing) *optret_is_closing = 1; return '[';
         case ')': if (optret_is_closing) *optret_is_closing = 1; return '(';
         case '}': if (optret_is_closing) *optret_is_closing = 1; return '{';
-        case '>': if (optret_is_closing) *optret_is_closing = 1; return '<';
         default: return 0;
     }
     return 0;

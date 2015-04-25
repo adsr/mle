@@ -196,6 +196,24 @@ int cmd_move_to_line(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Move vertically relative to current line
+int cmd_move_relative(cmd_context_t* ctx) {
+    int delta;
+    if (ctx->loop_ctx->numeric_params_len < 1) {
+        return MLE_ERR;
+    }
+    if (strcmp(ctx->static_param, "up") == 0) {
+        delta = -1;
+    } else if (strcmp(ctx->static_param, "down") == 0) {
+        delta = 1;
+    } else {
+        return MLE_ERR;
+    }
+    delta *= ctx->loop_ctx->numeric_params[0];
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, delta);
+    return MLE_OK;
+}
+
 // Move one word forward
 int cmd_move_word_forward(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
@@ -309,8 +327,12 @@ int cmd_replace(cmd_context_t* ctx) {
     int wrapped;
     int all;
     char* yn;
+    mark_t* lo_mark;
+    mark_t* hi_mark;
+    mark_t* orig_mark;
     mark_t* search_mark;
     mark_t* search_mark_end;
+    int anchored_before;
     srule_t* highlight;
     bline_t* bline;
     bint_t col;
@@ -319,8 +341,12 @@ int cmd_replace(cmd_context_t* ctx) {
     regex = NULL;
     replacement = NULL;
     wrapped = 0;
+    lo_mark = NULL;
+    hi_mark = NULL;
+    orig_mark = NULL;
     search_mark = NULL;
     search_mark_end = NULL;
+    anchored_before = 0;
     all = 0;
 
     do {
@@ -328,12 +354,28 @@ int cmd_replace(cmd_context_t* ctx) {
         if (!regex) break;
         editor_prompt(ctx->editor, "replace: Replacement string?", NULL, 0, NULL, NULL, &replacement);
         if (!replacement) break;
+        orig_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+        lo_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+        hi_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
         search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
         search_mark_end = buffer_add_mark(ctx->bview->buffer, NULL, 0);
         mark_join(search_mark, ctx->cursor->mark);
+        mark_join(orig_mark, ctx->cursor->mark);
+        if (ctx->cursor->is_sel_bound_anchored) {
+            anchored_before = mark_is_gt(ctx->cursor->mark, ctx->cursor->sel_bound);
+            mark_join(lo_mark, !anchored_before ? ctx->cursor->mark : ctx->cursor->sel_bound);
+            mark_join(hi_mark, anchored_before ? ctx->cursor->mark : ctx->cursor->sel_bound);
+        } else {
+            mark_move_beginning(lo_mark);
+            mark_move_end(hi_mark);
+        }
         while (1) {
-            if (mark_find_next_re(search_mark, regex, strlen(regex), &bline, &col, &char_count) == MLBUF_OK) {
-                mark_move_to(search_mark, bline->line_index, col);
+            if (mark_find_next_re(search_mark, regex, strlen(regex), &bline, &col, &char_count) == MLBUF_OK
+                && (mark_move_to(search_mark, bline->line_index, col) == MLBUF_OK)
+                && (mark_is_gt(search_mark, lo_mark) || mark_is_eq(search_mark, lo_mark))
+                && (mark_is_lt(search_mark, hi_mark))
+                && (!wrapped || mark_is_lt(search_mark, orig_mark) || mark_is_eq(search_mark, orig_mark))
+            ) {
                 mark_move_to(search_mark_end, bline->line_index, col + char_count);
                 mark_join(ctx->cursor->mark, search_mark);
                 yn = NULL;
@@ -365,7 +407,8 @@ int cmd_replace(cmd_context_t* ctx) {
                     mark_move_by(search_mark, 1);
                 }
             } else if (!wrapped) {
-                mark_move_beginning(search_mark);
+                mark_join(search_mark, lo_mark);
+                mark_move_by(search_mark, -1);
                 wrapped = 1;
             } else {
                 break;
@@ -373,14 +416,38 @@ int cmd_replace(cmd_context_t* ctx) {
         }
     } while(0);
 
+    if (ctx->cursor->is_sel_bound_anchored && lo_mark && hi_mark) {
+        mark_join(ctx->cursor->mark, anchored_before ? hi_mark : lo_mark);
+        mark_join(ctx->cursor->sel_bound, anchored_before ? lo_mark : hi_mark);
+    }
     if (regex) free(regex);
     if (replacement) free(replacement);
+    if (lo_mark) mark_destroy(lo_mark);
+    if (hi_mark) mark_destroy(hi_mark);
+    if (orig_mark) mark_destroy(orig_mark);
     if (search_mark) mark_destroy(search_mark);
     if (search_mark_end) mark_destroy(search_mark_end);
 
     bview_rectify_viewport(ctx->bview);
     bview_draw(ctx->bview);
 
+    return MLE_OK;
+}
+
+// Redraw screen
+int cmd_redraw(cmd_context_t* ctx) {
+    int w;
+    int h;
+    int x;
+    int y;
+    w = tb_width();
+    h = tb_height();
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            tb_change_cell(x, y, 160, 0, 0);
+        }
+    }
+    tb_present();
     return MLE_OK;
 }
 
@@ -415,6 +482,7 @@ int cmd_isearch(cmd_context_t* ctx) {
         srule_destroy(ctx->bview->isearch_rule);
         ctx->bview->isearch_rule = NULL;
     }
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
@@ -877,6 +945,8 @@ static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {
         for (i = 0; i < num_chars; i++) {
             if (bline->char_count > i && bline->chars[i].ch == tab_char) {
                 num_to_del += 1;
+            } else {
+                break;
             }
         }
         if (num_to_del > 0) bline_delete(bline, 0, num_to_del);
