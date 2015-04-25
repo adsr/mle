@@ -264,7 +264,7 @@ struct loop_context_s {
     #define MLE_LOOP_CTX_MAX_NUMERIC_LEN 20
     #define MLE_LOOP_CTX_MAX_NUMERIC_PARAMS 8
     #define MLE_LOOP_CTX_MAX_WILDCARD_PARAMS 8
-    #define MLE_LOOP_CTX_MAX__PARAMS 8
+    #define MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE 256
     bview_t* invoker;
     char numeric[MLE_LOOP_CTX_MAX_NUMERIC_LEN + 1];
     kbinding_t* numeric_node;
@@ -278,6 +278,8 @@ struct loop_context_s {
     int should_exit;
     char* prompt_answer;
     cmd_func_t prompt_callback;
+    int tab_complete_index;
+    char tab_complete_term[MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE];
     cmd_funcref_t* last_cmd;
 };
 
@@ -400,10 +402,11 @@ async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec
 int async_proc_destroy(async_proc_t* aproc);
 
 // util functions
-int util_popen2(char* cmd, int* ret_fdread, int* ret_fdwrite);
+int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len);
+int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite);
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
-int util_file_exists(char* path, char* opt_mode, FILE** optret_file);
-int util_dir_exists(char* path);
+int util_is_file(char* path, char* opt_mode, FILE** optret_file);
+int util_is_dir(char* path);
 int util_pcre_match(char* subject, char* re);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int len);
@@ -432,8 +435,12 @@ extern editor_t _editor;
     fprintf(stderr, (fmt), __VA_ARGS__); \
 } while (0)
 
+#define MLE_SET_ERR(editor, fmt, ...) do { \
+    snprintf((editor)->errstr, MLE_ERRSTR_SIZE, (fmt), __VA_ARGS__); \
+} while (0)
+
 #define MLE_RETURN_ERR(editor, fmt, ...) do { \
-    snprintf((editor)->errstr, MLE_ERRSTR_SIZE, fmt, __VA_ARGS__); \
+    MLE_SET_ERR((editor), (fmt), __VA_ARGS__); \
     return MLE_ERR; \
 } while (0)
 
@@ -479,29 +486,28 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] browse if path is a dir when opening
-[ ] surface perms error when saving
+[ ] aproc-bview refactor
+[ ] factor out code into async_proc_read
 [ ] pipe stderr to devnull on async procs
 [ ] overlapping multi rules, range should be separate in styling
-[ ] perf with large files
 [ ] sel_bound -> drop cursors in column
 [ ] indicator for cursor sel_bound anchored
 [ ] ensure multi_cursor_code impl for all appropriate
 [ ] figure out weirdness with inserting alt-direction before tabbed content
-[ ] factor out code into async_proc_read
 [ ] should not prompt for fname if present on exit
 [ ] makefile params
-[ ] styles perf
-[ ] large paste cuts off midway?
-[ ] option to ensure trailing newline
 [ ] reset syntax when filename changes
-[ ] tab completion in file io prompts
+[ ] option to ensure trailing newline
 [ ] drop cursors in isearch
 [ ] file clobber warning
 [ ] segfault hunt: splits
 [ ] segfault hunt: async proc broken pipe
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
+[ ] large paste cuts off midway?
+[ ] styles perf
+[ ] perf with large files
+[ ] browse if path is a dir when opening
 [ ] drop/goto mark with char
 [ ] add quote_pairs
 [ ] async style refresh

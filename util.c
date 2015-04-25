@@ -2,14 +2,110 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 #include "mle.h"
 
+// Run a shell command, optionally feeding stdin, collecting stdout
+int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len) {
+    int rv;
+    int readfd;
+    int writefd;
+    char* readbuf;
+    size_t readbuf_len;
+    size_t readbuf_size;
+    ssize_t rc;
+    ssize_t nbytes;
+    fd_set readfds;
+    struct timeval timeout;
+
+    // Open cmd
+    if (!util_popen2(cmd, opt_shell, &readfd, &writefd)) {
+        MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
+    }
+
+    // Close write pipe if no input
+    if (input_len < 1) {
+        close(writefd);
+    }
+
+    // Read-write loop
+    readbuf = NULL;
+    readbuf_len = 0;
+    readbuf_size = 0;
+    rv = MLE_OK;
+    do {
+        // Write to shell cmd if input is remaining
+        if (input_len > 0) {
+            rc = write(writefd, input, input_len);
+            if (rc > 0) {
+                input += rc;
+                input_len -= rc;
+                if (input_len < 1) {
+                    close(writefd);
+                    writefd = 0;
+                }
+            } else {
+                // write err
+                MLE_SET_ERR(editor, "write error: %s", strerror(errno));
+                rv = MLE_ERR;
+                break;
+            }
+        }
+
+        // Read shell cmd, timing out after timeout_sec
+        timeout.tv_sec = timeout_s;
+        timeout.tv_usec = 0;
+        FD_ZERO(&readfds);
+        FD_SET(readfd, &readfds);
+        rc = select(readfd + 1, &readfds, NULL, NULL, &timeout);
+        if (rc < 0) {
+            // Err on select
+            MLE_SET_ERR(editor, "select error: %s", strerror(errno));
+            rv = MLE_ERR;
+            break;
+        } else if (rc == 0) {
+            // Timed out
+            rv = MLE_ERR;
+            break;
+        } else {
+            // Read a kilobyte of data
+            if (readbuf_len + 1024 + 1 > readbuf_size) {
+                readbuf = realloc(readbuf, readbuf_len + 1024 + 1);
+                readbuf_size = readbuf_len + 1024 + 1;
+            }
+            nbytes = read(readfd, readbuf + readbuf_len, 1024);
+            if (nbytes < 0) {
+                // read err or EAGAIN/EWOULDBLOCK
+                MLE_SET_ERR(editor, "read error: %s", strerror(errno));
+                rv = MLE_ERR;
+                break;
+            } else if (nbytes > 0) {
+                // Got data
+                readbuf_len += nbytes;
+            }
+        }
+    } while(nbytes > 0);
+
+    // Close pipes
+    if (readfd) close(readfd);
+    if (writefd) close(writefd);
+
+    *ret_output = readbuf;
+    *ret_output_len = readbuf_len;
+
+    return rv;
+}
+
+
 // Like popen, but bidirectional. Returns 1 on success, 0 on failure.
-int util_popen2(char* cmd, int* ret_fdread, int* ret_fdwrite) {
+int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite) {
     FILE* fr;
     pid_t pid;
     int pin[2];
     int pout[2];
+
+    // Set shell
+    opt_shell = opt_shell ? opt_shell : "sh";
 
     // Make pipes
     if (pipe(pin)) return 0;
@@ -30,7 +126,7 @@ int util_popen2(char* cmd, int* ret_fdread, int* ret_fdwrite) {
         dup2(pin[0], STDIN_FILENO);
         close(pin[0]);
 
-        execlp("sh", "sh", "-c", cmd, NULL);
+        execlp(opt_shell, opt_shell, "-c", cmd, NULL);
         exit(EXIT_FAILURE);
     }
     // Parent
@@ -59,7 +155,7 @@ int util_get_bracket_pair(uint32_t ch, int* optret_is_closing) {
 }
 
 // Return 1 if path is file
-int util_file_exists(char* path, char* opt_mode, FILE** optret_file) {
+int util_is_file(char* path, char* opt_mode, FILE** optret_file) {
     struct stat sb;
     if (stat(path, &sb) != 0 || !S_ISREG(sb.st_mode)) return 0;
     if (opt_mode && optret_file) {
@@ -70,7 +166,7 @@ int util_file_exists(char* path, char* opt_mode, FILE** optret_file) {
 }
 
 // Return 1 if path is dir
-int util_dir_exists(char* path) {
+int util_is_dir(char* path) {
     struct stat sb;
     if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)) return 0;
     return 1;

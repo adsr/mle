@@ -10,6 +10,7 @@
 static kbinding_t* _editor_get_kbinding_node(kbinding_t* parent, kinput_t* input, loop_context_t* loop_ctx, int* ret_again);
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int* optret_num_closed);
 static int _editor_prompt_input_submit(cmd_context_t* ctx);
+static int _editor_prompt_input_complete(cmd_context_t* ctx);
 static int _editor_prompt_yn_yes(cmd_context_t* ctx);
 static int _editor_prompt_yn_no(cmd_context_t* ctx);
 static int _editor_prompt_yna_all(cmd_context_t* ctx);
@@ -87,14 +88,14 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         home_rc = NULL;
         if (getenv("HOME")) {
             asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
-            if (util_file_exists(home_rc, "rb", &rc)) {
+            if (util_is_file(home_rc, "rb", &rc)) {
                 rv = _editor_init_from_rc(editor, rc);
                 fclose(rc);
             }
             free(home_rc);
         }
         if (rv != MLE_OK) break;
-        if (util_file_exists("/etc/mlerc", "rb", &rc)) {
+        if (util_is_file("/etc/mlerc", "rb", &rc)) {
             rv = _editor_init_from_rc(editor, rc);
             fclose(rc);
         }
@@ -291,6 +292,18 @@ int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_pat
     if (optret_bview) {
         *optret_bview = bview;
     }
+    if (opt_path && util_is_dir(opt_path)) {
+        // TODO This is hacky
+        cmd_context_t ctx;
+        memset(&ctx, 0, sizeof(cmd_context_t));
+        ctx.editor = editor;
+        ctx.static_param = strndup(opt_path, opt_path_len);
+        ctx.bview = bview;
+        cmd_browse(&ctx);
+        editor_close_bview(editor, bview, NULL);
+        free(ctx.static_param);
+        ctx.static_param = NULL;
+    }
     return MLE_OK;
 }
 
@@ -408,6 +421,83 @@ static int _editor_prompt_input_submit(cmd_context_t* ctx) {
     buffer_get(ctx->bview->buffer, &answer, &answer_len);
     ctx->loop_ctx->prompt_answer = strndup(answer, answer_len);
     ctx->loop_ctx->should_exit = 1;
+    return MLE_OK;
+}
+
+// Invoke when user hits tab in a prompt_input
+static int _editor_prompt_input_complete(cmd_context_t* ctx) {
+    loop_context_t* loop_ctx;
+    loop_ctx = ctx->loop_ctx;
+    char* cmd;
+    char* cmd_arg;
+    char* terms;
+    size_t terms_len;
+    int num_terms;
+    char* term;
+    int term_index;
+
+    // Update tab_complete_term and tab_complete_index
+    if (loop_ctx->last_cmd && loop_ctx->last_cmd->func == _editor_prompt_input_complete) {
+        loop_ctx->tab_complete_index += 1;
+    } else if (ctx->bview->buffer->first_line->data_len < MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE) {
+        snprintf(
+            loop_ctx->tab_complete_term,
+            MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE,
+            "%.*s",
+            (int)ctx->bview->buffer->first_line->data_len,
+            ctx->bview->buffer->first_line->data
+        );
+        loop_ctx->tab_complete_index = 0;
+    } else {
+        return MLE_OK;
+    }
+
+    // Assemble compgen command
+    cmd_arg = util_escape_shell_arg(
+        loop_ctx->tab_complete_term,
+        strlen(loop_ctx->tab_complete_term)
+    );
+    asprintf(&cmd, "compgen -f %s | sort", cmd_arg);
+
+    // Run compgen command
+    terms = NULL;
+    terms_len = 0;
+    util_shell_exec(ctx->editor, cmd, 1, NULL, 0, "bash", &terms, &terms_len);
+    free(cmd);
+    free(cmd_arg);
+
+    // Get number of terms
+    // TODO valgrind thinks there's an error here
+    num_terms = 0;
+    term = strchr(terms, '\n');
+    while (term) {
+        num_terms += 1;
+        term = strchr(term + 1, '\n');
+    }
+
+    // Bail if no terms
+    if (num_terms < 1) {
+        free(terms);
+        return MLE_OK;
+    }
+
+    // Determine term index
+    term_index = loop_ctx->tab_complete_index % num_terms;
+
+    // Set prompt input to term
+    term = strtok(terms, "\n");
+    while (term != NULL) {
+        if (term_index == 0) {
+            buffer_set(ctx->bview->buffer, term, strlen(term));
+            mark_move_eol(ctx->cursor->mark);
+            break;
+        } else {
+            term_index -= 1;
+        }
+        term = strtok(NULL, "\n");
+    }
+
+    free(terms);
     return MLE_OK;
 }
 
@@ -980,6 +1070,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_undo, "C-z"),
         MLE_KBINDING_DEF(cmd_redo, "C-y"),
         MLE_KBINDING_DEF(cmd_save, "C-s"),
+        MLE_KBINDING_DEF(cmd_save_as, "M-s"),
         MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o a", "tab_to_space"),
         MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o t", "tab_width"),
         MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o y", "syntax"),
@@ -997,6 +1088,7 @@ static void _editor_init_kmaps(editor_t* editor) {
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_input, "mle_prompt_input", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_prompt_input_submit, "enter"),
+        MLE_KBINDING_DEF(_editor_prompt_input_complete, "tab"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
@@ -1025,7 +1117,6 @@ static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(editor, &editor->kmap_menu, "mle_menu", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_menu_submit, "enter"),
         MLE_KBINDING_DEF(_editor_menu_cancel, "C-c"),
-        MLE_KBINDING_DEF(_editor_menu_cancel, "C-x"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
@@ -1540,7 +1631,7 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
         for (i = optind; i < argc; i++) {
             path = argv[i];
             path_len = strlen(path);
-            if (util_file_exists(path, NULL, NULL)) {
+            if (util_is_file(path, NULL, NULL) || util_is_dir(path)) {
                 editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
             } else if ((colon = strrchr(path, ':')) != NULL) {
                 path_len = colon - path;

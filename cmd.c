@@ -604,8 +604,11 @@ int cmd_grep(cmd_context_t* ctx) {
 int cmd_browse(cmd_context_t* ctx) {
     bview_t* menu;
     async_proc_t* aproc;
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "tree --charset C -n -f 2>/dev/null");
-    editor_menu(ctx->editor, _cmd_browse_cb, ".", 1, aproc, &menu);
+    char* cmd;
+    asprintf(&cmd, "tree --charset C -n -f %s 2>/dev/null | grep -v '^.$' 2>/dev/null", ctx->static_param ? ctx->static_param : "");
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
+    free(cmd);
+    editor_menu(ctx->editor, _cmd_browse_cb, "..\n", 3, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
     return MLE_OK;
 }
@@ -793,17 +796,9 @@ int cmd_set_opt(cmd_context_t* ctx) {
 int cmd_shell(cmd_context_t* ctx) {
     char* cmd;
     char* input;
-    char* input_orig;
     bint_t input_len;
-    int readfd;
-    int writefd;
-    char* readbuf;
-    size_t readbuf_len;
-    size_t readbuf_size;
-    ssize_t rc;
-    ssize_t nbytes;
-    fd_set readfds;
-    struct timeval timeout;
+    char* output;
+    size_t output_len;
 
     // Get shell cmd
     if (ctx->static_param) {
@@ -815,11 +810,6 @@ int cmd_shell(cmd_context_t* ctx) {
 
     // Loop for each cursor
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        // Open cmd
-        if (!util_popen2(cmd, &readfd, &writefd)) {
-            MLE_RETURN_ERR(ctx->editor, "Failed to exec shell cmd: %s", cmd);
-        }
-
         // Get data to send to stdin
         if (ctx->cursor->is_sel_bound_anchored) {
             mark_get_between_mark(cursor->mark, cursor->sel_bound, &input, &input_len);
@@ -831,74 +821,22 @@ int cmd_shell(cmd_context_t* ctx) {
         } else {
             input = NULL;
             input_len = 0;
-            close(writefd);
         }
-        input_orig = input;
 
-        // Read-write loop
-        readbuf = NULL;
-        readbuf_len = 0;
-        readbuf_size = 0;
-        do {
-            // Write to shell cmd if input is remaining
-            if (input_len > 0) {
-                rc = write(writefd, input, input_len);
-                if (rc > 0) {
-                    input += rc;
-                    input_len -= rc;
-                    if (input_len <= 0) {
-                        close(writefd);
-                        writefd = 0;
-                        free(input_orig);
-                        input_orig = NULL;
-                    }
-                } else {
-                    // write err
-                }
-            }
-
-            // Read shell cmd, timing out after 1 second
-            timeout.tv_sec = 1;
-            timeout.tv_usec = 0;
-            FD_ZERO(&readfds);
-            FD_SET(readfd, &readfds);
-            rc = select(readfd + 1, &readfds, NULL, NULL, &timeout);
-            if (rc < 0) {
-                break; // select err
-            } else if (rc == 0) {
-                break; // Timed out
-            } else {
-                // Read a kilobyte of data
-                if (readbuf_len + 1024 + 1 > readbuf_size) {
-                    readbuf = realloc(readbuf, readbuf_len + 1024 + 1);
-                    readbuf_size = readbuf_len + 1024 + 1;
-                }
-                nbytes = read(readfd, readbuf + readbuf_len, 1024);
-                if (nbytes < 0) {
-                    // read err or EAGAIN/EWOULDBLOCK
-                    break;
-                } else if (nbytes > 0) {
-                    // Got data
-                    readbuf_len += nbytes;
-                }
-            }
-        } while(nbytes > 0);
-
-        // Close pipes
-        close(readfd);
-        if (writefd) close(writefd);
-
-        // Write shell output to buffer
-        if (readbuf_len > 0) {
+        // Run cmd
+        output = NULL;
+        output_len = 0;
+        if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, NULL, &output, &output_len) == MLE_OK && output_len > 0) {
+            // Write output to buffer
             if (cursor->is_sel_bound_anchored) {
                 mark_delete_between_mark(cursor->mark, cursor->sel_bound);
             }
-            mark_insert_before(cursor->mark, readbuf, readbuf_len);
+            mark_insert_before(cursor->mark, output, output_len);
         }
 
-        // Free shell input and output
-        if (input_orig) free(input_orig);
-        if (readbuf) free(readbuf);
+        // Free input and output
+        if (input) free(input);
+        if (output) free(output);
     ); // Loop for next cursor
 
     free(cmd);
@@ -1098,6 +1036,9 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
         }
         rc = buffer_save_as(bview->buffer, path, strlen(path)); // TODO display error
         free(path);
+        if (rc == MLBUF_ERR) {
+            MLE_SET_ERR(editor, "buffer_save_as: %s", errno ? strerror(errno) : "failed");
+        }
     } while (rc == MLBUF_ERR && (!bview->buffer->path || save_as));
     return rc == MLBUF_OK ? MLE_OK : MLE_ERR;
 }
@@ -1250,7 +1191,7 @@ static void _cmd_fsearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
 
     // Make new aproc
     shell_arg = util_escape_shell_arg(bview_prompt->buffer->first_line->data, bview_prompt->buffer->first_line->data_len);
-    asprintf(&shell_cmd, "fzf -f %s", shell_arg);
+    asprintf(&shell_cmd, "fzf -f %s 2>/dev/null", shell_arg);
     menu->async_proc = async_proc_new(menu, 1, 0, _cmd_aproc_passthru_cb, shell_cmd);
     free(shell_arg);
     free(shell_cmd);
@@ -1290,9 +1231,13 @@ static int _cmd_browse_cb(cmd_context_t* ctx) {
     }
     editor_close_bview(ctx->editor, ctx->bview, NULL);
     if (path) {
-        if (util_dir_exists(path)) {
+        if (util_is_dir(path)) {
             chdir(path);
             ctx->bview = ctx->editor->active_edit;
+            if (ctx->bview == NULL) {
+                int* x = NULL;
+                printf("%d", *x);
+            }
             cmd_browse(ctx);
         } else {
             editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
