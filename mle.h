@@ -489,8 +489,6 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] aproc-bview refactor
-[ ] factor out code into async_proc_read
 [ ] pipe stderr to devnull on async procs
 [ ] overlapping multi rules, range should be separate in styling
 [ ] sel_bound -> drop cursors in column
@@ -507,10 +505,11 @@ TODO
 [ ] segfault hunt: async proc broken pipe
 [ ] display error messages / MLE_RETURN_ERR
 [ ] --
+[ ] aproc-bview refactor
+[ ] factor out code into async_proc_read
 [ ] large paste cuts off midway?
 [ ] styles perf
 [ ] perf with large files
-[ ] browse if path is a dir when opening
 [ ] drop/goto mark with char
 [ ] add quote_pairs
 [ ] async style refresh

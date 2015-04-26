@@ -818,7 +818,9 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
         }
         tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
-        tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w ? '$' : ' ');
+        if (bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w) {
+            tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", '$');
+        }
     }
 
     // Render 0 thru rect_buffer.w cell by cell
@@ -839,16 +841,8 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             if (self->editor->color_col == char_col && MLE_BVIEW_IS_EDIT(self)) {
                 bg |= TB_RED;
             }
-        } else if (char_col == bline->char_count && bline->eol_rule) {
-            ch = (uint32_t)' ';
-            fg = bline->eol_rule->style.fg;
-            bg = bline->eol_rule->style.bg;
-            char_w = 1;
         } else {
-            ch = (uint32_t)' ';
-            fg = 0;
-            bg = 0;
-            char_w = 1;
+            break;
         }
         if (MLE_BVIEW_IS_MENU(self) && is_cursor_line) {
             bg |= TB_REVERSE;
