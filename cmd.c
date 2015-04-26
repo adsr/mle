@@ -102,16 +102,16 @@ int cmd_move_bol(cmd_context_t* ctx) {
     uint32_t ch;
     mark_t* mark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        mark = mark_clone(ctx->cursor->mark);
+        mark = mark_clone(cursor->mark);
         mark_move_bol(mark);
         ch = mark_get_char_after(mark);
         if (isspace((int)ch)) {
             mark_move_next_re(mark, "\\S", 2);
         }
-        if (mark->col < ctx->cursor->mark->col) {
-            mark_join(ctx->cursor->mark, mark);
+        if (mark->col < cursor->mark->col) {
+            mark_join(cursor->mark, mark);
         } else {
-            mark_move_bol(ctx->cursor->mark);
+            mark_move_bol(cursor->mark);
         }
         mark_destroy(mark);
     );
@@ -1169,7 +1169,7 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
         mark_move_by(bview->active_cursor->mark, 1);
     }
 
-    bview_rectify_viewport(bview);
+    bview_center_viewport_y(bview);
 }
 
 // Fuzzy path search prompt callback

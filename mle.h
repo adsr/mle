@@ -279,7 +279,7 @@ struct loop_context_s {
     int need_more_input;
     int should_exit;
     char* prompt_answer;
-    cmd_func_t prompt_callback;
+    cmd_func_t prompt_callack;
     int tab_complete_index;
     char tab_complete_term[MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE];
     cmd_funcref_t* last_cmd;
@@ -397,6 +397,7 @@ int cmd_indent(cmd_context_t* ctx);
 int cmd_outdent(cmd_context_t* ctx);
 int cmd_shell(cmd_context_t* ctx);
 int cmd_set_opt(cmd_context_t* ctx);
+
 int cmd_noop(cmd_context_t* ctx);
 
 // async functions
@@ -487,9 +488,9 @@ extern editor_t _editor;
 #define MLE_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
 #define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
+
 /*
 TODO
-[ ] pipe stderr to devnull on async procs
 [ ] overlapping multi rules, range should be separate in styling
 [ ] sel_bound -> drop cursors in column
 [ ] indicator for cursor sel_bound anchored
@@ -499,7 +500,6 @@ TODO
 [ ] makefile params
 [ ] reset syntax when filename changes
 [ ] option to ensure trailing newline
-[ ] drop cursors in isearch
 [ ] file clobber warning
 [ ] segfault hunt: splits
 [ ] segfault hunt: async proc broken pipe
@@ -537,6 +537,7 @@ TODO
 [ ] configurable status line
 [ ] configurable caption line
 [ ] guard against invalid api use, e.g., prevent srule_destroy on active srule
+
 */
 
 #endif

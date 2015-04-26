@@ -169,7 +169,7 @@ int bview_draw_cursor(bview_t* self, int set_real_cursor) {
         mark = cursor->mark;
         if (_bview_get_screen_coords(self, mark, &screen_x, &screen_y, &cell) != MLE_OK) {
             // Out of bounds
-            return MLE_OK;
+            continue;
         }
         if (set_real_cursor && cursor == self->active_cursor) {
             // Set terminal cursor

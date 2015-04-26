@@ -569,7 +569,7 @@ static int _editor_prompt_menu_page_down(cmd_context_t* ctx) {
 static int _editor_prompt_isearch_next(cmd_context_t* ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
         mark_move_next_cre(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
-        bview_zero_viewport_y(ctx->editor->active_edit);
+        bview_center_viewport_y(ctx->editor->active_edit);
     }
     return MLE_OK;
 }
@@ -578,8 +578,33 @@ static int _editor_prompt_isearch_next(cmd_context_t* ctx) {
 static int _editor_prompt_isearch_prev(cmd_context_t* ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
         mark_move_prev_cre(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
-        bview_zero_viewport_y(ctx->editor->active_edit);
+        bview_center_viewport_y(ctx->editor->active_edit);
     }
+    return MLE_OK;
+}
+
+// Drops a cursor on each isearch match
+static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
+    bview_t* bview;
+    mark_t* mark;
+    pcre* cre;
+    cursor_t* orig_cursor;
+    cursor_t* last_cursor;
+    bview = ctx->editor->active_edit;
+    if (!bview->isearch_rule) return MLE_OK;
+    orig_cursor = bview->active_cursor;
+    mark = bview->active_cursor->mark;
+    cre = bview->isearch_rule->cre;
+    mark_move_beginning(mark);
+    last_cursor = NULL;
+    while (mark_move_next_cre(mark, cre) == MLBUF_OK) {
+        bview_add_cursor(bview, mark->bline, mark->col, &last_cursor);
+    }
+    if (last_cursor) bview_remove_cursor(bview, last_cursor);
+    bview->active_cursor = orig_cursor;
+    bview_center_viewport_y(bview);
+    ctx->loop_ctx->prompt_answer = NULL;
+    ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
 
@@ -591,7 +616,6 @@ static void _editor_startup(editor_t* editor) {
         bview_center_viewport_y(editor->active_edit);
     }
 }
-
 
 // Run editor loop
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
@@ -1131,6 +1155,7 @@ static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(editor, &editor->kmap_prompt_isearch, "mle_prompt_isearch", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_prompt_isearch_prev, "up"),
         MLE_KBINDING_DEF(_editor_prompt_isearch_next, "down"),
+        MLE_KBINDING_DEF(_editor_prompt_isearch_drop_cursors, "M-k d"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "enter"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
