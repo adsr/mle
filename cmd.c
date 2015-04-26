@@ -482,7 +482,6 @@ int cmd_isearch(cmd_context_t* ctx) {
         srule_destroy(ctx->bview->isearch_rule);
         ctx->bview->isearch_rule = NULL;
     }
-    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
@@ -605,7 +604,7 @@ int cmd_browse(cmd_context_t* ctx) {
     bview_t* menu;
     async_proc_t* aproc;
     char* cmd;
-    asprintf(&cmd, "tree --charset C -n -f %s 2>/dev/null | grep -v '^.$' 2>/dev/null", ctx->static_param ? ctx->static_param : "");
+    asprintf(&cmd, "tree --charset C -n -f -L 2 %s 2>/dev/null", ctx->static_param ? ctx->static_param : "");
     aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
     free(cmd);
     editor_menu(ctx->editor, _cmd_browse_cb, "..\n", 3, aproc, &menu);
@@ -1169,6 +1168,8 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
     if (mark_move_next_cre(bview->active_cursor->mark, bview->isearch_rule->cre) != MLBUF_OK) {
         mark_move_by(bview->active_cursor->mark, 1);
     }
+
+    bview_rectify_viewport(bview);
 }
 
 // Fuzzy path search prompt callback
@@ -1225,6 +1226,7 @@ static int _cmd_browse_cb(cmd_context_t* ctx) {
     char* path;
     char* cwd;
     char* corrected_path;
+    bview_t* new_bview;
 
     // Get path from tree output
     line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
@@ -1248,17 +1250,20 @@ static int _cmd_browse_cb(cmd_context_t* ctx) {
         corrected_path = strdup(path);
     }
 
-    // Close menu
-    editor_close_bview(ctx->editor, ctx->bview, NULL);
-
-    // Open path
+    // Open file or browse dir
     if (util_is_dir(corrected_path)) {
         chdir(corrected_path);
         ctx->bview = ctx->editor->active_edit;
         cmd_browse(ctx);
     } else {
-        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, corrected_path, strlen(corrected_path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, corrected_path, strlen(corrected_path), 0, 0, &ctx->editor->rect_edit, NULL, &new_bview);
     }
+
+    // Close menu
+    editor_close_bview(ctx->editor, ctx->bview, NULL);
+
+    // Set new_bview to active
+    editor_set_active(ctx->editor, new_bview);
 
     free(corrected_path);
     free(line);
