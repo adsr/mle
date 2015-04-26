@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <termbox.h>
+#include <limits.h>
 #include "uthash.h"
 #include "mlbuf.h"
 
@@ -168,6 +169,7 @@ struct bview_s {
     async_proc_t* async_proc;
     cmd_func_t menu_callback;
     int is_menu;
+    char init_cwd[PATH_MAX + 1];
     bview_listener_t* listeners;
     bview_t* top_next;
     bview_t* top_prev;
@@ -399,6 +401,7 @@ int cmd_noop(cmd_context_t* ctx);
 
 // async functions
 async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
+int async_proc_set_invoker(async_proc_t* aproc, bview_t* invoker);
 int async_proc_destroy(async_proc_t* aproc);
 
 // util functions

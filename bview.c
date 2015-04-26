@@ -1,4 +1,5 @@
 #include <math.h>
+#include <unistd.h>
 #include <wctype.h>
 #include "mle.h"
 
@@ -37,6 +38,7 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
     self->tab_to_space = editor->tab_to_space;
     self->viewport_scope_x = editor->viewport_scope_x;
     self->viewport_scope_y = editor->viewport_scope_y;
+    getcwd(self->init_cwd, PATH_MAX + 1);
 
     // Open buffer
     if (opt_buffer) {

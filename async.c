@@ -9,8 +9,7 @@ async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec
 
     // Make async proc
     aproc = calloc(1, sizeof(async_proc_t));
-    aproc->editor = invoker->editor;
-    aproc->invoker = invoker;
+    async_proc_set_invoker(aproc, invoker);
     aproc->pipe = popen(shell_cmd, "r");
     setvbuf(aproc->pipe, NULL, _IONBF, 0);
     aproc->pipefd = fileno(aproc->pipe);
@@ -20,6 +19,17 @@ async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec
 
     DL_APPEND(aproc->editor->async_procs, aproc);
     return aproc;
+}
+
+// Set invoker
+int async_proc_set_invoker(async_proc_t* aproc, bview_t* invoker) {
+    if (aproc->invoker) {
+        aproc->invoker->async_proc = NULL;
+    }
+    aproc->invoker = invoker;
+    aproc->editor = invoker->editor;
+    invoker->async_proc = aproc;
+    return MLE_OK;
 }
 
 // Destroy an async_proc_t

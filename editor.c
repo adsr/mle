@@ -224,15 +224,13 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
     bview_t* menu;
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, &menu);
     menu->is_menu = 1;
+    menu->menu_callback = callback;
     bview_push_kmap(menu, editor->kmap_menu);
     if (opt_buf_data) {
         mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
     }
     if (opt_aproc) {
-        opt_aproc->editor = editor;
-        opt_aproc->invoker = menu;
-        menu->async_proc = opt_aproc;
-        menu->menu_callback = callback;
+        async_proc_set_invoker(opt_aproc, menu);
     }
     if (optret_menu) *optret_menu = menu;
     return MLE_OK;
@@ -247,9 +245,7 @@ int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int o
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, &menu);
     menu->is_menu = 1;
     if (opt_aproc) {
-        opt_aproc->editor = editor;
-        opt_aproc->invoker = menu;
-        menu->async_proc = opt_aproc;
+        async_proc_set_invoker(opt_aproc, menu);
     }
     if (opt_buf_data) {
         mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
@@ -397,9 +393,9 @@ static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optr
         bview->split_parent->split_child = NULL;
         editor_set_active(editor, bview->split_parent);
     } else {
-        if (bview->all_prev && MLE_BVIEW_IS_EDIT(bview->all_prev)) {
+        if (bview->all_prev && bview->all_prev != bview && MLE_BVIEW_IS_EDIT(bview->all_prev)) {
             editor_set_active(editor, bview->all_prev);
-        } else if (bview->all_next && MLE_BVIEW_IS_EDIT(bview->all_next)) {
+        } else if (bview->all_next && bview->all_next != bview && MLE_BVIEW_IS_EDIT(bview->all_next)) {
             editor_set_active(editor, bview->all_next);
         } else {
             editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, NULL);
@@ -1117,7 +1113,6 @@ static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(editor, &editor->kmap_menu, "mle_menu", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_menu_submit, "enter"),
         MLE_KBINDING_DEF(_editor_menu_cancel, "C-c"),
-        MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_menu, "mle_prompt_menu", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
