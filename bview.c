@@ -634,6 +634,19 @@ static void _bview_draw_status(bview_t* self) {
         i_macro = ".";
     }
 
+    // Anchor indicator
+    int i_anchor_fg, i_anchor_bg;
+    char* i_anchor;
+    if (active_edit->active_cursor->is_sel_bound_anchored) {
+        i_anchor_fg = TB_REVERSE | TB_BOLD;
+        i_anchor_bg = TB_DEFAULT;
+        i_anchor = "a";
+    } else {
+        i_anchor_fg = 0;
+        i_anchor_bg = 0;
+        i_anchor = ".";
+    }
+
     // Async indicator
     int i_async_fg, i_async_bg;
     char* i_async;
@@ -666,7 +679,7 @@ static void _bview_draw_status(bview_t* self) {
         i_needinput = ".";
     }
 
-    // Bview num .. TODO pre-compute this
+    // Bview num TODO pre-compute this
     bview_t* bview_tmp;
     int bview_count = 0;
     int bview_num = 0;
@@ -680,14 +693,15 @@ static void _bview_draw_status(bview_t* self) {
     // Render status line
     tb_printf(editor->rect_status, 0, 0, 0, 0, "%*.*s", editor->rect_status.w, editor->rect_status.w, " ");
     tb_printf_attr(editor->rect_status, 0, 0,
-        "@%d,%d;%s@%d,%d;"                             // mle_normal    mode
-        "(@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;)  "       // (...)         need_input,macro,async
-        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "      // buf[1/2]      bview num
-        "<@%d,%d;%s@%d,%d;>  "                         // <php>         syntax
-        "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  " // line:1/100    line
-        "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d; ",  // col:0/80      col
+        "@%d,%d;%s@%d,%d;"                                // mle_normal    mode
+        "(@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;)  " // (....)        need_input,anchor,macro,async
+        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "         // buf[1/2]      bview num
+        "<@%d,%d;%s@%d,%d;>  "                            // <php>         syntax
+        "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  "    // line:1/100    line
+        "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d; ",     // col:0/80      col
         TB_MAGENTA | TB_BOLD, 0, active->kmap_tail->kmap->name, 0, 0,
         i_needinput_fg, i_needinput_bg, i_needinput,
+        i_anchor_fg, i_anchor_bg, i_anchor,
         i_macro_fg, i_macro_bg, i_macro,
         i_async_fg, i_async_bg, i_async, 0, 0,
         TB_BLUE | TB_BOLD, 0, bview_num, 0, 0, TB_BLUE, 0, bview_count, 0, 0,

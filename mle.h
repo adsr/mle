@@ -397,7 +397,7 @@ int cmd_indent(cmd_context_t* ctx);
 int cmd_outdent(cmd_context_t* ctx);
 int cmd_shell(cmd_context_t* ctx);
 int cmd_set_opt(cmd_context_t* ctx);
-
+int cmd_drop_cursor_column(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 
 // async functions

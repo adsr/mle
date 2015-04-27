@@ -189,8 +189,10 @@ int util_pcre_match(char* subject, char* re) {
 int util_timeval_is_gt(struct timeval* a, struct timeval* b) {
     if (a->tv_sec > b->tv_sec) {
         return 1;
+    } else if (a->tv_sec == b->tv_sec) {
+        return a->tv_usec > b->tv_usec ? 1 : 0;
     }
-    return a->tv_usec > b->tv_usec ? 1 : 0;
+    return 0;
 }
 
 // Ported from php_escape_shell_arg

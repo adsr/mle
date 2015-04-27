@@ -288,6 +288,16 @@ int cmd_remove_extra_cursors(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Drop column of cursors in selection
+int cmd_drop_cursor_column(cmd_context_t* ctx) {
+    bline_t* bline;
+    bint_t col;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (!cursor->is_sel_bound_anchored) continue;
+        // TODO bview_cursor_get_lo_hi(cursor, mark, mark)
+    );
+}
+
 // Search for a regex
 int cmd_search(cmd_context_t* ctx) {
     char* regex;
