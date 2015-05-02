@@ -279,6 +279,21 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     return MLE_ERR;
 }
 
+// Get lo and hi marks in a is_sel_bound_anchored=1 cursor
+int bview_cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
+    if (!cursor->is_sel_bound_anchored) {
+        return MLE_ERR;
+    }
+    if (mark_is_gt(cursor->sel_bound, cursor->mark)) {
+        *ret_lo = cursor->mark;
+        *ret_hi = cursor->sel_bound;
+    } else {
+        *ret_lo = cursor->sel_bound;
+        *ret_hi = cursor->mark;
+    }
+    return MLE_OK;
+}
+
 // Center the viewport vertically
 int bview_center_viewport_y(bview_t* self) {
     bint_t center;

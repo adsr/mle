@@ -292,10 +292,26 @@ int cmd_remove_extra_cursors(cmd_context_t* ctx) {
 int cmd_drop_cursor_column(cmd_context_t* ctx) {
     bline_t* bline;
     bint_t col;
+    mark_t* lo;
+    mark_t* hi;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (!cursor->is_sel_bound_anchored) continue;
-        // TODO bview_cursor_get_lo_hi(cursor, mark, mark)
+        col = cursor->mark->col;
+        bview_cursor_get_lo_hi(cursor, &lo, &hi);
+        for (bline = lo->bline; bline != hi->bline->next; bline = bline->next) {
+            if ((bline == lo->bline && col < lo->col)
+                || (bline == hi->bline && col > hi->col)
+                || col > bline->char_count
+            ) {
+                continue;
+            }
+            if (bline != cursor->mark->bline || col != cursor->mark->col) {
+                bview_add_cursor(ctx->bview, bline, col, NULL);
+            }
+        }
+        _cmd_toggle_sel_bound(cursor, 1);
     );
+    return MLE_OK;
 }
 
 // Search for a regex
@@ -1030,8 +1046,13 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
 static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
     int rc;
     char* path;
+    char* yn;
+    int fname_changed;
+    struct stat st;
+    fname_changed = 0;
     do {
         if (!bview->buffer->path || save_as) {
+            // Prompt for name
             editor_prompt(editor, "save: Save as? (C-c=cancel)",
                 bview->buffer->path ? bview->buffer->path : "",
                 bview->buffer->path ? strlen(bview->buffer->path) : 0,
@@ -1041,14 +1062,45 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
             );
             if (!path) return MLE_ERR;
         } else {
+            // Re-use existing name
             path = strdup(bview->buffer->path);
         }
-        rc = buffer_save_as(bview->buffer, path, strlen(path)); // TODO display error
+
+        // Remember if fname is changing for refreshing syntax later
+        fname_changed = !bview->buffer->path || strcmp(bview->buffer->path, path) != 0 ? 1 : 0;
+
+        // Check clobber warning
+        if (stat(path, &st) == 0
+            && st.st_dev == bview->buffer->st.st_dev
+            && st.st_ino == bview->buffer->st.st_ino
+            && st.st_mtime > bview->buffer->st.st_mtime
+        ) {
+            // File was modified after it was opened/last saved
+            editor_prompt(editor, "save: Clobber detected! Continue? (y=yes, n=no)",
+                NULL,
+                0,
+                editor->kmap_prompt_yn,
+                NULL,
+                &yn
+            );
+            if (!yn || 0 == strcmp(yn, MLE_PROMPT_NO)) {
+                free(path);
+                return MLE_OK;
+            }
+        }
+
+        // Save, check error
+        rc = buffer_save_as(bview->buffer, path, strlen(path));
         free(path);
         if (rc == MLBUF_ERR) {
             MLE_SET_ERR(editor, "buffer_save_as: %s", errno ? strerror(errno) : "failed");
         }
     } while (rc == MLBUF_ERR && (!bview->buffer->path || save_as));
+
+    // Refresh syntax if fname changed
+    if (fname_changed) {
+        bview_set_syntax(bview, NULL);
+    }
     return rc == MLBUF_OK ? MLE_OK : MLE_ERR;
 }
 

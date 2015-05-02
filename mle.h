@@ -333,6 +333,7 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor);
 int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata);
 int bview_set_syntax(bview_t* self, char* opt_syntax);
 int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
+int bview_cursor_get_lo_hi(cursor_t* self, mark_t** ret_lo, mark_t** ret_hi);
 bview_t* bview_get_split_root(bview_t* self);
 
 // cmd functions
@@ -492,19 +493,15 @@ extern editor_t _editor;
 /*
 TODO
 [ ] overlapping multi rules, range should be separate in styling
-[ ] sel_bound -> drop cursors in column
-[ ] indicator for cursor sel_bound anchored
 [ ] ensure multi_cursor_code impl for all appropriate
-[ ] figure out weirdness with inserting alt-direction before tabbed content
 [ ] should not prompt for fname if present on exit
 [ ] makefile params
-[ ] reset syntax when filename changes
 [ ] option to ensure trailing newline
-[ ] file clobber warning
 [ ] segfault hunt: splits
 [ ] segfault hunt: async proc broken pipe
-[ ] display error messages / MLE_RETURN_ERR
+[ ] use MLE_RETURN_ERR more
 [ ] --
+[ ] experiment with adding ['>','<'] to brkt pairs for <C-d d>'ing html
 [ ] aproc-bview refactor
 [ ] factor out code into async_proc_read
 [ ] large paste cuts off midway?
