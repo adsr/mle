@@ -423,7 +423,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "0.6"
+#define MLE_VERSION "0.7"
 
 #define MLE_OK 0
 #define MLE_ERR 1
