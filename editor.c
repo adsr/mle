@@ -768,27 +768,24 @@ static void _editor_display(editor_t* editor) {
 
 // Get input from either macro or user
 static void _editor_get_input(editor_t* editor, kinput_t* ret_input) {
-    while (1) {
-        if (editor->macro_apply
-            && editor->macro_apply_input_index < editor->macro_apply->inputs_len
-        ) {
-            // Get input from macro
-            *ret_input = editor->macro_apply->inputs[editor->macro_apply_input_index];
-            editor->macro_apply_input_index += 1;
-        } else {
-            // Clear macro
-            if (editor->macro_apply) {
-                editor->macro_apply = NULL;
-                editor->macro_apply_input_index = 0;
-            }
-            // Get user input
-            _editor_get_user_input(editor, ret_input);
+    if (editor->macro_apply
+        && editor->macro_apply_input_index < editor->macro_apply->inputs_len
+    ) {
+        // Get input from macro
+        *ret_input = editor->macro_apply->inputs[editor->macro_apply_input_index];
+        editor->macro_apply_input_index += 1;
+    } else {
+        // Clear macro
+        if (editor->macro_apply) {
+            editor->macro_apply = NULL;
+            editor->macro_apply_input_index = 0;
         }
-        if (editor->is_recording_macro && editor->macro_record) {
-            // Record macro input
-            _editor_record_macro_input(editor->macro_record, ret_input);
-        }
-        break;
+        // Get user input
+        _editor_get_user_input(editor, ret_input);
+    }
+    if (editor->is_recording_macro && editor->macro_record) {
+        // Record macro input
+        _editor_record_macro_input(editor->macro_record, ret_input);
     }
 }
 

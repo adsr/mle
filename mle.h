@@ -492,6 +492,7 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] options (e.g., tab size) associated with filetype
 [ ] overlapping multi rules, range should be separate in styling
 [ ] ensure multi_cursor_code impl for all appropriate
 [ ] should not prompt for fname if present on exit
