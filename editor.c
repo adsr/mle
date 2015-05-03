@@ -7,7 +7,7 @@
 #include "mle.h"
 #include "mlbuf.h"
 
-static kbinding_t* _editor_get_kbinding_node(kbinding_t* parent, kinput_t* input, loop_context_t* loop_ctx, int* ret_again);
+static kbinding_t* _editor_get_kbinding_node(kbinding_t* parent, kinput_t* input, loop_context_t* loop_ctx, int is_peek, int* ret_again);
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int* optret_num_closed);
 static int _editor_prompt_input_submit(cmd_context_t* ctx);
 static int _editor_prompt_input_complete(cmd_context_t* ctx);
@@ -32,7 +32,8 @@ static void _editor_display(editor_t* editor);
 static void _editor_get_input(editor_t* editor, cmd_context_t* ctx);
 static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx);
 static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input);
-static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx);
+static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx, kinput_t* opt_peek_input);
+static void _editor_ingest_paste(editor_t* editor, cmd_context_t* ctx);
 static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref);
 static int _editor_key_to_input(char* key, kinput_t* ret_input);
 static void _editor_init_signal_handlers(editor_t* editor);
@@ -655,10 +656,13 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         }
 
         // Find command in trie
-        if ((cmd_ref = _editor_get_command(editor, &cmd_ctx)) != NULL) {
+        if ((cmd_ref = _editor_get_command(editor, &cmd_ctx, NULL)) != NULL) {
             // Found, now resolve
             if ((cmd_fn = _editor_resolve_funcref(editor, cmd_ref)) != NULL) {
                 // Resolved, now execute
+                if (cmd_ctx.is_user_input && cmd_fn == cmd_insert_data) {
+                    _editor_ingest_paste(editor, &cmd_ctx);
+                }
                 cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
                 cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
                 cmd_fn(&cmd_ctx);
@@ -674,6 +678,9 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             loop_ctx->binding_node = NULL;
         }
     }
+
+    // Free pastebuf if present
+    if (cmd_ctx.pastebuf) free(cmd_ctx.pastebuf);
 
     // Decrement loop_depth
     editor->loop_depth -= 1;
@@ -768,6 +775,7 @@ static void _editor_display(editor_t* editor) {
 
 // Get input from either macro or user
 static void _editor_get_input(editor_t* editor, cmd_context_t* ctx) {
+    ctx->is_user_input = 0;
     if (editor->macro_apply
         && editor->macro_apply_input_index < editor->macro_apply->inputs_len
     ) {
@@ -782,6 +790,7 @@ static void _editor_get_input(editor_t* editor, cmd_context_t* ctx) {
         }
         // Get user input
         _editor_get_user_input(editor, ctx);
+        ctx->is_user_input = 1;
     }
     if (editor->is_recording_macro && editor->macro_record) {
         // Record macro input
@@ -793,17 +802,73 @@ static void _editor_get_input(editor_t* editor, cmd_context_t* ctx) {
 static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx) {
     int rc;
     tb_event_t ev;
+
+    // Use pastebuf_leftover is present
+    if (ctx->has_pastebuf_leftover) {
+        ctx->input = ctx->pastebuf_leftover;
+        ctx->has_pastebuf_leftover = 0;
+        return;
+    }
+
+    // Poll for event
     while (1) {
         rc = tb_poll_event(&ev);
         if (rc == -1) {
-            continue;
+            continue; // Error
         } else if (rc == TB_EVENT_RESIZE) {
+            // Resize
             _editor_resize(editor, ev.w, ev.h);
             _editor_display(editor);
             continue;
         }
         ctx->input = (kinput_t){ ev.mod, ev.ch, ev.key };
         break;
+    }
+}
+
+// Ingest available input until non-cmd_insert_data
+static void _editor_ingest_paste(editor_t* editor, cmd_context_t* ctx) {
+    int rc;
+    tb_event_t ev;
+    kinput_t input;
+    cmd_funcref_t* funcref;
+    memset(&input, 0, sizeof(kinput_t));
+
+    // Reset pastebuf
+    ctx->pastebuf_len = 0;
+
+    // Peek events
+    while (1) {
+        // Expand pastebuf if needed
+        if (ctx->pastebuf_len + 1 > ctx->pastebuf_size) {
+            ctx->pastebuf_size += MLE_PASTEBUF_INCR;
+            ctx->pastebuf = realloc(ctx->pastebuf, ctx->pastebuf_size);
+        }
+
+        // Peek event
+        rc = tb_peek_event(&ev, 0);
+        if (rc == -1) {
+            break; // Error
+        } else if (rc == 0) {
+            break; // Timeout
+        } else if (rc == TB_EVENT_RESIZE) {
+            // Resize
+            _editor_resize(editor, ev.w, ev.h);
+            _editor_display(editor);
+            break;
+        }
+        input = (kinput_t){ ev.mod, ev.ch, ev.key };
+        // TODO check for macro key
+        funcref = _editor_get_command(editor, ctx, &input);
+        if (funcref && funcref->func == cmd_insert_data) {
+            // Insert data; keep ingesting
+            ctx->pastebuf[ctx->pastebuf_len++] = input;
+        } else {
+            // Not insert data; set leftover and stop ingesting
+            ctx->has_pastebuf_leftover = 1;
+            ctx->pastebuf_leftover = input;
+            break;
+        }
     }
 }
 
@@ -822,18 +887,20 @@ static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input) {
 }
 
 // Return command for input
-static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx) {
+static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx, kinput_t* opt_peek_input) {
     loop_context_t* loop_ctx;
     kinput_t* input;
     kbinding_t* node;
     kbinding_t* binding;
     kmap_node_t* kmap_node;
     int is_top;
+    int is_peek;
     int again;
 
     // Init some vars
     loop_ctx = ctx->loop_ctx;
-    input = &ctx->input;
+    is_peek = opt_peek_input ? 1 : 0;
+    input = opt_peek_input ? opt_peek_input : &ctx->input;
     kmap_node = editor->active->kmap_tail;
     node = loop_ctx->binding_node;
     is_top = (node == NULL ? 1 : 0);
@@ -844,21 +911,27 @@ static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx) 
     while (kmap_node) {
         if (is_top) node = kmap_node->kmap->bindings;
         again = 0;
-        binding = _editor_get_kbinding_node(node, input, loop_ctx, &again);
+        binding = _editor_get_kbinding_node(node, input, loop_ctx, is_peek, &again);
         if (binding) {
             if (again) {
                 // Need more input on current node
-                loop_ctx->need_more_input = 1;
-                loop_ctx->binding_node = binding;
+                if (!is_peek) {
+                    loop_ctx->need_more_input = 1;
+                    loop_ctx->binding_node = binding;
+                }
                 return NULL;
             } else if (binding->funcref) {
                 // Found leaf!
-                ctx->static_param = binding->static_param;
+                if (!is_peek) {
+                    ctx->static_param = binding->static_param;
+                }
                 return binding->funcref;
             } else if (binding->children) {
                 // Need more input on next node
-                loop_ctx->need_more_input = 1;
-                loop_ctx->binding_node = binding;
+                if (!is_peek) {
+                    loop_ctx->need_more_input = 1;
+                    loop_ctx->binding_node = binding;
+                }
                 return NULL;
             } else {
                 // This shouldn't happen... TODO err
@@ -889,42 +962,44 @@ static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx) 
 }
 
 // Find binding by input in trie, taking into account numeric and wildcards patterns
-static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, loop_context_t* loop_ctx, int* ret_again) {
+static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, loop_context_t* loop_ctx, int is_peek, int* ret_again) {
     kbinding_t* binding;
     kinput_t input_tmp;
     memset(&input_tmp, 0, sizeof(kinput_t));
 
-    // Look for numeric .. TODO can be more efficient about this
-    if (input->ch >= '0' && input->ch <= '9') {
-        if (!loop_ctx->numeric_node) {
-            input_tmp = MLE_KINPUT_NUMERIC;
-            HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
-            loop_ctx->numeric_node = binding;
-        }
-        if (loop_ctx->numeric_node) {
-            if (loop_ctx->numeric_len < MLE_LOOP_CTX_MAX_NUMERIC_LEN) {
-                loop_ctx->numeric[loop_ctx->numeric_len] = (char)input->ch;
-                loop_ctx->numeric_len += 1;
-                *ret_again = 1;
-                return node; // Need more input on this node
+    if (!is_peek) {
+        // Look for numeric .. TODO can be more efficient about this
+        if (input->ch >= '0' && input->ch <= '9') {
+            if (!loop_ctx->numeric_node) {
+                input_tmp = MLE_KINPUT_NUMERIC;
+                HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
+                loop_ctx->numeric_node = binding;
             }
-            return NULL; // Ran out of `numeric` buffer .. TODO err
+            if (loop_ctx->numeric_node) {
+                if (loop_ctx->numeric_len < MLE_LOOP_CTX_MAX_NUMERIC_LEN) {
+                    loop_ctx->numeric[loop_ctx->numeric_len] = (char)input->ch;
+                    loop_ctx->numeric_len += 1;
+                    *ret_again = 1;
+                    return node; // Need more input on this node
+                }
+                return NULL; // Ran out of `numeric` buffer .. TODO err
+            }
         }
-    }
 
-    // Parse/reset numeric buffer
-    if (loop_ctx->numeric_len > 0) {
-        if (loop_ctx->numeric_params_len < MLE_LOOP_CTX_MAX_NUMERIC_PARAMS) {
-            loop_ctx->numeric[loop_ctx->numeric_len] = '\0';
-            loop_ctx->numeric_params[loop_ctx->numeric_params_len] = strtoul(loop_ctx->numeric, NULL, 10);
-            loop_ctx->numeric_params_len += 1;
-            loop_ctx->numeric_len = 0;
-            node = loop_ctx->numeric_node; // Resume on numeric's children
-            loop_ctx->numeric_node = NULL;
-        } else {
-            loop_ctx->numeric_len = 0;
-            loop_ctx->numeric_node = NULL;
-            return NULL; // Ran out of `numeric_params` space .. TODO err
+        // Parse/reset numeric buffer
+        if (loop_ctx->numeric_len > 0) {
+            if (loop_ctx->numeric_params_len < MLE_LOOP_CTX_MAX_NUMERIC_PARAMS) {
+                loop_ctx->numeric[loop_ctx->numeric_len] = '\0';
+                loop_ctx->numeric_params[loop_ctx->numeric_params_len] = strtoul(loop_ctx->numeric, NULL, 10);
+                loop_ctx->numeric_params_len += 1;
+                loop_ctx->numeric_len = 0;
+                node = loop_ctx->numeric_node; // Resume on numeric's children
+                loop_ctx->numeric_node = NULL;
+            } else {
+                loop_ctx->numeric_len = 0;
+                loop_ctx->numeric_node = NULL;
+                return NULL; // Ran out of `numeric_params` space .. TODO err
+            }
         }
     }
 
@@ -934,17 +1009,19 @@ static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, 
         return binding;
     }
 
-    // Look for wildcard
-    input_tmp = MLE_KINPUT_WILDCARD;
-    HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
-    if (binding) {
-        if (loop_ctx->wildcard_params_len < MLE_LOOP_CTX_MAX_WILDCARD_PARAMS) {
-            loop_ctx->wildcard_params[loop_ctx->wildcard_params_len] = input->ch;
-            loop_ctx->wildcard_params_len += 1;
-        } else {
-            return NULL; // Ran out of `wildcard_params` space .. TODO err
+    if (!is_peek) {
+        // Look for wildcard
+        input_tmp = MLE_KINPUT_WILDCARD;
+        HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
+        if (binding) {
+            if (loop_ctx->wildcard_params_len < MLE_LOOP_CTX_MAX_WILDCARD_PARAMS) {
+                loop_ctx->wildcard_params[loop_ctx->wildcard_params_len] = input->ch;
+                loop_ctx->wildcard_params_len += 1;
+            } else {
+                return NULL; // Ran out of `wildcard_params` space .. TODO err
+            }
+            return binding;
         }
-        return binding;
     }
 
     return NULL;

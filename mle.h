@@ -253,12 +253,19 @@ struct kmap_s {
 
 // cmd_context_t
 struct cmd_context_s {
+    #define MLE_PASTEBUF_INCR 1024
     editor_t* editor;
     bview_t* bview;
     cursor_t* cursor;
     kinput_t input;
     char* static_param;
     loop_context_t* loop_ctx;
+    int is_user_input;
+    kinput_t* pastebuf;
+    size_t pastebuf_len;
+    size_t pastebuf_size;
+    int has_pastebuf_leftover;
+    kinput_t pastebuf_leftover;
 };
 
 // loop_context_t
