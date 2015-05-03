@@ -29,8 +29,8 @@ static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
 static void _editor_resize(editor_t* editor, int w, int h);
 static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
 static void _editor_display(editor_t* editor);
-static void _editor_get_input(editor_t* editor, kinput_t* ret_input);
-static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input);
+static void _editor_get_input(editor_t* editor, cmd_context_t* ctx);
+static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx);
 static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input);
 static cmd_funcref_t* _editor_get_command(editor_t* editor, loop_context_t* loop_ctx, kinput_t* input, char** ret_static_param);
 static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref);
@@ -647,7 +647,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         }
 
         // Get input
-        _editor_get_input(editor, &cmd_ctx.input);
+        _editor_get_input(editor, &cmd_ctx);
 
         // Toggle macro?
         if (_editor_maybe_toggle_macro(editor, &cmd_ctx.input)) {
@@ -767,12 +767,12 @@ static void _editor_display(editor_t* editor) {
 }
 
 // Get input from either macro or user
-static void _editor_get_input(editor_t* editor, kinput_t* ret_input) {
+static void _editor_get_input(editor_t* editor, cmd_context_t* ctx) {
     if (editor->macro_apply
         && editor->macro_apply_input_index < editor->macro_apply->inputs_len
     ) {
         // Get input from macro
-        *ret_input = editor->macro_apply->inputs[editor->macro_apply_input_index];
+        ctx->input = editor->macro_apply->inputs[editor->macro_apply_input_index];
         editor->macro_apply_input_index += 1;
     } else {
         // Clear macro
@@ -781,16 +781,16 @@ static void _editor_get_input(editor_t* editor, kinput_t* ret_input) {
             editor->macro_apply_input_index = 0;
         }
         // Get user input
-        _editor_get_user_input(editor, ret_input);
+        _editor_get_user_input(editor, ctx);
     }
     if (editor->is_recording_macro && editor->macro_record) {
         // Record macro input
-        _editor_record_macro_input(editor->macro_record, ret_input);
+        _editor_record_macro_input(editor->macro_record, &ctx->input);
     }
 }
 
 // Get user input
-static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input) {
+static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx) {
     int rc;
     tb_event_t ev;
     while (1) {
@@ -802,7 +802,7 @@ static void _editor_get_user_input(editor_t* editor, kinput_t* ret_input) {
             _editor_display(editor);
             continue;
         }
-        *ret_input = (kinput_t){ ev.mod, ev.ch, ev.key };
+        ctx->input = (kinput_t){ ev.mod, ev.ch, ev.key };
         break;
     }
 }
