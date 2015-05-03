@@ -97,6 +97,8 @@ struct editor_s {
     int loop_depth;
     bint_t startup_linenum;
     int is_in_init;
+    char* insertbuf;
+    size_t insertbuf_size;
     #define MLE_ERRSTR_SIZE 256
     char errstr[MLE_ERRSTR_SIZE];
     int exit_code;

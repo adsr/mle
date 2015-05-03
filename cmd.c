@@ -41,44 +41,50 @@ static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
-    char data[6];
-    bint_t data_len;
-    if (ctx->input.ch) {
-        data_len = utf8_unicode_to_char(data, ctx->input.ch);
-    } else if (ctx->input.key == TB_KEY_ENTER || ctx->input.key == TB_KEY_CTRL_J) {
-        data_len = sprintf(data, "\n");
-    } else if (ctx->input.key >= 0x20 && ctx->input.key <= 0x7e) {
-        data_len = sprintf(data, "%c", ctx->input.key);
-    } else if (ctx->input.key == 0x09) {
-        data_len = sprintf(data, "\t");
-    } else {
-        data_len = 0;
-    }
-    if (data_len < 1) {
-        return MLE_OK;
-    }
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, data, data_len);
-    return MLE_OK;
-}
+    bint_t insertbuf_len;
+    char* insertbuf_cur;
+    bint_t len;
+    size_t insert_size;
+    kinput_t* input;
+    int i;
 
-// Insert newline
-int cmd_insert_newline(cmd_context_t* ctx) {
-    return cmd_insert_data(ctx);
-}
-
-// Insert tab
-int cmd_insert_tab(cmd_context_t* ctx) {
-    int num_spaces;
-    char* data;
-    if (ctx->bview->tab_to_space) {
-        num_spaces = ctx->bview->buffer->tab_width - (ctx->cursor->mark->col % ctx->bview->buffer->tab_width);
-        data = malloc(num_spaces);
-        memset(data, ' ', num_spaces);
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, data, (bint_t)num_spaces);
-        free(data);
-    } else {
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, (char*)"\t", (bint_t)1);
+    // Ensure space in insertbuf
+    insert_size = MLE_MAX(6, ctx->bview->buffer->tab_width) * (ctx->pastebuf_len + 1);
+    if (ctx->editor->insertbuf_size < insert_size) {
+        ctx->editor->insertbuf = realloc(ctx->editor->insertbuf, insert_size);
+        ctx->editor->insertbuf_size = insert_size;
     }
+
+    // Fill insertbuf... i=-1: ctx->input, i>=0: ctx->pastebuf
+    insertbuf_len = 0;
+    insertbuf_cur = ctx->editor->insertbuf;
+    for (i = -1; i == -1 || i < ctx->pastebuf_len; i++) {
+        input = i == -1 ? &ctx->input : &ctx->pastebuf[i];
+        if (input->ch) {
+            len = utf8_unicode_to_char(insertbuf_cur, input->ch);
+        } else if (input->key == TB_KEY_ENTER || input->key == TB_KEY_CTRL_J || input->key == TB_KEY_CTRL_M) {
+            len = sprintf(insertbuf_cur, "\n");
+        } else if (input->key >= 0x20 && input->key <= 0x7e) {
+            len = sprintf(insertbuf_cur, "%c", input->key);
+        } else if (input->key == 0x09) {
+            if (ctx->bview->tab_to_space) {
+                len = ctx->bview->buffer->tab_width - (ctx->cursor->mark->col % ctx->bview->buffer->tab_width);
+                len = sprintf(insertbuf_cur, "%*c", (int)len, ' ');
+            } else {
+                len = sprintf(insertbuf_cur, "\t");
+            }
+        } else {
+            len = 0; // TODO verbatim input
+        }
+        insertbuf_cur += len;
+        insertbuf_len += len;
+    }
+
+    // Write insertbuf to buffer
+    if (insertbuf_len < 1) {
+        return MLE_ERR;
+    }
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, ctx->editor->insertbuf, insertbuf_len);
     return MLE_OK;
 }
 

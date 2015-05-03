@@ -167,6 +167,7 @@ int editor_deinit(editor_t* editor) {
     }
     _editor_destroy_syntax_map(editor->syntax_map);
     if (editor->kmap_init_name) free(editor->kmap_init_name);
+    if (editor->insertbuf) free(editor->insertbuf);
     if (editor->tty) fclose(editor->tty);
     return MLE_OK;
 }
@@ -1106,8 +1107,6 @@ static void _editor_graceful_exit(int signum) {
 // Init built-in kmaps
 static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(editor, &editor->kmap_normal, "mle_normal", MLE_FUNCREF(cmd_insert_data), 0, (kbinding_def_t[]){
-        MLE_KBINDING_DEF(cmd_insert_tab, "tab"),
-        MLE_KBINDING_DEF(cmd_insert_newline, "enter"),
         MLE_KBINDING_DEF(cmd_delete_before, "backspace"),
         MLE_KBINDING_DEF(cmd_delete_before, "backspace2"),
         MLE_KBINDING_DEF(cmd_delete_after, "delete"),
