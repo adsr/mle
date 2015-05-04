@@ -173,7 +173,7 @@ int util_is_dir(char* path) {
 }
 
 // Return 1 if re matches subject
-int util_pcre_match(char* subject, char* re) {
+int util_pcre_match(char* re, char* subject) {
     int rc;
     pcre* cre;
     const char *error;
@@ -183,6 +183,139 @@ int util_pcre_match(char* subject, char* re) {
     rc = pcre_exec(cre, NULL, subject, strlen(subject), 0, 0, NULL, 0);
     pcre_free(cre);
     return rc >= 0 ? 1 : 0;
+}
+
+// Perform a regex replace with back-references. Return number of replacements
+// made. If regex is invalid, `ret_result` is set to NULL, `ret_result_len` is
+// set to 0 and 0 is returned.
+int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* ret_result_len) {
+    int rc;
+    pcre* cre;
+    const char *error;
+    int erroffset;
+    int subj_offset;
+    int subj_offset_z;
+    int subj_len;
+    int ovector[30];
+    int num_repls;
+    char* repl_cur;
+    char* repl_stop;
+    char* repl_z;
+    char* backref;
+    int result_size;
+    int result_len;
+    char* result;
+    char* term;
+    char* term_stop;
+    int ibackref;
+    int term_len;
+    int got_match = 0;
+
+    result_size = 0;
+    result_len = 0;
+    result = NULL;
+    *ret_result_len = 0;
+    *ret_result = NULL;
+    term_len = 0;
+
+    // Compile regex
+    cre = pcre_compile((const char*)re, PCRE_CASELESS, &error, &erroffset, NULL);
+    if (!cre) return 0;
+
+    // Define macro for appending to result
+    #define MLE_PCRE_REPLACE_RESULT_APPEND_INCR 256
+    #define MLE_PCRE_REPLACE_RESULT_APPEND(term_start, term_stop) do { \
+        term_len = (term_stop) - (term_start); \
+        if (term_len < 1) break; \
+        if (result_len + term_len + 1 > result_size) { \
+            result_size += MLE_MAX(result_len + term_len + 1, MLE_PCRE_REPLACE_RESULT_APPEND_INCR); \
+            result = realloc(result, result_size); \
+        } \
+        memcpy(result + result_len, (term_start), term_len); \
+        result_len += term_len; \
+    } while(0);
+
+    // Start match-replace loop
+    num_repls = 0;
+    subj_len = strlen(subj);
+    repl_stop = repl + strlen(repl);
+    subj_offset = 0;
+    subj_offset_z = 0;
+    while (subj_offset < subj_len) {
+        // Find match
+        rc = pcre_exec(cre, NULL, subj, subj_len, subj_offset, 0, ovector, 30);
+        if (rc < 0 || ovector[0] < 0) {
+            got_match = 0;
+            subj_offset_z = subj_len;
+        } else {
+            got_match = 1;
+            subj_offset_z = ovector[0];
+        }
+
+        // Append part before match
+        MLE_PCRE_REPLACE_RESULT_APPEND(subj + subj_offset, subj + subj_offset_z);
+        subj_offset = ovector[1];
+
+        // Break if no match
+        if (!got_match) break;
+
+        // Start replace loop
+        repl_cur = repl;
+        while (1) {
+            // Find backref marker (dollar sign or backslash) in replacement str
+            backref = strpbrk(repl_cur, "$\\");
+            if (!backref) {
+                repl_z = repl_stop;
+            } else {
+                repl_z = backref;
+            }
+
+            // Append part before backref
+            MLE_PCRE_REPLACE_RESULT_APPEND(repl_cur, repl_z);
+
+            // Break if no backref
+            if (!backref) break;
+
+            // Append backref
+            if (*(backref+1) == '\0') {
+                // No data after backref marker; append the marker itself
+                term = backref;
+                term_stop = backref + 1;
+            } else if (*(backref+1) >= '0' && *(backref+1) <= '9') {
+                // N was a number; append Nth captured substring from match
+                ibackref = *(backref+1) - '0';
+                term = subj + ovector[ibackref*3];
+                term_stop = subj + ovector[ibackref*3 + 1];
+            } else {
+                // N was not a number; append marker + whatever character it was
+                term = backref;
+                term_stop = term + utf8_char_length(*(term+1));
+            }
+            MLE_PCRE_REPLACE_RESULT_APPEND(term, term_stop);
+
+            // Advance repl_cur
+            repl_cur = repl_z;
+        }
+
+        // Increment num_repls
+        num_repls += 1;
+    }
+
+    // Free regex
+    pcre_free(cre);
+
+    // Null-terminate result and set ret_result
+    if (!result) {
+        result = strdup("");
+        result_len = 0;
+    } else {
+        result[result_len] = '\0';
+    }
+    *ret_result = result;
+    *ret_result_len = result_len;
+
+    // Return number of replacements
+    return num_repls;
 }
 
 // Return 1 if a > b, else return 0.

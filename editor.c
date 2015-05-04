@@ -69,6 +69,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         editor->is_in_init = 1;
         editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
         editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
+        editor->trim_paste = MLE_DEFAULT_TRIM_PASTE;
         editor->viewport_scope_x = -4;
         editor->viewport_scope_y = -4;
         editor->startup_linenum = -1;
@@ -804,6 +805,9 @@ static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx) {
     int rc;
     tb_event_t ev;
 
+    // Reset pastebuf
+    ctx->pastebuf_len = 0;
+
     // Use pastebuf_leftover is present
     if (ctx->has_pastebuf_leftover) {
         ctx->input = ctx->pastebuf_leftover;
@@ -843,7 +847,7 @@ static void _editor_ingest_paste(editor_t* editor, cmd_context_t* ctx) {
         // Expand pastebuf if needed
         if (ctx->pastebuf_len + 1 > ctx->pastebuf_size) {
             ctx->pastebuf_size += MLE_PASTEBUF_INCR;
-            ctx->pastebuf = realloc(ctx->pastebuf, ctx->pastebuf_size);
+            ctx->pastebuf = realloc(ctx->pastebuf, sizeof(kinput_t) * ctx->pastebuf_size);
         }
 
         // Peek event
@@ -1597,18 +1601,18 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "habc:K:k:l:M:m:n:S:s:t:vx:y:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:bc:K:k:l:M:m:n:S:s:t:vx:y:z:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
                 printf("Usage: mle [options] [file:line]...\n\n");
                 printf("    -h           Show this message\n");
-                printf("    -a           Allow tabs (disable tab-to-space)\n");
+                printf("    -a <1|0>     Enable/disable tab_to_space (default: %d)\n", MLE_DEFAULT_TAB_TO_SPACE);
                 printf("    -b           Highlight bracket pairs\n");
                 printf("    -c <column>  Color column\n");
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
-                printf("    -l <ltype>   Set linenum type\n");
+                printf("    -l <ltype>   Set linenum type (default: 0)\n");
                 printf("    -M <macro>   Add a macro\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
@@ -1617,7 +1621,8 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
                 printf("    -x <script>  Execute user script\n");
-                printf("    -y <syntax>  Set override syntax for files opened at start up\n\n");
+                printf("    -y <syntax>  Set override syntax for files opened at start up\n");
+                printf("    -z <1|0>     Enable/disable trim_paste (default: %d)\n\n", MLE_DEFAULT_TRIM_PASTE);
                 printf("    file         At start up, open file\n");
                 printf("    file:line    At start up, open file at line\n");
                 printf("    kdef         '<name>,<default_cmd>,<allow_fallthru>'\n");
@@ -1629,7 +1634,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 rv = MLE_ERR;
                 break;
             case 'a':
-                editor->tab_to_space = 0;
+                editor->tab_to_space = atoi(optarg) ? 1 : 0;
                 break;
             case 'b':
                 editor->highlight_bracket_pairs = 1;
@@ -1695,6 +1700,9 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'y':
                 editor->syntax_override = optarg;
+                break;
+            case 'z':
+                editor->trim_paste = atoi(optarg) ? 1 : 0;
                 break;
             default:
                 rv = MLE_ERR;

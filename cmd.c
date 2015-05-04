@@ -84,7 +84,21 @@ int cmd_insert_data(cmd_context_t* ctx) {
     if (insertbuf_len < 1) {
         return MLE_ERR;
     }
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, ctx->editor->insertbuf, insertbuf_len);
+    ctx->editor->insertbuf[insertbuf_len] = '\0';
+
+    // Insert
+    if (insertbuf_len > 1 && ctx->editor->trim_paste && strchr(ctx->editor->insertbuf, '\n') != NULL) {
+        // Insert with trim
+        char* trimmed = NULL;
+        int trimmed_len = 0;
+        util_pcre_replace("(?m) +$", ctx->editor->insertbuf, "", &trimmed, &trimmed_len);
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, trimmed, trimmed_len);
+        free(trimmed);
+    } else {
+        // Insert without trim
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, ctx->editor->insertbuf, insertbuf_len);
+    }
+
     return MLE_OK;
 }
 

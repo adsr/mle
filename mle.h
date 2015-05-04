@@ -89,6 +89,7 @@ struct editor_s {
     int linenum_type;
     int tab_width;
     int tab_to_space;
+    int trim_paste;
     int highlight_bracket_pairs;
     int color_col;
     int viewport_scope_x; // TODO cli option
@@ -421,7 +422,8 @@ int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite);
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
 int util_is_file(char* path, char* opt_mode, FILE** optret_file);
 int util_is_dir(char* path);
-int util_pcre_match(char* subject, char* re);
+int util_pcre_match(char* re, char* subj);
+int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* ret_result_len);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int len);
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
@@ -443,6 +445,7 @@ extern editor_t _editor;
 
 #define MLE_DEFAULT_TAB_WIDTH 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
+#define MLE_DEFAULT_TRIM_PASTE 1
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "M-r"
 
 #define MLE_LOG_ERR(fmt, ...) do { \
