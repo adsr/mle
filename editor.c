@@ -1153,6 +1153,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d f", "word_forward"),
         MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d a", "bol"),
         MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d e", "eol"),
+        MLE_KBINDING_DEF(cmd_delete_word_before, "M-w"),
+        MLE_KBINDING_DEF(cmd_delete_word_after, "M-d"),
         MLE_KBINDING_DEF(cmd_toggle_sel_bound, "M-a"),
         MLE_KBINDING_DEF(cmd_drop_sleeping_cursor, "C-/ ."),
         MLE_KBINDING_DEF(cmd_wake_sleeping_cursors, "C-/ a"),

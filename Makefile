@@ -18,7 +18,7 @@ test: mle
 	./mle -v
 
 install: mle
-	cp -v mle $(BINDIR)/mle && chown -v 755 $(BINDIR)/mle
+	cp -vf mle $(BINDIR)/mle && chown -v 755 $(BINDIR)/mle
 
 clean:
 	rm -f *.o
