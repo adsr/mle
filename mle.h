@@ -18,6 +18,7 @@ typedef struct loop_context_s loop_context_t; // Context for a single _editor_lo
 typedef struct cmd_context_s cmd_context_t; // Context for a single command invocation
 typedef int (*cmd_func_t)(cmd_context_t* ctx); // A command function
 typedef struct cmd_funcref_s cmd_funcref_t; // A reference to a command function
+typedef int (*cmd_init_func_t)(editor_t* editor, cmd_funcref_t* self, int is_deinit); // A command de/init function
 typedef struct kinput_s kinput_t; // A single key input (similar to a tb_event from termbox)
 typedef struct kmacro_s kmacro_t; // A sequence of kinputs and a name
 typedef struct kmap_s kmap_t; // A map of keychords to functions
@@ -29,6 +30,7 @@ typedef struct syntax_node_s syntax_node_t; // A node in a linked list of syntax
 typedef struct srule_def_s srule_def_t; // A definition of a syntax
 typedef struct async_proc_s async_proc_t; // An asynchronous process
 typedef void (*async_proc_cb_t)(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout); // An async_proc_t callback
+typedef struct editor_prompt_params_s editor_prompt_params_t; // Extra params for editor_prompt
 typedef struct tb_event tb_event_t; // A termbox event
 
 // kinput_t
@@ -80,6 +82,7 @@ struct editor_s {
     kmap_t* kmap_prompt_isearch;
     kmap_t* kmap_prompt_menu;
     kmap_t* kmap_menu;
+    kmap_t* kmap_vim_normal;
     char* kmap_init_name;
     kmap_t* kmap_init;
     async_proc_t* async_procs;
@@ -212,17 +215,25 @@ struct kmacro_s {
 
 // cmd_funcref_t
 struct cmd_funcref_s {
-#define MLE_FUNCREF(pcmdfn) (cmd_funcref_t){ #pcmdfn, (pcmdfn), NULL }
-#define MLE_FUNCREF_NONE (cmd_funcref_t){ NULL, NULL, NULL }
+#define MLE_FUNCREF(pcmdfn) \
+    (cmd_funcref_t){ #pcmdfn, (pcmdfn), NULL,         NULL, NULL }
+#define MLE_FUNCREF_EX(pcmdfn, pcmdinitfn) \
+    (cmd_funcref_t){ #pcmdfn, (pcmdfn), (pcmdinitfn), NULL, NULL }
+#define MLE_FUNCREF_NONE \
+    (cmd_funcref_t){ NULL, NULL, NULL, NULL, NULL }
     char* name;
     cmd_func_t func;
+    cmd_init_func_t func_init;
+    void* udata;
     UT_hash_handle hh;
 };
 
 // kbinding_def_t
 struct kbinding_def_s {
-#define MLE_KBINDING_DEF(pcmdfn, pkey) { { #pcmdfn, (pcmdfn), NULL }, (pkey), NULL }
-#define MLE_KBINDING_DEF_EX(pcmdfn, pkey, pstatic) { { #pcmdfn, (pcmdfn), NULL }, (pkey), (pstatic) }
+#define MLE_KBINDING_DEF(pcmdfn, pkey) \
+    { { #pcmdfn, (pcmdfn), NULL,         NULL, NULL }, (pkey), NULL }
+#define MLE_KBINDING_DEF_EX(pcmdfn, pkey, pstatic, pcmdinitfn) \
+    { { #pcmdfn, (pcmdfn), (pcmdinitfn), NULL, NULL }, (pkey), (pstatic) }
     cmd_funcref_t funcref;
     char* key_patt;
     char* static_param;
@@ -269,6 +280,7 @@ struct cmd_context_s {
     size_t pastebuf_size;
     int has_pastebuf_leftover;
     kinput_t pastebuf_leftover;
+    void** udata;
 };
 
 // loop_context_t
@@ -308,6 +320,15 @@ struct async_proc_s {
     async_proc_t* prev;
 };
 
+// editor_prompt_params_t
+struct editor_prompt_params_s {
+    char* data;
+    int data_len;
+    kmap_t* kmap;
+    bview_listener_cb_t prompt_cb;
+    void* prompt_cb_udata;
+};
+
 // editor functions
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
@@ -318,11 +339,13 @@ int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_set_macro_toggle_key(editor_t* editor, char* key);
 int editor_bview_exists(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);
-int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, bview_listener_cb_t opt_cb, char** optret_answer);
+int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer);
 int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu);
 int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line);
 int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer);
 int editor_register_cmd(editor_t* editor, char* name, cmd_func_t opt_func, cmd_funcref_t** optret_funcref);
+int editor_get_input(editor_t* editor, cmd_context_t* ctx);
+int editor_display(editor_t* editor);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -410,6 +433,10 @@ int cmd_shell(cmd_context_t* ctx);
 int cmd_set_opt(cmd_context_t* ctx);
 int cmd_drop_cursor_column(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
+int cmd_vim_normal(cmd_context_t* ctx);
+
+// cmdinit functions
+int cmdinit_vim_normal(editor_t* editor, cmd_funcref_t* self, int is_deinit);
 
 // async functions
 async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
@@ -504,6 +531,21 @@ extern editor_t _editor;
 
 /*
 TODO
+[ ] post_display_fn
+[ ] cmd init/deinit
+[ ] cmd's should have their own `void* udata`
+    REF_LINK(ppar, pfield, pchild) do { \
+        (ppar)->(pfield) = (pchild); \
+        ++(pchild)->refcount; \
+    } while(0)
+
+    REF_UNLINK(ppar, pfield, pfreefn) do { \
+        if (--(ppar)->(pfield)->refcount <= 0) {
+            (pfreefn)((ppar)->(pfield));
+        }
+    } while(0)
+[ ] refcounting
+[ ] --
 [ ] vim normal mode emulation
 [ ] options (e.g., tab size) associated with filetype
 [ ] overlapping multi rules / range+hili should be separate in styling

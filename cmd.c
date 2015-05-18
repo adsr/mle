@@ -206,7 +206,7 @@ int cmd_move_page_down(cmd_context_t* ctx) {
 int cmd_move_to_line(cmd_context_t* ctx) {
     char* linestr;
     bint_t line;
-    editor_prompt(ctx->editor, "move_to_line: Line num?", NULL, 0, NULL, NULL, &linestr);
+    editor_prompt(ctx->editor, "move_to_line: Line num?", NULL, &linestr);
     if (!linestr) return MLE_OK;
     line = strtoll(linestr, NULL, 10);
     free(linestr);
@@ -339,7 +339,7 @@ int cmd_search(cmd_context_t* ctx) {
     char* regex;
     int regex_len;
     mark_t* search_mark;
-    editor_prompt(ctx->editor, "search: Regex?", NULL, 0, NULL, NULL, &regex);
+    editor_prompt(ctx->editor, "search: Regex?", NULL, &regex);
     if (!regex) return MLE_OK;
     regex_len = strlen(regex);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
@@ -396,9 +396,9 @@ int cmd_replace(cmd_context_t* ctx) {
     all = 0;
 
     do {
-        editor_prompt(ctx->editor, "replace: Search regex?", NULL, 0, NULL, NULL, &regex);
+        editor_prompt(ctx->editor, "replace: Search regex?", NULL, &regex);
         if (!regex) break;
-        editor_prompt(ctx->editor, "replace: Replacement string?", NULL, 0, NULL, NULL, &replacement);
+        editor_prompt(ctx->editor, "replace: Replacement string?", NULL, &replacement);
         if (!replacement) break;
         orig_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
         lo_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
@@ -433,11 +433,7 @@ int cmd_replace(cmd_context_t* ctx) {
                     bview_rectify_viewport(ctx->bview);
                     bview_draw(ctx->bview);
                     editor_prompt(ctx->editor, "replace: OK to replace? (y=yes, n=no, a=all, C-c=stop)",
-                        NULL,
-                        0,
-                        ctx->editor->kmap_prompt_yna,
-                        NULL,
-                        &yn
+                        &(editor_prompt_params_t) { .kmap = ctx->editor->kmap_prompt_yna }, &yn
                     );
                     buffer_remove_srule(ctx->bview->buffer, highlight);
                     srule_destroy(highlight);
@@ -522,7 +518,10 @@ int cmd_find_word(cmd_context_t* ctx) {
 
 // Incremental search
 int cmd_isearch(cmd_context_t* ctx) {
-    editor_prompt(ctx->editor, "isearch: Regex?", NULL, 0, ctx->editor->kmap_prompt_isearch, _cmd_isearch_prompt_cb, NULL);
+    editor_prompt(ctx->editor, "isearch: Regex?", &(editor_prompt_params_t) {
+        .kmap = ctx->editor->kmap_prompt_isearch,
+        .prompt_cb = _cmd_isearch_prompt_cb
+    }, NULL);
     if (ctx->bview->isearch_rule) {
         buffer_remove_srule(ctx->bview->buffer, ctx->bview->isearch_rule);
         srule_destroy(ctx->bview->isearch_rule);
@@ -633,7 +632,7 @@ int cmd_grep(cmd_context_t* ctx) {
     char* path;
     char* path_arg;
     char* cmd;
-    editor_prompt(ctx->editor, "grep: Pattern?", NULL, 0, NULL, NULL, &path);
+    editor_prompt(ctx->editor, "grep: Pattern?", NULL, &path);
     if (!path) return MLE_OK;
     path_arg = util_escape_shell_arg(path, strlen(path));
     asprintf(&cmd, "grep --color=never -P -i -I -n -r %s . 2>/dev/null", path_arg);
@@ -673,7 +672,7 @@ int cmd_save(cmd_context_t* ctx) {
 // Open file in a new bview
 int cmd_open_file(cmd_context_t* ctx) {
     char* path;
-    editor_prompt(ctx->editor, "new_open: File?", NULL, 0, NULL, NULL, &path);
+    editor_prompt(ctx->editor, "new_open: File?", NULL, &path);
     if (!path) return MLE_OK;
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
     free(path);
@@ -691,7 +690,7 @@ int cmd_open_replace_file(cmd_context_t* ctx) {
     char* path;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     path = NULL;
-    editor_prompt(ctx->editor, "replace_open: Path?", NULL, 0, NULL, NULL, &path);
+    editor_prompt(ctx->editor, "replace_open: Path?", NULL, &path);
     if (!path) return MLE_OK;
     bview_open(ctx->bview, path, strlen(path));
     bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
@@ -755,7 +754,7 @@ int cmd_apply_macro(cmd_context_t* ctx) {
     char* name;
     kmacro_t* macro;
     if (ctx->editor->macro_apply) MLE_RETURN_ERR(ctx->editor, "Cannot nest macros%s", "");
-    editor_prompt(ctx->editor, "apply_macro: Name?", NULL, 0, NULL, NULL, &name);
+    editor_prompt(ctx->editor, "apply_macro: Name?", NULL, &name);
     if (!name) return MLE_OK;
     HASH_FIND_STR(ctx->editor->macro_map, name, macro);
     free(name);
@@ -821,7 +820,7 @@ int cmd_set_opt(cmd_context_t* ctx) {
     int vali;
     if (!ctx->static_param) return MLE_ERR;
     asprintf(&prompt, "set_opt: %s?", ctx->static_param);
-    editor_prompt(ctx->editor, prompt, NULL, 0, NULL, NULL, &val);
+    editor_prompt(ctx->editor, prompt, NULL, &val);
     free(prompt);
     if (!val) return MLE_OK;
     vali = atoi(val);
@@ -849,7 +848,7 @@ int cmd_shell(cmd_context_t* ctx) {
     if (ctx->static_param) {
         cmd = strdup(ctx->static_param);
     } else {
-        editor_prompt(ctx->editor, "shell: Cmd?", NULL, 0, NULL, NULL, &cmd);
+        editor_prompt(ctx->editor, "shell: Cmd?", NULL, &cmd);
         if (!cmd) return MLE_OK;
     }
 
@@ -1047,11 +1046,7 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
 
     yn = NULL;
     editor_prompt(editor, "close: Save modified? (y=yes, n=no, C-c=cancel)",
-        NULL,
-        0,
-        editor->kmap_prompt_yn,
-        NULL,
-        &yn
+        &(editor_prompt_params_t) { .kmap = editor->kmap_prompt_yn }, &yn
     );
     if (!yn) {
         return MLE_ERR;
@@ -1073,13 +1068,10 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
     do {
         if (!bview->buffer->path || save_as) {
             // Prompt for name
-            editor_prompt(editor, "save: Save as? (C-c=cancel)",
-                bview->buffer->path ? bview->buffer->path : "",
-                bview->buffer->path ? strlen(bview->buffer->path) : 0,
-                NULL,
-                NULL,
-                &path
-            );
+            editor_prompt(editor, "save: Save as? (C-c=cancel)", &(editor_prompt_params_t) {
+                .data = bview->buffer->path ? bview->buffer->path : "",
+                .data_len = bview->buffer->path ? strlen(bview->buffer->path) : 0
+            }, &path);
             if (!path) return MLE_ERR;
         } else {
             // Re-use existing name
@@ -1097,11 +1089,7 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
         ) {
             // File was modified after it was opened/last saved
             editor_prompt(editor, "save: Clobber detected! Continue? (y=yes, n=no)",
-                NULL,
-                0,
-                editor->kmap_prompt_yn,
-                NULL,
-                &yn
+                &(editor_prompt_params_t) { .kmap = editor->kmap_prompt_yn }, &yn
             );
             if (!yn || 0 == strcmp(yn, MLE_PROMPT_NO)) {
                 free(path);

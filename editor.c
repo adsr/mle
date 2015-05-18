@@ -28,8 +28,6 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
 static void _editor_resize(editor_t* editor, int w, int h);
 static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
-static void _editor_display(editor_t* editor);
-static void _editor_get_input(editor_t* editor, cmd_context_t* ctx);
 static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx);
 static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input);
 static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx, kinput_t* opt_peek_input);
@@ -56,6 +54,7 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc);
 static int _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
+static int _editor_init_or_deinit_commands(editor_t* editor, int is_deinit);
 static int _editor_drain_async_procs(editor_t* editor);
 
 // Init editor from args
@@ -112,6 +111,9 @@ int editor_init(editor_t* editor, int argc, char** argv) {
 
         // Init bviews
         _editor_init_bviews(editor, argc, argv);
+
+        // Init commands
+        _editor_init_or_deinit_commands(editor, 0);
     } while(0);
 
     editor->is_in_init = 0;
@@ -139,6 +141,7 @@ int editor_deinit(editor_t* editor) {
     kmacro_t* macro_tmp;
     cmd_funcref_t* funcref;
     cmd_funcref_t* funcref_tmp;
+    _editor_init_or_deinit_commands(editor, 1);
     if (editor->status) bview_destroy(editor->status);
     CDL_FOREACH_SAFE2(editor->all_bviews, bview, bview_tmp1, bview_tmp2, all_prev, all_next) {
         CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
@@ -174,7 +177,7 @@ int editor_deinit(editor_t* editor) {
 }
 
 // Prompt user for input
-int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_len, kmap_t* opt_kmap, bview_listener_cb_t opt_prompt_cb, char** optret_answer) {
+int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer) {
     bview_t* bview_tmp;
     loop_context_t loop_ctx;
     memset(&loop_ctx, 0, sizeof(loop_context_t));
@@ -192,13 +195,13 @@ int editor_prompt(editor_t* editor, char* prompt, char* opt_data, int opt_data_l
 
     // Init prompt
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, 0, &editor->rect_prompt, NULL, &editor->prompt);
-    if (opt_prompt_cb) bview_add_listener(editor->prompt, opt_prompt_cb, NULL);
+    if (params && params->prompt_cb) bview_add_listener(editor->prompt, params->prompt_cb, params->prompt_cb_udata);
     editor->prompt->prompt_str = prompt;
-    bview_push_kmap(editor->prompt, opt_kmap ? opt_kmap : editor->kmap_prompt_input);
+    bview_push_kmap(editor->prompt, params && params->kmap ? params->kmap : editor->kmap_prompt_input);
 
-    // Insert opt_data if present
-    if (opt_data && opt_data_len > 0) {
-        buffer_insert(editor->prompt->buffer, 0, opt_data, opt_data_len, NULL);
+    // Insert data if present
+    if (params && params->data && params->data_len > 0) {
+        buffer_insert(editor->prompt->buffer, 0, params->data, params->data_len, NULL);
         mark_move_eol(editor->prompt->active_cursor->mark);
     }
 
@@ -253,7 +256,7 @@ int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int o
     if (opt_buf_data) {
         mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
     }
-    editor_prompt(editor, prompt, NULL, 0, editor->kmap_prompt_menu, opt_prompt_cb, &prompt_answer);
+    editor_prompt(editor, prompt, &(editor_prompt_params_t) { .kmap = editor->kmap_prompt_menu, .prompt_cb = opt_prompt_cb }, &prompt_answer);
     if (optret_line) {
         if (prompt_answer) {
             *optret_line = strndup(menu->active_cursor->mark->bline->data, menu->active_cursor->mark->bline->data_len);
@@ -381,6 +384,46 @@ int editor_register_cmd(editor_t* editor, char* name, cmd_func_t opt_func, cmd_f
         HASH_ADD_KEYPTR(hh, editor->func_map, funcref->name, strlen(funcref->name), funcref);
     }
     if (optret_funcref) *optret_funcref = funcref;
+    return MLE_OK;
+}
+
+// Get input from either macro or user
+int editor_get_input(editor_t* editor, cmd_context_t* ctx) {
+    ctx->is_user_input = 0;
+    if (editor->macro_apply
+        && editor->macro_apply_input_index < editor->macro_apply->inputs_len
+    ) {
+        // Get input from macro
+        ctx->input = editor->macro_apply->inputs[editor->macro_apply_input_index];
+        editor->macro_apply_input_index += 1;
+    } else {
+        // Clear macro
+        if (editor->macro_apply) {
+            editor->macro_apply = NULL;
+            editor->macro_apply_input_index = 0;
+        }
+        // Get user input
+        _editor_get_user_input(editor, ctx);
+        ctx->is_user_input = 1;
+    }
+    if (editor->is_recording_macro && editor->macro_record) {
+        // Record macro input
+        _editor_record_macro_input(editor->macro_record, &ctx->input);
+    }
+    return MLE_OK;
+}
+
+// Display the editor
+int editor_display(editor_t* editor) {
+    bview_t* bview;
+    tb_clear();
+    bview_draw(editor->active_edit_root);
+    bview_draw(editor->status);
+    if (editor->prompt) bview_draw(editor->prompt);
+    DL_FOREACH2(editor->top_bviews, bview, top_next) {
+        _editor_draw_cursors(editor, bview);
+    }
+    tb_present();
     return MLE_OK;
 }
 
@@ -641,7 +684,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
 
         // Display editor
         if (!editor->is_display_disabled) {
-            _editor_display(editor);
+            editor_display(editor);
         }
 
         // Check for async input
@@ -650,16 +693,15 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         }
 
         // Get input
-        _editor_get_input(editor, &cmd_ctx);
+        editor_get_input(editor, &cmd_ctx);
 
         // Toggle macro?
         if (_editor_maybe_toggle_macro(editor, &cmd_ctx.input)) {
             continue;
         }
 
-        // Find command in trie
         if ((cmd_ref = _editor_get_command(editor, &cmd_ctx, NULL)) != NULL) {
-            // Found, now resolve
+            // Found command in kmap trie, now resolve
             if ((cmd_fn = _editor_resolve_funcref(editor, cmd_ref)) != NULL) {
                 // Resolved, now execute
                 if (cmd_ctx.is_user_input && cmd_fn == cmd_insert_data) {
@@ -667,6 +709,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
                 }
                 cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
                 cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
+                cmd_ctx.udata = &cmd_ref->udata;
                 cmd_fn(&cmd_ctx);
                 loop_ctx->binding_node = NULL;
                 loop_ctx->wildcard_params_len = 0;
@@ -706,7 +749,7 @@ static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
         editor->is_recording_macro = 0;
     } else {
         // Get macro name and start recording
-        editor_prompt(editor, "record_macro: Name?", NULL, 0, NULL, NULL, &name);
+        editor_prompt(editor, "record_macro: Name?", NULL, &name);
         if (!name) return 1;
         editor->macro_record = calloc(1, sizeof(kmacro_t));
         editor->macro_record->name = name;
@@ -762,44 +805,6 @@ static void _editor_draw_cursors(editor_t* editor, bview_t* bview) {
     }
 }
 
-// Display the editor
-static void _editor_display(editor_t* editor) {
-    bview_t* bview;
-    tb_clear();
-    bview_draw(editor->active_edit_root);
-    bview_draw(editor->status);
-    if (editor->prompt) bview_draw(editor->prompt);
-    DL_FOREACH2(editor->top_bviews, bview, top_next) {
-        _editor_draw_cursors(editor, bview);
-    }
-    tb_present();
-}
-
-// Get input from either macro or user
-static void _editor_get_input(editor_t* editor, cmd_context_t* ctx) {
-    ctx->is_user_input = 0;
-    if (editor->macro_apply
-        && editor->macro_apply_input_index < editor->macro_apply->inputs_len
-    ) {
-        // Get input from macro
-        ctx->input = editor->macro_apply->inputs[editor->macro_apply_input_index];
-        editor->macro_apply_input_index += 1;
-    } else {
-        // Clear macro
-        if (editor->macro_apply) {
-            editor->macro_apply = NULL;
-            editor->macro_apply_input_index = 0;
-        }
-        // Get user input
-        _editor_get_user_input(editor, ctx);
-        ctx->is_user_input = 1;
-    }
-    if (editor->is_recording_macro && editor->macro_record) {
-        // Record macro input
-        _editor_record_macro_input(editor->macro_record, &ctx->input);
-    }
-}
-
 // Get user input
 static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx) {
     int rc;
@@ -823,7 +828,7 @@ static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx) {
         } else if (rc == TB_EVENT_RESIZE) {
             // Resize
             _editor_resize(editor, ev.w, ev.h);
-            _editor_display(editor);
+            editor_display(editor);
             continue;
         }
         ctx->input = (kinput_t){ ev.mod, ev.ch, ev.key };
@@ -859,7 +864,7 @@ static void _editor_ingest_paste(editor_t* editor, cmd_context_t* ctx) {
         } else if (rc == TB_EVENT_RESIZE) {
             // Resize
             _editor_resize(editor, ev.w, ev.h);
-            _editor_display(editor);
+            editor_display(editor);
             break;
         }
         input = (kinput_t){ ev.mod, ev.ch, ev.key };
@@ -1100,9 +1105,11 @@ static void _editor_graceful_exit(int signum) {
     bview_num = 0;
     tb_shutdown();
     CDL_FOREACH2(_editor.all_bviews, bview, all_next) {
-        snprintf((char*)&path, 64, "mle.bak.%d.%d", getpid(), bview_num);
-        buffer_save_as(bview->buffer, path, strlen(path));
-        bview_num += 1;
+        if (bview->buffer->is_unsaved) {
+            snprintf((char*)&path, 64, "mle.bak.%d.%d", getpid(), bview_num);
+            buffer_save_as(bview->buffer, path, strlen(path));
+            bview_num += 1;
+        }
     }
     editor_deinit(&_editor);
     exit(1);
@@ -1127,32 +1134,34 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_move_page_up, "page-up"),
         MLE_KBINDING_DEF(cmd_move_page_down, "page-down"),
         MLE_KBINDING_DEF(cmd_move_to_line, "M-g"),
-        MLE_KBINDING_DEF_EX(cmd_move_relative, "M-y ## u", "up"),
-        MLE_KBINDING_DEF_EX(cmd_move_relative, "M-y ## d", "down"),
+        MLE_KBINDING_DEF_EX(cmd_move_relative, "M-y ## u", "up", NULL),
+        MLE_KBINDING_DEF_EX(cmd_move_relative, "M-y ## d", "down", NULL),
         MLE_KBINDING_DEF(cmd_move_until_forward, "M-' **"),
         MLE_KBINDING_DEF(cmd_move_until_back, "M-; **"),
         MLE_KBINDING_DEF(cmd_move_word_forward, "M-f"),
         MLE_KBINDING_DEF(cmd_move_word_back, "M-b"),
         MLE_KBINDING_DEF(cmd_search, "C-f"),
         MLE_KBINDING_DEF(cmd_search_next, "C-g"),
+        MLE_KBINDING_DEF(cmd_search_next, "F3"),
         MLE_KBINDING_DEF(cmd_find_word, "C-v"),
         MLE_KBINDING_DEF(cmd_isearch, "C-r"),
         MLE_KBINDING_DEF(cmd_replace, "C-t"),
         MLE_KBINDING_DEF(cmd_cut, "C-k"),
+        MLE_KBINDING_DEF(cmd_copy, "M-k"),
         MLE_KBINDING_DEF(cmd_uncut, "C-u"),
         MLE_KBINDING_DEF(cmd_redraw, "C-l"),
-        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c d", "bracket"),
-        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c w", "word"),
-        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c s", "word_back"),
-        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c f", "word_forward"),
-        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c a", "bol"),
-        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c e", "eol"),
-        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d d", "bracket"),
-        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d w", "word"),
-        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d s", "word_back"),
-        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d f", "word_forward"),
-        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d a", "bol"),
-        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d e", "eol"),
+        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c d", "bracket", NULL),
+        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c w", "word", NULL),
+        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c s", "word_back", NULL),
+        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c f", "word_forward", NULL),
+        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c a", "bol", NULL),
+        MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c e", "eol", NULL),
+        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d d", "bracket", NULL),
+        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d w", "word", NULL),
+        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d s", "word_back", NULL),
+        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d f", "word_forward", NULL),
+        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d a", "bol", NULL),
+        MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d e", "eol", NULL),
         MLE_KBINDING_DEF(cmd_delete_word_before, "M-w"),
         MLE_KBINDING_DEF(cmd_delete_word_after, "M-d"),
         MLE_KBINDING_DEF(cmd_toggle_sel_bound, "M-a"),
@@ -1175,19 +1184,22 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_redo, "C-y"),
         MLE_KBINDING_DEF(cmd_save, "C-s"),
         MLE_KBINDING_DEF(cmd_save_as, "M-s"),
-        MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o a", "tab_to_space"),
-        MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o t", "tab_width"),
-        MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o y", "syntax"),
+        MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o a", "tab_to_space", NULL),
+        MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o t", "tab_width", NULL),
+        MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o y", "syntax", NULL),
         MLE_KBINDING_DEF(cmd_open_new, "C-n"),
         MLE_KBINDING_DEF(cmd_open_file, "C-o"),
         MLE_KBINDING_DEF(cmd_open_replace_new, "C-w n"),
         MLE_KBINDING_DEF(cmd_open_replace_file, "C-w o"),
-        MLE_KBINDING_DEF_EX(cmd_fsearch, "C-w p", "replace"),
+        MLE_KBINDING_DEF_EX(cmd_fsearch, "C-w p", "replace", NULL),
         MLE_KBINDING_DEF(cmd_indent, "M-."),
         MLE_KBINDING_DEF(cmd_outdent, "M-,"),
         MLE_KBINDING_DEF(cmd_shell, "M-e"),
         MLE_KBINDING_DEF(cmd_close, "M-c"),
         MLE_KBINDING_DEF(cmd_quit, "C-x"),
+        MLE_KBINDING_DEF(NULL, NULL)
+    });
+    _editor_init_kmap(editor, &editor->kmap_vim_normal, "vim_normal", MLE_FUNCREF_EX(cmd_vim_normal, cmdinit_vim_normal), 0, (kbinding_def_t[]){
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_input, "mle_prompt_input", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
@@ -1828,4 +1840,16 @@ static int _editor_drain_async_procs(editor_t* editor) {
     }
 
     return 1;
+}
+
+// Init/deinit commands
+static int _editor_init_or_deinit_commands(editor_t* editor, int is_deinit) {
+    cmd_funcref_t* funcref;
+    cmd_funcref_t* tmp;
+    HASH_ITER(hh, editor->func_map, funcref, tmp) {
+        if (funcref->func_init) {
+            funcref->func_init(editor, funcref, is_deinit);
+        }
+    }
+    return MLE_OK;
 }
