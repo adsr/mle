@@ -37,6 +37,7 @@ static int _cmd_select_by_word(cursor_t* cursor);
 static int _cmd_select_by_word_back(cursor_t* cursor);
 static int _cmd_select_by_word_forward(cursor_t* cursor);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
+//static int _cmd_indent_lines(bline_t* start, bline_t* end, int use_tabs, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 
 // Insert data
@@ -912,6 +913,48 @@ static int _cmd_indent(cmd_context_t* ctx, int outdent) {
     );
     return MLE_OK;
 }
+
+// Indent/outdent lines, optionally using tabs
+/*
+static int _cmd_indent_lines(bline_t* start, bline_t* end, int use_tabs, int outdent) {
+    buffer_t* buffer;
+    char* data;
+    char* idata;
+    bint_t data_len;
+    int idata_len;
+    bint_t nchars;
+    char* regex;
+    char* repl;
+    buffer = start->buffer;
+    if (outdent) {
+        if (use_tabs) {
+            regex = strdup("(?m)^\\t");
+            repl = strdup("");
+        } else {
+            asprintf(&regex, "(?m)^ {1,%d}", buffer->tab_width);
+            repl = strdup("");
+        }
+    } else {
+        regex = strdup("(?m)^");
+        if (use_tabs) {
+            repl = strdup("\t");
+        } else {
+            repl = malloc(buffer->tab_width + 1);
+            memset(repl, ' ', buffer->tab_width);
+            repl[buffer->tab_width] = '\0';
+        }
+    }
+    buffer_substr(buffer, start, 0, end, end->char_count, &data, &data_len, &nchars);
+    util_pcre_replace(regex, data, repl, &idata, &idata_len);
+    bline_delete(start, 0, nchars);
+    bline_insert(start, 0, idata, (bint_t)idata_len, NULL);
+    free(regex);
+    free(repl);
+    free(data);
+    free(idata);
+    return MLE_OK;
+}
+*/
 
 // Indent/outdent a line, optionally using tabs
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {

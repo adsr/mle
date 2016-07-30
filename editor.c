@@ -709,6 +709,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
                 }
                 cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
                 cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
+                cmd_ctx.buffer = cmd_ctx.bview->buffer;
                 cmd_ctx.udata = &cmd_ref->udata;
                 cmd_fn(&cmd_ctx);
                 loop_ctx->binding_node = NULL;

@@ -269,6 +269,7 @@ struct kmap_s {
 struct cmd_context_s {
     #define MLE_PASTEBUF_INCR 1024
     editor_t* editor;
+    buffer_t* buffer;
     bview_t* bview;
     cursor_t* cursor;
     kinput_t input;

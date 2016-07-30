@@ -196,6 +196,7 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     int subj_offset;
     int subj_offset_z;
     int subj_len;
+    int subj_look_offset;
     int ovector[30];
     int num_repls;
     char* repl_cur;
@@ -241,9 +242,10 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     repl_stop = repl + strlen(repl);
     subj_offset = 0;
     subj_offset_z = 0;
+    subj_look_offset = 0;
     while (subj_offset < subj_len) {
         // Find match
-        rc = pcre_exec(cre, NULL, subj, subj_len, subj_offset, 0, ovector, 30);
+        rc = pcre_exec(cre, NULL, subj, subj_len, subj_look_offset, 0, ovector, 30);
         if (rc < 0 || ovector[0] < 0) {
             got_match = 0;
             subj_offset_z = subj_len;
@@ -255,6 +257,7 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
         // Append part before match
         MLE_PCRE_REPLACE_RESULT_APPEND(subj + subj_offset, subj + subj_offset_z);
         subj_offset = ovector[1];
+        subj_look_offset = subj_offset + 1;
 
         // Break if no match
         if (!got_match) break;
