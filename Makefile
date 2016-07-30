@@ -11,7 +11,7 @@ mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
 	make -C mlbuf
 
 ./termbox/build/src/libtermbox.a:
-	pushd termbox; ./waf --debug configure && ./waf --debug; popd
+	pushd termbox; ./waf configure && ./waf; popd
 
 test: mle
 	make -C mlbuf test
