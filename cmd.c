@@ -907,9 +907,12 @@ static int _cmd_indent(cmd_context_t* ctx, int outdent) {
         } else {
             end = start;
         }
+        ctx->buffer->is_style_disabled++;
         for (cur = start; cur != end->next; cur = cur->next) {
             _cmd_indent_line(cur, use_tabs, outdent);
         }
+        ctx->buffer->is_style_disabled--;
+        buffer_apply_styles(ctx->buffer, start, 0);
     );
     return MLE_OK;
 }
