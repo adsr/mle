@@ -529,27 +529,23 @@ extern editor_t _editor;
 #define MLE_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
 #define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
-
 /*
 TODO
-[ ] post_display_fn
-[ ] cmd init/deinit
-[ ] cmd's should have their own `void* udata`
-    REF_LINK(ppar, pfield, pchild) do { \
-        (ppar)->(pfield) = (pchild); \
-        ++(pchild)->refcount; \
-    } while(0)
-
-    REF_UNLINK(ppar, pfield, pfreefn) do { \
-        if (--(ppar)->(pfield)->refcount <= 0) {
-            (pfreefn)((ppar)->(pfield));
-        }
-    } while(0)
-[ ] refcounting
-[ ] --
+--- HIGH
+[ ] user scripts via stdout/stdin
+[ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn
+[ ] syntax_t should have options e.g. tab width
+[ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
+[ ] history per prompt?
+[ ] C-d d for strings
+[ ] make bracket highlight underline if on same line
+[ ] cmd_replace back references
+[ ] can't match ^$
+[ ] flash messages "replaced N instances", "wrote N bytes"
+--- LOW
 [ ] vim normal mode emulation
-[ ] options (e.g., tab size) associated with filetype
-[ ] overlapping multi rules / range+hili should be separate in styling
+[ ] refactor kmap, ** and ## is inelegant, code not easy to grok
+[ ] refcounting
 [ ] ensure multi_cursor_code impl for all appropriate
 [ ] should not prompt for fname if present on exit
 [ ] makefile params
@@ -557,7 +553,7 @@ TODO
 [ ] segfault hunt: splits
 [ ] segfault hunt: async proc broken pipe
 [ ] use MLE_RETURN_ERR more
-[ ] --
+[ ] pgup/down in isearch
 [ ] experiment with adding ['>','<'] to brkt pairs for <C-d d>'ing html
 [ ] aproc-bview refactor
 [ ] factor out code into async_proc_read
@@ -565,19 +561,11 @@ TODO
 [ ] styles perf
 [ ] perf with large files
 [ ] drop/goto mark with char
-[ ] add quote_pairs
 [ ] async style refresh
 [ ] find matching html bracket
 [ ] last cmd status code indicator
-[ ] srule priority / isearch hili in middle of multiline rule
-[ ] slow indent
 [ ] click to set cursor/focus
-[ ] do not draw screen input continuous user inputs
-[ ] cmd_replace back references
-[ ] can't match ^$
-[ ] flash messages "replaced N instances", "wrote N bytes"
 [ ] scriptability + hooks
-[ ] history per prompt?
 [ ] cmd_var_set, _clear, _append, _prepend, _print, _incr, _decr
 [ ] count allocs/frees, ensure 0 at exit
 [ ] buffer_repeat
@@ -591,7 +579,6 @@ TODO
 [ ] configurable status line
 [ ] configurable caption line
 [ ] guard against invalid api use, e.g., prevent srule_destroy on active srule
-
 */
 
 #endif
