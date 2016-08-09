@@ -5,7 +5,7 @@ BINDIR=/usr/bin
 all: mle
 
 mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o $@ ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lpcre -lm
+	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o $@ -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
 
 ./mlbuf/libmlbuf.a:
 	make -C mlbuf
@@ -23,7 +23,7 @@ install: mle
 clean:
 	rm -f *.o
 	rm -f mle.bak.*
-	rm -f gmon.out
+	rm -f gmon.out perf.data perf.data.old
 	rm -f mle
 	make -C mlbuf clean
 	pushd termbox; ./waf clean; popd
