@@ -1163,7 +1163,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d f", "word_forward", NULL),
         MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d a", "bol", NULL),
         MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d e", "eol", NULL),
-        MLE_KBINDING_DEF(cmd_delete_word_before, "M-w"),
+        MLE_KBINDING_DEF(cmd_delete_word_before, "C-w"),
         MLE_KBINDING_DEF(cmd_delete_word_after, "M-d"),
         MLE_KBINDING_DEF(cmd_toggle_sel_bound, "M-a"),
         MLE_KBINDING_DEF(cmd_drop_sleeping_cursor, "C-/ ."),
@@ -1178,7 +1178,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_split_horizontal, "M-h"),
         MLE_KBINDING_DEF(cmd_split_vertical, "M-="),
         MLE_KBINDING_DEF(cmd_split_horizontal, "M--"),
-        MLE_KBINDING_DEF(cmd_grep, "C-q"),
+        MLE_KBINDING_DEF(cmd_grep, "M-q"),
         MLE_KBINDING_DEF(cmd_fsearch, "C-p"),
         MLE_KBINDING_DEF(cmd_browse, "C-b"),
         MLE_KBINDING_DEF(cmd_undo, "C-z"),
@@ -1190,9 +1190,9 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o y", "syntax", NULL),
         MLE_KBINDING_DEF(cmd_open_new, "C-n"),
         MLE_KBINDING_DEF(cmd_open_file, "C-o"),
-        MLE_KBINDING_DEF(cmd_open_replace_new, "C-w n"),
-        MLE_KBINDING_DEF(cmd_open_replace_file, "C-w o"),
-        MLE_KBINDING_DEF_EX(cmd_fsearch, "C-w p", "replace", NULL),
+        MLE_KBINDING_DEF(cmd_open_replace_new, "C-q n"),
+        MLE_KBINDING_DEF(cmd_open_replace_file, "C-q o"),
+        MLE_KBINDING_DEF_EX(cmd_fsearch, "C-q p", "replace", NULL),
         MLE_KBINDING_DEF(cmd_indent, "M-."),
         MLE_KBINDING_DEF(cmd_outdent, "M-,"),
         MLE_KBINDING_DEF(cmd_shell, "M-e"),
@@ -1753,15 +1753,18 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
             path = argv[i];
             path_len = strlen(path);
             if (util_is_file(path, NULL, NULL) || util_is_dir(path)) {
-                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
+                // Hi mom
             } else if ((colon = strrchr(path, ':')) != NULL) {
+                // Try <path>:<lineno> format
                 path_len = colon - path;
                 editor->startup_linenum = strtoul(colon + 1, NULL, 10);
                 if (editor->startup_linenum > 0) editor->startup_linenum -= 1;
-                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
-            } else {
-                editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
+            } else if (strncmp(path, "a/", 2) == 0 || strncmp(path, "b/", 2) == 0) {
+                // Try a/<path> format (diff prefix)
+                path += 2;
+                path_len -= 2;
             }
+            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
         }
     }
 }
