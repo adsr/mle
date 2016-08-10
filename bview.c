@@ -900,6 +900,11 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
         // No pair found
         return;
     }
+    if (mark->bline == line && (mark->col == col - 1 || mark->col == col + 1)) {
+        // One char away, do not highlight (looks confusing in UI)
+        return;
+    }
+
     pair.bline = line;
     pair.col = col;
     if (_bview_get_screen_coords(self, &pair, &screen_x, &screen_y, &cell) != MLE_OK) {

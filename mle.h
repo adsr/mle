@@ -538,7 +538,6 @@ TODO
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
 [ ] history per prompt?
 [ ] C-d d for strings
-[ ] make bracket highlight underline if on same line
 [ ] cmd_replace back references
 [ ] can't match ^$
 [ ] flash messages "replaced N instances", "wrote N bytes"
