@@ -11,6 +11,10 @@ static kbinding_t* _editor_get_kbinding_node(kbinding_t* parent, kinput_t* input
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int* optret_num_closed);
 static int _editor_prompt_input_submit(cmd_context_t* ctx);
 static int _editor_prompt_input_complete(cmd_context_t* ctx);
+static prompt_history_t* _editor_prompt_find_or_add_history(cmd_context_t* ctx, prompt_hnode_t** optret_prompt_hnode);
+static int _editor_prompt_history_up(cmd_context_t* ctx);
+static int _editor_prompt_history_down(cmd_context_t* ctx);
+static int _editor_prompt_history_append(cmd_context_t* ctx, char* data);
 static int _editor_prompt_yn_yes(cmd_context_t* ctx);
 static int _editor_prompt_yn_no(cmd_context_t* ctx);
 static int _editor_prompt_yna_all(cmd_context_t* ctx);
@@ -141,6 +145,11 @@ int editor_deinit(editor_t* editor) {
     kmacro_t* macro_tmp;
     cmd_funcref_t* funcref;
     cmd_funcref_t* funcref_tmp;
+    prompt_history_t* prompt_history;
+    prompt_history_t* prompt_history_tmp;
+    prompt_hnode_t* prompt_hnode;
+    prompt_hnode_t* prompt_hnode_tmp1;
+    prompt_hnode_t* prompt_hnode_tmp2;
     _editor_init_or_deinit_commands(editor, 1);
     if (editor->status) bview_destroy(editor->status);
     CDL_FOREACH_SAFE2(editor->all_bviews, bview, bview_tmp1, bview_tmp2, all_prev, all_next) {
@@ -164,6 +173,14 @@ int editor_deinit(editor_t* editor) {
         HASH_DEL(editor->func_map, funcref);
         if (funcref->name) free(funcref->name);
         free(funcref);
+    }
+    HASH_ITER(hh, editor->prompt_history, prompt_history, prompt_history_tmp) {
+        HASH_DEL(editor->prompt_history, prompt_history);
+        free(prompt_history->prompt_str);
+        CDL_FOREACH_SAFE(prompt_history->prompt_hlist, prompt_hnode, prompt_hnode_tmp1, prompt_hnode_tmp2) {
+            CDL_DELETE(prompt_history->prompt_hlist, prompt_hnode);
+            free(prompt_hnode->data);
+        }
     }
     if (editor->macro_record) {
         if (editor->macro_record->inputs) free(editor->macro_record->inputs);
@@ -462,6 +479,7 @@ static int _editor_prompt_input_submit(cmd_context_t* ctx) {
     char* answer;
     buffer_get(ctx->bview->buffer, &answer, &answer_len);
     ctx->loop_ctx->prompt_answer = strndup(answer, answer_len);
+    _editor_prompt_history_append(ctx, ctx->loop_ctx->prompt_answer);
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
@@ -540,6 +558,60 @@ static int _editor_prompt_input_complete(cmd_context_t* ctx) {
     }
 
     free(terms);
+    return MLE_OK;
+}
+
+// Find or add a prompt history entry for the current prompt
+static prompt_history_t* _editor_prompt_find_or_add_history(cmd_context_t* ctx, prompt_hnode_t** optret_prompt_hnode) {
+    prompt_history_t* prompt_history;
+    HASH_FIND_STR(ctx->editor->prompt_history, ctx->bview->prompt_str, prompt_history);
+    if (!prompt_history) {
+        prompt_history = calloc(1, sizeof(prompt_history_t));
+        prompt_history->prompt_str = strdup(ctx->bview->prompt_str);
+        HASH_ADD_KEYPTR(hh, ctx->editor->prompt_history, prompt_history->prompt_str, strlen(prompt_history->prompt_str), prompt_history);
+    }
+    if (!ctx->loop_ctx->prompt_hnode) {
+        ctx->loop_ctx->prompt_hnode = prompt_history->prompt_hlist
+            ? prompt_history->prompt_hlist->prev
+            : NULL;
+    }
+    if (optret_prompt_hnode) {
+        *optret_prompt_hnode = ctx->loop_ctx->prompt_hnode;
+    }
+    return prompt_history;
+}
+
+// Prompt history up
+static int _editor_prompt_history_up(cmd_context_t* ctx) {
+    prompt_hnode_t* prompt_hnode;
+    _editor_prompt_find_or_add_history(ctx, &prompt_hnode);
+    if (prompt_hnode) {
+        ctx->loop_ctx->prompt_hnode = prompt_hnode->prev;
+        buffer_set(ctx->buffer, prompt_hnode->data, prompt_hnode->data_len);
+    }
+    return MLE_OK;
+}
+
+// Prompt history down
+static int _editor_prompt_history_down(cmd_context_t* ctx) {
+    prompt_hnode_t* prompt_hnode;
+    _editor_prompt_find_or_add_history(ctx, &prompt_hnode);
+    if (prompt_hnode) {
+        ctx->loop_ctx->prompt_hnode = prompt_hnode->next;
+        buffer_set(ctx->buffer, prompt_hnode->data, prompt_hnode->data_len);
+    }
+    return MLE_OK;
+}
+
+// Prompt history append
+static int _editor_prompt_history_append(cmd_context_t* ctx, char* data) {
+    prompt_history_t* prompt_history;
+    prompt_hnode_t* prompt_hnode;
+    prompt_history = _editor_prompt_find_or_add_history(ctx, NULL);
+    prompt_hnode = calloc(1, sizeof(prompt_hnode_t));
+    prompt_hnode->data = strdup(data);
+    prompt_hnode->data_len = (bint_t)strlen(data);
+    CDL_APPEND(prompt_history->prompt_hlist, prompt_hnode);
     return MLE_OK;
 }
 
@@ -1206,6 +1278,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-c"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "C-x"),
         MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
+        MLE_KBINDING_DEF(_editor_prompt_history_up, "up"),
+        MLE_KBINDING_DEF(_editor_prompt_history_down, "down"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_yn, "mle_prompt_yn", MLE_FUNCREF_NONE, 0, (kbinding_def_t[]){

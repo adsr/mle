@@ -32,6 +32,8 @@ typedef struct async_proc_s async_proc_t; // An asynchronous process
 typedef void (*async_proc_cb_t)(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout); // An async_proc_t callback
 typedef struct editor_prompt_params_s editor_prompt_params_t; // Extra params for editor_prompt
 typedef struct tb_event tb_event_t; // A termbox event
+typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
+typedef struct prompt_hnode_s prompt_hnode_t; // A node in a linked list of prompt history
 
 // kinput_t
 struct kinput_s {
@@ -82,6 +84,7 @@ struct editor_s {
     kmap_t* kmap_prompt_isearch;
     kmap_t* kmap_prompt_menu;
     kmap_t* kmap_menu;
+    prompt_history_t* prompt_history;
     char* kmap_init_name;
     kmap_t* kmap_init;
     async_proc_t* async_procs;
@@ -302,6 +305,7 @@ struct loop_context_s {
     int should_exit;
     char* prompt_answer;
     cmd_func_t prompt_callack;
+    prompt_hnode_t* prompt_hnode;
     int tab_complete_index;
     char tab_complete_term[MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE];
     cmd_funcref_t* last_cmd;
@@ -327,6 +331,21 @@ struct editor_prompt_params_s {
     kmap_t* kmap;
     bview_listener_cb_t prompt_cb;
     void* prompt_cb_udata;
+};
+
+// prompt_history_t
+struct prompt_history_s {
+    char* prompt_str;
+    prompt_hnode_t* prompt_hlist;
+    UT_hash_handle hh;
+};
+
+// prompt_hnode_t
+struct prompt_hnode_s {
+    char* data;
+    bint_t data_len;
+    prompt_hnode_t* prev;
+    prompt_hnode_t* next;
 };
 
 // editor functions
@@ -531,7 +550,6 @@ TODO
 [ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn
 [ ] syntax_t should have options e.g. tab width
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
-[ ] history per prompt?
 [ ] C-d d for strings
 [ ] cmd_replace back references
 [ ] flash messages "replaced N instances", "wrote N bytes"
