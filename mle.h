@@ -539,7 +539,6 @@ TODO
 [ ] history per prompt?
 [ ] C-d d for strings
 [ ] cmd_replace back references
-[ ] can't match ^$
 [ ] flash messages "replaced N instances", "wrote N bytes"
 --- LOW
 [ ] vim normal mode emulation
