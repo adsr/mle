@@ -1200,9 +1200,6 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_quit, "C-x"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
-    _editor_init_kmap(editor, &editor->kmap_vim_normal, "vim_normal", MLE_FUNCREF_EX(cmd_vim_normal, cmdinit_vim_normal), 0, (kbinding_def_t[]){
-        MLE_KBINDING_DEF(NULL, NULL)
-    });
     _editor_init_kmap(editor, &editor->kmap_prompt_input, "mle_prompt_input", MLE_FUNCREF_NONE, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF(_editor_prompt_input_submit, "enter"),
         MLE_KBINDING_DEF(_editor_prompt_input_complete, "tab"),

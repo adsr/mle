@@ -82,7 +82,6 @@ struct editor_s {
     kmap_t* kmap_prompt_isearch;
     kmap_t* kmap_prompt_menu;
     kmap_t* kmap_menu;
-    kmap_t* kmap_vim_normal;
     char* kmap_init_name;
     kmap_t* kmap_init;
     async_proc_t* async_procs;
@@ -434,10 +433,6 @@ int cmd_shell(cmd_context_t* ctx);
 int cmd_set_opt(cmd_context_t* ctx);
 int cmd_drop_cursor_column(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
-int cmd_vim_normal(cmd_context_t* ctx);
-
-// cmdinit functions
-int cmdinit_vim_normal(editor_t* editor, cmd_funcref_t* self, int is_deinit);
 
 // async functions
 async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
