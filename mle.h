@@ -129,6 +129,8 @@ struct syntax_node_s {
 struct syntax_s {
     char* name;
     char* path_pattern;
+    int tab_width;
+    int tab_to_space;
     srule_node_t* srules;
     UT_hash_handle hh;
 };
@@ -548,7 +550,6 @@ TODO
 --- HIGH
 [ ] user scripts via stdout/stdin
 [ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn
-[ ] syntax_t should have options e.g. tab width
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
 [ ] C-d d for strings
 [ ] cmd_replace back references

@@ -17,6 +17,7 @@ static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vco
 static int _bview_set_linenum_width(bview_t* self);
 static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark);
 static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell);
+static void _bview_set_tab_width(bview_t* self, int tab_width);
 
 // Create a new bview
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
@@ -584,11 +585,25 @@ int bview_set_syntax(bview_t* self, char* opt_syntax) {
             buffer_add_srule(self->buffer, srule_node->srule);
         }
         self->syntax = use_syntax;
+        self->tab_to_space = use_syntax->tab_to_space >= 0
+            ? use_syntax->tab_to_space
+            : self->editor->tab_to_space;
+        _bview_set_tab_width(self, use_syntax->tab_width >= 1
+            ? use_syntax->tab_width
+            : self->editor->tab_width
+        );
     }
 
     buffer_set_styles_enabled(self->buffer, 1);
 
     return use_syntax ? MLE_OK : MLE_ERR;
+}
+
+static void _bview_set_tab_width(bview_t* self, int tab_width) {
+    self->tab_width = tab_width;
+    if (self->buffer && self->buffer->tab_width != self->tab_width) {
+        buffer_set_tab_width(self->buffer, self->tab_width);
+    }
 }
 
 // Open a buffer with an optional path to load, otherwise empty
@@ -605,9 +620,7 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_
         }
     }
     buffer_set_callback(buffer, _bview_buffer_callback, self);
-    if (buffer->tab_width != self->tab_width) {
-        buffer_set_tab_width(buffer, self->tab_width);
-    }
+    _bview_set_tab_width(self, self->tab_width);
     return buffer;
 }
 

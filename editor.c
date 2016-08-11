@@ -49,7 +49,7 @@ static int _editor_init_kmap_add_binding_by_str(editor_t* editor, kmap_t* kmap, 
 static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* parent);
 static int _editor_add_macro_by_str(editor_t* editor, char* str);
 static void _editor_init_syntaxes(editor_t* editor);
-static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, srule_def_t* defs);
+static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, int tab_width, int tab_to_space, srule_def_t* defs);
 static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str);
 static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def);
 static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str);
@@ -1504,7 +1504,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua)$", (srule_def_t[]){
+    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua)$", -1, -1, (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
@@ -1551,12 +1551,14 @@ static void _editor_init_syntaxes(editor_t* editor) {
 }
 
 // Init a single syntax
-static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, srule_def_t* defs) {
+static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, int tab_width, int tab_to_space, srule_def_t* defs) {
     syntax_t* syntax;
 
     syntax = calloc(1, sizeof(syntax_t));
     syntax->name = strdup(name);
     syntax->path_pattern = strdup(path_pattern);
+    syntax->tab_width = tab_width >= 1 ? tab_width : -1; // -1 means default
+    syntax->tab_to_space = tab_to_space >= 0 ? (tab_to_space ? 1 : 0) : -1;
 
     while (defs && defs->re) {
         _editor_init_syntax_add_rule(syntax, *defs);
@@ -1567,12 +1569,14 @@ static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char
     if (optret_syntax) *optret_syntax = syntax;
 }
 
-// Proxy for _editor_init_syntax with str in format '<name>,<path_pattern>'
+// Proxy for _editor_init_syntax with str in format '<name>,<path_pattern>,<tab_width>,<tab_to_space>'
 static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str) {
-    char* args[2];
+    char* args[4];
     args[0] = strtok(str,  ","); if (!args[0]) return MLE_ERR;
     args[1] = strtok(NULL, ","); if (!args[1]) return MLE_ERR;
-    _editor_init_syntax(editor, ret_syntax, args[0], args[1], NULL);
+    args[2] = strtok(NULL, ","); if (!args[2]) return MLE_ERR;
+    args[3] = strtok(NULL, ","); if (!args[3]) return MLE_ERR;
+    _editor_init_syntax(editor, ret_syntax, args[0], args[1], atoi(args[2]), atoi(args[3]), NULL);
     return MLE_OK;
 }
 
@@ -1715,7 +1719,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    kbind        '<cmd>,<key>'\n");
                 printf("    ltype        0=absolute, 1=relative, 2=both\n");
                 printf("    macro        '<name> <key1> <key2> ... <keyN>'\n");
-                printf("    syndef       '<name>,<path_pattern>'\n");
+                printf("    syndef       '<name>,<path_pattern>,<tab_width>,<tab_to_space>'\n");
                 printf("    synrule      '<start>,<end>,<fg>,<bg>'\n");
                 rv = MLE_ERR;
                 break;
