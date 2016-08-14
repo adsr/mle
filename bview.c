@@ -398,6 +398,7 @@ static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vco
 // Init a bview with a buffer
 static void _bview_init(bview_t* self, buffer_t* buffer) {
     cursor_t* cursor_tmp;
+    kmap_t* kmap_init;
 
     _bview_deinit(self);
 
@@ -407,7 +408,12 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
     _bview_set_linenum_width(self);
 
     // Push normal mode
-    bview_push_kmap(self, _bview_get_init_kmap(self->editor));
+    kmap_init = _bview_get_init_kmap(self->editor);
+    if (kmap_init != self->editor->kmap_normal) {
+        // Make kmap_normal the bottom if init kmap isn't kmap_normal
+        bview_push_kmap(self, self->editor->kmap_normal);
+    }
+    bview_push_kmap(self, kmap_init);
 
     // Set syntax
     bview_set_syntax(self, NULL);

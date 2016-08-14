@@ -384,6 +384,11 @@ int cmd_replace(cmd_context_t* ctx) {
     bline_t* bline;
     bint_t col;
     bint_t char_count;
+    int pcre_rc;
+    int pcre_ovector[30];
+    char* repl_backref;
+    int repl_backref_len;
+    int repl_backref_size;
 
     regex = NULL;
     replacement = NULL;
@@ -395,6 +400,7 @@ int cmd_replace(cmd_context_t* ctx) {
     search_mark_end = NULL;
     anchored_before = 0;
     all = 0;
+    mark_set_pcre_capture(&pcre_rc, pcre_ovector, 30);
 
     do {
         editor_prompt(ctx->editor, "replace: Search regex?", NULL, &regex);
@@ -417,6 +423,7 @@ int cmd_replace(cmd_context_t* ctx) {
             mark_move_end(hi_mark);
         }
         while (1) {
+            pcre_rc = 0;
             if (mark_find_next_re(search_mark, regex, strlen(regex), &bline, &col, &char_count) == MLBUF_OK
                 && (mark_move_to(search_mark, bline->line_index, col) == MLBUF_OK)
                 && (mark_is_gt(search_mark, lo_mark) || mark_is_eq(search_mark, lo_mark))
@@ -443,8 +450,15 @@ int cmd_replace(cmd_context_t* ctx) {
                 if (!yn) {
                     break;
                 } else if (0 == strcmp(yn, MLE_PROMPT_YES) || 0 == strcmp(yn, MLE_PROMPT_ALL)) {
+                    repl_backref = NULL;
+                    repl_backref_len = 0;
+                    repl_backref_size = 0;
+                    util_replace_with_backrefs(search_mark->bline->data, replacement, pcre_rc, pcre_ovector, 30, &repl_backref, &repl_backref_len, &repl_backref_size);
                     mark_delete_between_mark(search_mark, search_mark_end);
-                    mark_insert_before(search_mark, replacement, strlen(replacement));
+                    if (repl_backref) {
+                        mark_insert_before(search_mark, repl_backref, repl_backref_len);
+                        free(repl_backref);
+                    }
                     if (0 == strcmp(yn, MLE_PROMPT_ALL)) all = 1;
                 } else {
                     mark_move_by(search_mark, 1);
@@ -463,6 +477,8 @@ int cmd_replace(cmd_context_t* ctx) {
         mark_join(ctx->cursor->mark, anchored_before ? hi_mark : lo_mark);
         mark_join(ctx->cursor->sel_bound, anchored_before ? lo_mark : hi_mark);
     }
+
+    mark_set_pcre_capture(NULL, NULL, 0);
     if (regex) free(regex);
     if (replacement) free(replacement);
     if (lo_mark) mark_destroy(lo_mark);
@@ -633,13 +649,22 @@ int cmd_grep(cmd_context_t* ctx) {
     char* path;
     char* path_arg;
     char* cmd;
+    char* grep_fmt;
     editor_prompt(ctx->editor, "grep: Pattern?", NULL, &path);
     if (!path) return MLE_OK;
+    if (ctx->static_param) {
+        grep_fmt = ctx->static_param;
+    } else {
+        grep_fmt = "grep --color=never -P -i -I -n -r %s . 2>/dev/null";
+    }
     path_arg = util_escape_shell_arg(path, strlen(path));
-    asprintf(&cmd, "grep --color=never -P -i -I -n -r %s . 2>/dev/null", path_arg);
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
     free(path);
+    asprintf(&cmd, grep_fmt, path_arg);
     free(path_arg);
+    if (!cmd) {
+        MLE_RETURN_ERR(ctx->editor, "Failed to format grep cmd: %s", grep_fmt);
+    }
+    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
     free(cmd);
     editor_menu(ctx->editor, _cmd_grep_cb, NULL, 0, aproc, NULL);
     return MLE_OK;
@@ -914,6 +939,45 @@ static int _cmd_indent(cmd_context_t* ctx, int outdent) {
         ctx->buffer->is_style_disabled--;
         buffer_apply_styles(ctx->buffer, start, 0);
     );
+    return MLE_OK;
+}
+
+// Push kmap
+int cmd_push_kmap(cmd_context_t* ctx) {
+    kmap_t* kmap;
+    char* kmap_name;
+    int rv;
+
+    // Get kmap name
+    kmap_name = NULL;
+    if (ctx->static_param) {
+        kmap_name = strdup(ctx->static_param);
+    } else {
+        editor_prompt(ctx->editor, "push_kmap: Kmap name?", NULL, &kmap_name);
+        if (!kmap_name) return MLE_OK;
+    }
+
+    // Find kmap by name
+    kmap = NULL;
+    HASH_FIND_STR(ctx->editor->kmap_map, kmap_name, kmap);
+
+    if (!kmap) {
+        // Not found
+        MLE_SET_ERR(ctx->editor, "No kmap defined '%s'", kmap_name);
+        rv = MLE_ERR;
+    } else {
+        // Found, push
+        bview_push_kmap(ctx->bview, kmap);
+        rv = MLE_OK;
+    }
+
+    free(kmap_name);
+    return rv;
+}
+
+// Pop kmap
+int cmd_pop_kmap(cmd_context_t* ctx) {
+    bview_pop_kmap(ctx->bview, NULL);
     return MLE_OK;
 }
 

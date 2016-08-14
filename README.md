@@ -1,17 +1,66 @@
 # mle
 
-mle is a flexible console editor. It is not yet ready for public consumption.
+mle is a small but powerful console text editor written in C.
+
+[![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
+
+### Features
+
+* Small codebase (~8k sloc)
+* Only 1 out-of-repo dependency (pcre)
+* Full UTF-8 support
+* Syntax highlighting
+* Stackable key maps (modes)
+* Macros
+* Multiple windows
+* Window splitting
+* Regex search and replace
+* Incremental search
+* Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
+* File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
+* File grep
+* Multiple cursors
+
+### Building
 
     $ git clone https://github.com/adsr/mle.git
     $ cd mle
     $ git submodule update --init --recursive
-    $ sudo apt-get install libpcre3-dev make # or yum install pcre-devel make, etc
+    $ sudo apt-get install libpcre3-dev # or yum install pcre-devel, etc
     $ make
-    $ ./mle
 
-[![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
+You can run `make static` instead to build a static binary.
 
+### mlerc
 
-Screenshot:
+mle is customized via an rc file, `~/.mlerc` (or `/etc/mlerc`). The contents of
+the rc file are any number of cli options separated by newlines. (Run `mle -h`
+to view all cli options.) Lines that begin with a semi-colon are comments.
+
+Alternatively, if `~/.mlerc` executable, mle executes it and interprets the
+resulting stdout as described above.
+
+For example, my rc file is an executable php script, and includes the following
+snippet, which overrides `grep` with `git grep` if `.git` exists in the current
+working directory.
+
+    <?php if (file_exists('.git')): ?>
+    -kcmd_grep,M-q,git grep --color=never -P -i -I -n %s 2>/dev/null
+    <?php endif; ?>
+
+### Screenshot
 
 ![mle screenshot](http://i.imgur.com/FR0i8Rv.png)
+
+### Known bugs
+
+* Multi-line style rules don't work properly when overlapped/staggered.
+* There's a segfault lurking in the window split code. I can't reliably
+  reproduce it.
+
+### Acknowledgements
+
+mle makes extensive use of the following libraries.
+
+* [uthash](https://troydhanson.github.io/uthash) for hash maps and linked lists
+* [termbox](https://github.com/nsf/termbox) for TUI

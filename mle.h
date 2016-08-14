@@ -95,6 +95,7 @@ struct editor_s {
     int tab_width;
     int tab_to_space;
     int trim_paste;
+    int skip_rc_file;
     int highlight_bracket_pairs;
     int color_col;
     int viewport_scope_x; // TODO cli option
@@ -454,6 +455,8 @@ int cmd_shell(cmd_context_t* ctx);
 int cmd_set_opt(cmd_context_t* ctx);
 int cmd_drop_cursor_column(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
+int cmd_push_kmap(cmd_context_t* ctx);
+int cmd_pop_kmap(cmd_context_t* ctx);
 
 // async functions
 async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
@@ -468,6 +471,7 @@ int util_is_file(char* path, char* opt_mode, FILE** optret_file);
 int util_is_dir(char* path);
 int util_pcre_match(char* re, char* subj);
 int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* ret_result_len);
+int util_replace_with_backrefs(char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize, char** ret_result, int* ret_result_len, int* ret_result_size);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int len);
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
@@ -478,7 +482,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "0.8"
+#define MLE_VERSION "0.9"
 
 #define MLE_OK 0
 #define MLE_ERR 1
@@ -491,6 +495,8 @@ extern editor_t _editor;
 #define MLE_DEFAULT_TAB_TO_SPACE 1
 #define MLE_DEFAULT_TRIM_PASTE 1
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "M-r"
+#define MLE_DEFAULT_HILI_BRACKET_PAIRS 1
+#define MLE_DEFAULT_READ_RC_FILE 1
 
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \
@@ -548,13 +554,14 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] user scripts via stdout/stdin
+[ ] user scripts
 [ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
 [ ] C-d d for strings
-[ ] cmd_replace back references
 [ ] flash messages "replaced N instances", "wrote N bytes"
+[ ] control viewport
 --- LOW
+[ ] soft word wrapping
 [ ] vim normal mode emulation
 [ ] refactor kmap, ** and ## is inelegant, code not easy to grok
 [ ] refcounting

@@ -5,6 +5,8 @@
 #include <errno.h>
 #include "mle.h"
 
+static void _util_str_append(char* term, char* term_stop, char** ret_result, int* ret_result_len, int* ret_result_size);
+
 // Run a shell command, optionally feeding stdin, collecting stdout
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len) {
     int rv;
@@ -199,17 +201,9 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     int subj_look_offset;
     int ovector[30];
     int num_repls;
-    char* repl_cur;
-    char* repl_stop;
-    char* repl_z;
-    char* backref;
     int result_size;
     int result_len;
     char* result;
-    char* term;
-    char* term_stop;
-    int ibackref;
-    int term_len;
     int got_match = 0;
 
     result_size = 0;
@@ -217,29 +211,14 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     result = NULL;
     *ret_result_len = 0;
     *ret_result = NULL;
-    term_len = 0;
 
     // Compile regex
     cre = pcre_compile((const char*)re, PCRE_CASELESS, &error, &erroffset, NULL);
     if (!cre) return 0;
 
-    // Define macro for appending to result
-    #define MLE_PCRE_REPLACE_RESULT_APPEND_INCR 256
-    #define MLE_PCRE_REPLACE_RESULT_APPEND(term_start, term_stop) do { \
-        term_len = (term_stop) - (term_start); \
-        if (term_len < 1) break; \
-        if (result_len + term_len + 1 > result_size) { \
-            result_size += MLE_MAX(result_len + term_len + 1, MLE_PCRE_REPLACE_RESULT_APPEND_INCR); \
-            result = realloc(result, result_size); \
-        } \
-        memcpy(result + result_len, (term_start), term_len); \
-        result_len += term_len; \
-    } while(0);
-
     // Start match-replace loop
     num_repls = 0;
     subj_len = strlen(subj);
-    repl_stop = repl + strlen(repl);
     subj_offset = 0;
     subj_offset_z = 0;
     subj_look_offset = 0;
@@ -255,50 +234,15 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
         }
 
         // Append part before match
-        MLE_PCRE_REPLACE_RESULT_APPEND(subj + subj_offset, subj + subj_offset_z);
+        _util_str_append(subj + subj_offset, subj + subj_offset_z, &result, &result_len, &result_size);
         subj_offset = ovector[1];
         subj_look_offset = subj_offset + 1;
 
         // Break if no match
         if (!got_match) break;
 
-        // Start replace loop
-        repl_cur = repl;
-        while (1) {
-            // Find backref marker (dollar sign or backslash) in replacement str
-            backref = strpbrk(repl_cur, "$\\");
-            if (!backref) {
-                repl_z = repl_stop;
-            } else {
-                repl_z = backref;
-            }
-
-            // Append part before backref
-            MLE_PCRE_REPLACE_RESULT_APPEND(repl_cur, repl_z);
-
-            // Break if no backref
-            if (!backref) break;
-
-            // Append backref
-            if (*(backref+1) == '\0') {
-                // No data after backref marker; append the marker itself
-                term = backref;
-                term_stop = backref + 1;
-            } else if (*(backref+1) >= '0' && *(backref+1) <= '9') {
-                // N was a number; append Nth captured substring from match
-                ibackref = *(backref+1) - '0';
-                term = subj + ovector[ibackref*3];
-                term_stop = subj + ovector[ibackref*3 + 1];
-            } else {
-                // N was not a number; append marker + whatever character it was
-                term = backref;
-                term_stop = term + utf8_char_length(*(term+1));
-            }
-            MLE_PCRE_REPLACE_RESULT_APPEND(term, term_stop);
-
-            // Advance repl_cur
-            repl_cur = repl_z;
-        }
+        // Replace with backrefs
+        util_replace_with_backrefs(subj, repl, rc, ovector, 30, &result, &result_len, &result_size);
 
         // Increment num_repls
         num_repls += 1;
@@ -319,6 +263,71 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
 
     // Return number of replacements
     return num_repls;
+}
+
+// Build a replacement string with backreferences. The results are appended to
+// ret_result which is (re)allocated as needed.
+//
+//   subj          subject string
+//   repl          replacement string with $1 or \1 style backrefs
+//   pcre_rc       return code from pcre_exec
+//   pcre_ovector  ovector used with pcre_exec
+//   pcre_ovecsize size of pcre_ovector
+//
+int util_replace_with_backrefs(char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize, char** ret_result, int* ret_result_len, int* ret_result_size) {
+    char* repl_stop;
+    char* repl_cur;
+    char* repl_z;
+    char* repl_backref;
+    int ibackref;
+    char* term;
+    char* term_stop;
+
+    repl_stop = repl + strlen(repl);
+
+    // Start replace loop
+    repl_cur = repl;
+    while (repl_cur < repl_stop) {
+        // Find backref marker (dollar sign or backslash) in replacement str
+        repl_backref = strpbrk(repl_cur, "$\\");
+        repl_z = repl_backref ? repl_backref : repl_stop;
+
+        // Append part before backref
+        _util_str_append(repl_cur, repl_z, ret_result, ret_result_len, ret_result_size);
+
+        // Break if no backref
+        if (!repl_backref) break;
+
+        // Append backref
+        term = NULL;
+        if (repl_backref+1 >= repl_stop) {
+            // No data after backref marker; append the marker itself
+            term = repl_backref;
+            term_stop = repl_stop;
+        } else if (*(repl_backref+1) >= '0' && *(repl_backref+1) <= '9') {
+            // N was a number; append Nth captured substring from match
+            ibackref = *(repl_backref+1) - '0';
+            if (ibackref < pcre_rc && ibackref < pcre_ovecsize/3) {
+                // Backref exists
+                term = subj + pcre_ovector[ibackref*2];
+                term_stop = subj + pcre_ovector[ibackref*2 + 1];
+            } else {
+                // Backref does not exist; append marker + whatever character it was
+                term = repl_backref;
+                term_stop = term + utf8_char_length(*(term+1));
+            }
+        } else {
+            // N was not a number; append marker + whatever character it was
+            term = repl_backref;
+            term_stop = term + utf8_char_length(*(term+1));
+        }
+        _util_str_append(term, term_stop, ret_result, ret_result_len, ret_result_size);
+
+        // Advance repl_cur by 2 bytes (marker + backref num)
+        repl_cur = repl_backref+2;
+    }
+
+    return 0;
 }
 
 // Return 1 if a > b, else return 0.
@@ -447,3 +456,18 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
     }
     return c;
 }
+
+// Append data between term and term_stop to ret_result. Realloc as needed.
+static void _util_str_append(char* term, char* term_stop, char** ret_result, int* ret_result_len, int* ret_result_size) {
+    #define MLE_UTIL_STR_APPEND_INCR 256
+    int term_len;
+    term_len = term_stop - term;
+    if (term_len < 1) return;
+    if (*ret_result_len + term_len + 1 > *ret_result_size) {
+        *ret_result_size += MLE_MAX(*ret_result_len + term_len + 1, MLE_UTIL_STR_APPEND_INCR);
+        *ret_result = realloc(*ret_result, *ret_result_size);
+    }
+    memcpy(*ret_result + *ret_result_len, term, term_len);
+    *ret_result_len += term_len;
+}
+

@@ -1,5 +1,7 @@
 #include <unistd.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <termbox.h>
 #include "uthash.h"
@@ -54,7 +56,7 @@ static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, c
 static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def);
 static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str);
 static void _editor_destroy_syntax_map(syntax_t* map);
-static int _editor_init_from_rc(editor_t* editor, FILE* rc);
+static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path);
 static int _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
@@ -94,14 +96,14 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         if (getenv("HOME")) {
             asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
             if (util_is_file(home_rc, "rb", &rc)) {
-                rv = _editor_init_from_rc(editor, rc);
+                rv = _editor_init_from_rc(editor, rc, home_rc);
                 fclose(rc);
             }
             free(home_rc);
         }
         if (rv != MLE_OK) break;
         if (util_is_file("/etc/mlerc", "rb", &rc)) {
-            rv = _editor_init_from_rc(editor, rc);
+            rv = _editor_init_from_rc(editor, rc, "/etc/mlerc");
             fclose(rc);
         }
         if (rv != MLE_OK) break;
@@ -1026,12 +1028,12 @@ static cmd_funcref_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx, 
                 // Fallback to default
                 return kmap_node->kmap->default_funcref;
             }
-            if (kmap_node->kmap->allow_fallthru) {
+            if (kmap_node->kmap->allow_fallthru && kmap_node != kmap_node->prev) {
                 // Fallback to previous kmap on stack
                 kmap_node = kmap_node->prev;
                 is_top = 1;
             } else {
-                // Fallback not allowed
+                // Fallback not allowed or reached bottom
                 return NULL;
             }
         } else {
@@ -1223,6 +1225,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_copy, "M-k"),
         MLE_KBINDING_DEF(cmd_uncut, "C-u"),
         MLE_KBINDING_DEF(cmd_redraw, "C-l"),
+        MLE_KBINDING_DEF(cmd_push_kmap, "M-x p"),
+        MLE_KBINDING_DEF(cmd_pop_kmap, "M-x P"),
         MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c d", "bracket", NULL),
         MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c w", "word", NULL),
         MLE_KBINDING_DEF_EX(cmd_copy_by, "C-c s", "word_back", NULL),
@@ -1330,6 +1334,10 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(_editor_prompt_cancel, "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
+
+    // If there are any commands that don't appear in the built-in kmaps, define
+    // them here like:
+    // editor_register_cmd(editor, "cmd_x", cmd_x, NULL);
 }
 
 // Init a single kmap
@@ -1624,26 +1632,81 @@ static void _editor_destroy_syntax_map(syntax_t* map) {
     }
 }
 
+// Read rc file
+static int _editor_init_from_rc_read(editor_t* editor, FILE* rc, char** ret_rc_data, size_t* ret_rc_data_len) {
+    fseek(rc, 0L, SEEK_END);
+    *ret_rc_data_len = (size_t)ftell(rc);
+    fseek(rc, 0L, SEEK_SET);
+    *ret_rc_data = malloc(*ret_rc_data_len + 1);
+    fread(*ret_rc_data, *ret_rc_data_len, 1, rc);
+    (*ret_rc_data)[*ret_rc_data_len] = '\0';
+    return MLE_OK;
+}
+
+// Exec rc file, read stdout
+static int _editor_init_from_rc_exec(editor_t* editor, char* rc_path, char** ret_rc_data, size_t* ret_rc_data_len) {
+    char buf[512];
+    size_t nbytes;
+    char* data;
+    size_t data_len;
+    size_t data_cap;
+    FILE* fp;
+
+    // Popen rc file
+    if ((fp = popen(rc_path, "r")) == NULL) {
+        MLE_RETURN_ERR(editor, "Failed to popen rc file %s", rc_path);
+    }
+
+    // Read output
+    data = NULL;
+    data_len = 0;
+    data_cap = 0;
+    while ((nbytes = fread(buf, 1, sizeof(buf), fp)) != 0) {
+        if (data_len + nbytes >= data_cap) {
+            data_cap += sizeof(buf);
+            data = realloc(data, data_cap);
+        }
+        memmove(data + data_len, buf, nbytes);
+        data_len += nbytes;
+    }
+
+    // Add null terminator
+    if (data_len + 1 >= data_cap) {
+        data_cap += 1;
+        data = realloc(data, data_cap);
+    }
+    data[data_len] = '\0';
+
+    // Return
+    pclose(fp);
+    *ret_rc_data = data;
+    *ret_rc_data_len = data_len;
+    return MLE_OK;
+}
+
 // Parse rc file
-static int _editor_init_from_rc(editor_t* editor, FILE* rc) {
+static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path) {
     int rv;
-    long size;
+    size_t rc_data_len;;
     char *rc_data;
     char *rc_data_stop;
     char* eol;
     char* bol;
     int fargc;
     char** fargv;
+    struct stat statbuf;
     rv = MLE_OK;
 
-    // Read all from rc
-    fseek(rc, 0L, SEEK_END);
-    size = ftell(rc);
-    fseek(rc, 0L, SEEK_SET);
-    rc_data = malloc(size + 1);
-    fread(rc_data, size, 1, rc);
-    rc_data[size] = '\0';
-    rc_data_stop = rc_data + size;
+    // Bail early if disabled
+    if (editor->skip_rc_file) return rv;
+
+    // Read or exec rc file
+    if (fstat(fileno(rc), &statbuf) == 0 && statbuf.st_mode & S_IXUSR) {
+        _editor_init_from_rc_exec(editor, rc_path, &rc_data, &rc_data_len);
+    } else {
+        _editor_init_from_rc_read(editor, rc, &rc_data, &rc_data_len);
+    }
+    rc_data_stop = rc_data + rc_data_len;
 
     // Make fargc, fargv
     int i;
@@ -1654,15 +1717,17 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc) {
         while (bol < rc_data_stop) {
             eol = strchr(bol, '\n');
             if (!eol) eol = rc_data_stop - 1;
-            if (fargv) {
-                *eol = '\0';
-                fargv[fargc] = bol;
+            if (*bol != ';') { // Treat semicolon lines as comments
+                if (fargv) {
+                    *eol = '\0';
+                    fargv[fargc] = bol;
+                }
+                fargc += 1;
             }
-            fargc += 1;
             bol = eol + 1;
         }
         if (!fargv) {
-            if (fargc < 2) break;
+            if (fargc < 2) break; // No options
             fargv = malloc((fargc + 1) * sizeof(char*));
             fargv[0] = "mle";
             fargv[fargc] = NULL;
@@ -1691,43 +1756,47 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:bc:K:k:l:M:m:n:S:s:t:vx:y:z:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:N:n:S:s:t:vy:z:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
                 printf("Usage: mle [options] [file:line]...\n\n");
                 printf("    -h           Show this message\n");
                 printf("    -a <1|0>     Enable/disable tab_to_space (default: %d)\n", MLE_DEFAULT_TAB_TO_SPACE);
-                printf("    -b           Highlight bracket pairs\n");
+                printf("    -b <1|0>     Enable/disbale highlight bracket pairs (dfeault: %d)\n", MLE_DEFAULT_HILI_BRACKET_PAIRS);
                 printf("    -c <column>  Color column\n");
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
                 printf("    -l <ltype>   Set linenum type (default: 0)\n");
                 printf("    -M <macro>   Add a macro\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
+                printf("    -N <1|0>     Enable/disable reading of rc file (default: %d)\n", MLE_DEFAULT_READ_RC_FILE);
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
                 printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
-                printf("    -x <script>  Execute user script\n");
                 printf("    -y <syntax>  Set override syntax for files opened at start up\n");
-                printf("    -z <1|0>     Enable/disable trim_paste (default: %d)\n\n", MLE_DEFAULT_TRIM_PASTE);
+                printf("    -z <1|0>     Enable/disable trim_paste (default: %d)\n", MLE_DEFAULT_TRIM_PASTE);
+                printf("\n");
                 printf("    file         At start up, open file\n");
                 printf("    file:line    At start up, open file at line\n");
                 printf("    kdef         '<name>,<default_cmd>,<allow_fallthru>'\n");
-                printf("    kbind        '<cmd>,<key>'\n");
+                printf("    kbind        '<cmd>,<key>,<param>'\n");
                 printf("    ltype        0=absolute, 1=relative, 2=both\n");
                 printf("    macro        '<name> <key1> <key2> ... <keyN>'\n");
                 printf("    syndef       '<name>,<path_pattern>,<tab_width>,<tab_to_space>'\n");
                 printf("    synrule      '<start>,<end>,<fg>,<bg>'\n");
+                printf("    fg,bg        0=default     1=black       2=red         3=green\n");
+                printf("                 4=yellow      5=blue        6=magenta     7=cyan\n");
+                printf("                 8=white       256=bold      512=underline 1024=reverse\n");
                 rv = MLE_ERR;
                 break;
             case 'a':
                 editor->tab_to_space = atoi(optarg) ? 1 : 0;
                 break;
             case 'b':
-                editor->highlight_bracket_pairs = 1;
+                editor->highlight_bracket_pairs = atoi(optarg) ? 1 : 0;
                 break;
             case 'c':
                 editor->color_col = atoi(optarg);
@@ -1764,6 +1833,8 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                     rv = MLE_ERR;
                 }
                 break;
+            case 'N':
+                editor->skip_rc_file = atoi(optarg) ? 1 : 0;
             case 'n':
                 editor->kmap_init_name = strdup(optarg);
                 break;
@@ -1835,7 +1906,7 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
                 editor->startup_linenum = strtoul(colon + 1, NULL, 10);
                 if (editor->startup_linenum > 0) editor->startup_linenum -= 1;
             } else if (strncmp(path, "a/", 2) == 0 || strncmp(path, "b/", 2) == 0) {
-                // Try a/<path> format (diff prefix)
+                // Try [ab]/<path> format (git diff prefix)
                 path += 2;
                 path_len -= 2;
             }

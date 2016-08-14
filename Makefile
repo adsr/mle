@@ -5,13 +5,16 @@ BINDIR=/usr/bin
 all: mle
 
 mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o $@ -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
+	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre
+
+mle_static: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
+	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
 
 ./mlbuf/libmlbuf.a:
 	make -C mlbuf
 
 ./termbox/build/src/libtermbox.a:
-	pushd termbox; ./waf configure && ./waf; popd
+	pushd termbox && ./waf configure && ./waf && popd
 
 test: mle
 	make -C mlbuf test
@@ -26,6 +29,6 @@ clean:
 	rm -f gmon.out perf.data perf.data.old
 	rm -f mle
 	make -C mlbuf clean
-	pushd termbox; ./waf clean; popd
+	pushd termbox && ./waf clean && popd
 
-.PHONY: all mle test install clean
+.PHONY: all test mle_static install clean
