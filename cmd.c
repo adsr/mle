@@ -36,6 +36,7 @@ static int _cmd_select_by_bracket(cursor_t* cursor);
 static int _cmd_select_by_word(cursor_t* cursor);
 static int _cmd_select_by_word_back(cursor_t* cursor);
 static int _cmd_select_by_word_forward(cursor_t* cursor);
+static int _cmd_select_by_string(cursor_t* cursor);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 //static int _cmd_indent_lines(bline_t* start, bline_t* end, int use_tabs, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
@@ -1072,6 +1073,8 @@ static int _cmd_select_by(cursor_t* cursor, char* strat) {
     } else if (strcmp(strat, "bol") == 0 && !mark_is_at_bol(cursor->mark)) {
         _cmd_toggle_sel_bound(cursor, 0);
         mark_move_bol(cursor->sel_bound);
+    } else if (strcmp(strat, "string") == 0) {
+        return _cmd_select_by_string(cursor);
     } else {
         MLE_RETURN_ERR(cursor->bview->editor, "Unrecognized _cmd_select_by strat '%s'", strat);
     }
@@ -1083,6 +1086,7 @@ static int _cmd_select_by_bracket(cursor_t* cursor) {
     mark_t* orig;
     orig = mark_clone(cursor->mark);
     if (mark_move_bracket_top(cursor->mark, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
+        mark_destroy(orig);
         return MLE_ERR;
     }
     _cmd_toggle_sel_bound(cursor, 0);
@@ -1093,6 +1097,7 @@ static int _cmd_select_by_bracket(cursor_t* cursor) {
         return MLE_ERR;
     }
     mark_move_by(cursor->mark, 1);
+    mark_destroy(orig);
     return MLE_OK;
 }
 
@@ -1109,6 +1114,34 @@ static int _cmd_select_by_word_forward(cursor_t* cursor) {
     if (mark_is_at_word_bound(cursor->mark, 1)) return MLE_ERR;
     _cmd_toggle_sel_bound(cursor, 0);
     mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+    return MLE_OK;
+}
+
+// Select by string
+static int _cmd_select_by_string(cursor_t* cursor) {
+    mark_t* orig;
+    uint32_t qchar;
+    char* qre;
+    orig = mark_clone(cursor->mark);
+    if (mark_move_prev_re(cursor->mark, "(?<!\\\\)['\"]", strlen("(?<!\\\\)['\"]")) != MLBUF_OK) {
+        mark_destroy(orig);
+        return MLE_ERR;
+    }
+    _cmd_toggle_sel_bound(cursor, 0);
+    qchar = mark_get_char_after(cursor->mark);
+    mark_move_by(cursor->mark, 1);
+    if (qchar == '"') {
+        qre = "(?<!\\\\)\"";
+    } else {
+        qre = "(?<!\\\\)'";
+    }
+    if (mark_move_next_re(cursor->sel_bound, qre, strlen(qre)) != MLBUF_OK) {
+        _cmd_toggle_sel_bound(cursor, 0);
+        mark_join(cursor->mark, orig);
+        mark_destroy(orig);
+        return MLE_ERR;
+    }
+    mark_destroy(orig);
     return MLE_OK;
 }
 
