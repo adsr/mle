@@ -6,7 +6,7 @@ mle is a small but powerful console text editor written in C.
 
 ### Features
 
-* Small codebase (~8k sloc)
+* Small codebase (~6k sloc)
 * Only 1 out-of-repo dependency (pcre)
 * Full UTF-8 support
 * Syntax highlighting
