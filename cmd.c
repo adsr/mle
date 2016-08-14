@@ -104,6 +104,15 @@ int cmd_insert_data(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Insert newline above current line
+int cmd_insert_newline_above(cmd_context_t* ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        mark_move_bol(cursor->mark);
+        mark_insert_after(cursor->mark, "\n", 1);
+    );
+    return MLE_OK;
+}
+
 // Delete char before cursor mark
 int cmd_delete_before(cmd_context_t* ctx) {
     bint_t offset;

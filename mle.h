@@ -396,6 +396,7 @@ bview_t* bview_get_split_root(bview_t* self);
 int cmd_insert_data(cmd_context_t* ctx);
 int cmd_insert_newline(cmd_context_t* ctx);
 int cmd_insert_tab(cmd_context_t* ctx);
+int cmd_insert_newline_above(cmd_context_t* ctx);
 int cmd_delete_before(cmd_context_t* ctx);
 int cmd_delete_after(cmd_context_t* ctx);
 int cmd_move_bol(cmd_context_t* ctx);

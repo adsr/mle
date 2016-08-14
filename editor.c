@@ -1199,6 +1199,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_delete_before, "backspace"),
         MLE_KBINDING_DEF(cmd_delete_before, "backspace2"),
         MLE_KBINDING_DEF(cmd_delete_after, "delete"),
+        MLE_KBINDING_DEF(cmd_insert_newline_above, "C-\\"),
         MLE_KBINDING_DEF(cmd_move_bol, "C-a"),
         MLE_KBINDING_DEF(cmd_move_bol, "home"),
         MLE_KBINDING_DEF(cmd_move_eol, "C-e"),
