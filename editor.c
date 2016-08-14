@@ -42,6 +42,7 @@ static cmd_func_t _editor_resolve_funcref(editor_t* editor, cmd_funcref_t* ref);
 static int _editor_key_to_input(char* key, kinput_t* ret_input);
 static void _editor_init_signal_handlers(editor_t* editor);
 static void _editor_graceful_exit(int signum);
+static int _editor_init_should_skip_rc(char** argv);
 static void _editor_init_kmaps(editor_t* editor);
 static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, cmd_funcref_t default_funcref, int allow_fallthru, kbinding_def_t* defs);
 static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, char* cmd_name, char* key, char* static_param);
@@ -94,22 +95,25 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         // Init syntaxes
         _editor_init_syntaxes(editor);
 
+
         // Parse rc files
-        home_rc = NULL;
-        if (getenv("HOME")) {
-            asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
-            if (util_is_file(home_rc, "rb", &rc)) {
-                rv = _editor_init_from_rc(editor, rc, home_rc);
+        if (!_editor_init_should_skip_rc(argv)) {
+            home_rc = NULL;
+            if (getenv("HOME")) {
+                asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
+                if (util_is_file(home_rc, "rb", &rc)) {
+                    rv = _editor_init_from_rc(editor, rc, home_rc);
+                    fclose(rc);
+                }
+                free(home_rc);
+            }
+            if (rv != MLE_OK) break;
+            if (util_is_file("/etc/mlerc", "rb", &rc)) {
+                rv = _editor_init_from_rc(editor, rc, "/etc/mlerc");
                 fclose(rc);
             }
-            free(home_rc);
+            if (rv != MLE_OK) break;
         }
-        if (rv != MLE_OK) break;
-        if (util_is_file("/etc/mlerc", "rb", &rc)) {
-            rv = _editor_init_from_rc(editor, rc, "/etc/mlerc");
-            fclose(rc);
-        }
-        if (rv != MLE_OK) break;
 
         // Parse cli args
         rv = _editor_init_from_args(editor, argc, argv);
@@ -447,6 +451,19 @@ int editor_display(editor_t* editor) {
     }
     tb_present();
     return MLE_OK;
+}
+
+// Return 1 if we should skip reading rc files
+static int _editor_init_should_skip_rc(char** argv) {
+    int skip = 0;
+    while (*argv) {
+        if (strcmp("-h", *argv) == 0 || strcmp("-N", *argv) == 0) {
+            skip = 1;
+            break;
+        }
+        argv++;
+    }
+    return skip;
 }
 
 // Close a bview
@@ -1482,7 +1499,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
     macro = NULL;
 
     // Tokenize by space
-    token = strtok(str, ",");
+    token = strtok(str, " ");
     while (token) {
         if (!macro) {
             // Make macro with <name> on first token
@@ -1500,7 +1517,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
             has_input = 1;
         }
         // Get next token
-        token = strtok(NULL, ",");
+        token = strtok(NULL, " ");
     }
 
     // Add macro to map if has_input
@@ -1704,9 +1721,6 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path) {
     struct stat statbuf;
     rv = MLE_OK;
 
-    // Bail early if disabled
-    if (editor->read_rc_file) return rv;
-
     // Read or exec rc file
     if (fstat(fileno(rc), &statbuf) == 0 && statbuf.st_mode & S_IXUSR) {
         _editor_init_from_rc_exec(editor, rc_path, &rc_data, &rc_data_len);
@@ -1763,7 +1777,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:N:n:S:s:t:vw:y:z:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:Nn:S:s:t:vw:y:z:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1777,7 +1791,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -l <ltype>   Set linenum type (default: 0)\n");
                 printf("    -M <macro>   Add a macro\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
-                printf("    -N <1|0>     Enable/disable reading of rc file (default: %d)\n", MLE_DEFAULT_READ_RC_FILE);
+                printf("    -N           Skip reading of rc file\n");
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
                 printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
@@ -1842,7 +1856,8 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 }
                 break;
             case 'N':
-                editor->read_rc_file = atoi(optarg) ? 1 : 0;
+                // See _editor_init_should_skip_rc
+                break;
             case 'n':
                 editor->kmap_init_name = strdup(optarg);
                 break;

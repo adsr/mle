@@ -20,6 +20,8 @@ mle is a small but powerful console text editor written in C.
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
 * File grep
 * Multiple cursors
+* Scriptable rc file
+* Mutate text via any shell command
 
 ### Building
 
@@ -48,9 +50,11 @@ working directory.
     -kcmd_grep,M-q,git grep --color=never -P -i -I -n %s 2>/dev/null
     <?php endif; ?>
 
-### Screenshot
+### Demos
 
-![mle screenshot](http://i.imgur.com/FR0i8Rv.png)
+![mle demo](http://i.imgur.com/7xGs8fM.gif)
+
+View more demos [here](http://imgur.com/a/ZBmmQ).
 
 ### Known bugs
 
