@@ -95,9 +95,10 @@ struct editor_s {
     int tab_width;
     int tab_to_space;
     int trim_paste;
-    int skip_rc_file;
+    int read_rc_file;
     int highlight_bracket_pairs;
     int color_col;
+    int soft_wrap;
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     loop_context_t* loop_ctx;
@@ -497,6 +498,7 @@ extern editor_t _editor;
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "M-r"
 #define MLE_DEFAULT_HILI_BRACKET_PAIRS 1
 #define MLE_DEFAULT_READ_RC_FILE 1
+#define MLE_DEFAULT_SOFT_WRAP 0
 
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \

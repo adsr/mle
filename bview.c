@@ -10,7 +10,7 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* path, int path_len);
 static void _bview_draw_prompt(bview_t* self);
 static void _bview_draw_status(bview_t* self);
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
-static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y);
+static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t** optret_bline, int* optret_rect_y);
 static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
 static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
 static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol);
@@ -631,7 +631,7 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_
 }
 
 static void _bview_draw_prompt(bview_t* self) {
-    _bview_draw_bline(self, self->buffer->first_line, 0);
+    _bview_draw_bline(self, self->buffer->first_line, 0, NULL, NULL);
 }
 
 static void _bview_draw_status(bview_t* self) {
@@ -824,13 +824,13 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
             // Draw bline at self->rect_buffer self->viewport_y + rect_y
             // TODO How can bline be NULL here?
             // TODO How can self->viewport_y != self->viewport_bline->line_index ?
-            _bview_draw_bline(self, bline, rect_y);
+            _bview_draw_bline(self, bline, rect_y, &bline, &rect_y);
             bline = bline->next;
         }
     }
 }
 
-static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
+static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t** optret_bline, int* optret_rect_y) {
     int rect_x;
     bint_t char_col;
     int fg;
@@ -841,12 +841,19 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
     bint_t viewport_x_vcol;
     int i;
     int is_cursor_line;
+    int is_soft_wrap;
+    int orig_rect_y;
 
-    // Use viewport_x only for current line
+    // Set is_cursor_line
+    is_cursor_line = self->active_cursor->mark->bline == bline ? 1 : 0;
+
+    // Soft wrap only for current line
+    is_soft_wrap = self->editor->soft_wrap && is_cursor_line && MLE_BVIEW_IS_EDIT(self) ? 1 : 0;
+
+    // Use viewport_x only for current line when not soft wrapping
     viewport_x = 0;
     viewport_x_vcol = 0;
-    is_cursor_line = self->active_cursor->mark->bline == bline ? 1 : 0;
-    if (is_cursor_line) {
+    if (is_cursor_line && !is_soft_wrap) {
         viewport_x = self->viewport_x;
         viewport_x_vcol = self->viewport_x_vcol;
     }
@@ -866,13 +873,16 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
             tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
         }
         tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
-        if (bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w) {
+        if (!is_soft_wrap && bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w) {
             tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", '$');
         }
     }
 
     // Render 0 thru rect_buffer.w cell by cell
-    for (rect_x = 0, char_col = viewport_x; rect_x < self->rect_buffer.w; char_col++) {
+    orig_rect_y = rect_y;
+    rect_x = 0;
+    char_col = viewport_x;
+    while (1) {
         char_w = 1;
         if (char_col < bline->char_count) {
             ch = bline->chars[char_col].ch;
@@ -898,8 +908,22 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y) {
         for (i = 0; i < char_w && rect_x < self->rect_buffer.w; i++) {
             tb_change_cell(self->rect_buffer.x + rect_x + i, self->rect_buffer.y + rect_y, ch, fg, bg);
         }
-        rect_x += char_w;
+        if (is_soft_wrap && rect_x+1 >= self->rect_buffer.w && rect_y+1 < self->rect_buffer.h) {
+            rect_x = 0;
+            rect_y += 1;
+            for (i = 0; i < self->linenum_width; i++) {
+                tb_printf(self->rect_lines, i, rect_y, 0, 0, "%c", '.');
+            }
+        } else {
+            rect_x += char_w;
+        }
+        char_col += 1;
     }
+    for (i = orig_rect_y; i < rect_y && bline->next; i++) {
+        bline = bline->next;
+    }
+    if (optret_bline) *optret_bline = bline;
+    if (optret_rect_y) *optret_rect_y = rect_y;
 }
 
 // Highlight matching bracket pair under mark
@@ -937,8 +961,19 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
 static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell) {
     int screen_x;
     int screen_y;
-    screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
-    screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index);
+    int is_soft_wrapped;
+
+    is_soft_wrapped = self->editor->soft_wrap
+        && self->active_cursor->mark->bline == mark->bline
+        && MLE_BVIEW_IS_EDIT(self) ? 1 : 0;
+
+    if (is_soft_wrapped) {
+        screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) % self->rect_buffer.w;
+        screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index) + (MLE_MARK_COL_TO_VCOL(mark) / self->rect_buffer.w);
+    } else {
+        screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
+        screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index);
+    }
     if (screen_x < self->rect_buffer.x || screen_x >= self->rect_buffer.x + self->rect_buffer.w
        || screen_y < self->rect_buffer.y || screen_y >= self->rect_buffer.y + self->rect_buffer.h
     ) {

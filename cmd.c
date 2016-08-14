@@ -499,6 +499,7 @@ int cmd_redraw(cmd_context_t* ctx) {
     int h;
     int x;
     int y;
+    bview_center_viewport_y(ctx->bview);
     w = tb_width();
     h = tb_height();
     for (x = 0; x < w; x++) {

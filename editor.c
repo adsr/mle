@@ -75,8 +75,11 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
         editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
         editor->trim_paste = MLE_DEFAULT_TRIM_PASTE;
+        editor->highlight_bracket_pairs = MLE_DEFAULT_HILI_BRACKET_PAIRS;
+        editor->read_rc_file = MLE_DEFAULT_READ_RC_FILE;
+        editor->soft_wrap = MLE_DEFAULT_SOFT_WRAP;
         editor->viewport_scope_x = -4;
-        editor->viewport_scope_y = -4;
+        editor->viewport_scope_y = -1;
         editor->startup_linenum = -1;
         editor->color_col = -1;
         editor->exit_code = EXIT_SUCCESS;
@@ -514,7 +517,7 @@ static int _editor_prompt_input_complete(cmd_context_t* ctx) {
         return MLE_OK;
     }
 
-    // Assemble compgen command
+     // Assemble compgen command
     cmd_arg = util_escape_shell_arg(
         loop_ctx->tab_complete_term,
         strlen(loop_ctx->tab_complete_term)
@@ -1698,7 +1701,7 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path) {
     rv = MLE_OK;
 
     // Bail early if disabled
-    if (editor->skip_rc_file) return rv;
+    if (editor->read_rc_file) return rv;
 
     // Read or exec rc file
     if (fstat(fileno(rc), &statbuf) == 0 && statbuf.st_mode & S_IXUSR) {
@@ -1756,7 +1759,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:N:n:S:s:t:vy:z:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:N:n:S:s:t:vw:y:z:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1776,6 +1779,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
+                printf("    -w <1|0>     Enable/disable soft word wrap (default: %d)\n", MLE_DEFAULT_SOFT_WRAP);
                 printf("    -y <syntax>  Set override syntax for files opened at start up\n");
                 printf("    -z <1|0>     Enable/disable trim_paste (default: %d)\n", MLE_DEFAULT_TRIM_PASTE);
                 printf("\n");
@@ -1834,7 +1838,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 }
                 break;
             case 'N':
-                editor->skip_rc_file = atoi(optarg) ? 1 : 0;
+                editor->read_rc_file = atoi(optarg) ? 1 : 0;
             case 'n':
                 editor->kmap_init_name = strdup(optarg);
                 break;
@@ -1858,6 +1862,9 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
             case 'v':
                 printf("mle version %s\n", MLE_VERSION);
                 rv = MLE_ERR;
+                break;
+            case 'w':
+                editor->soft_wrap = atoi(optarg);
                 break;
             case 'y':
                 editor->syntax_override = optarg;
