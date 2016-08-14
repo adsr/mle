@@ -1269,6 +1269,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o a", "tab_to_space", NULL),
         MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o t", "tab_width", NULL),
         MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o y", "syntax", NULL),
+        MLE_KBINDING_DEF_EX(cmd_set_opt, "M-o w", "soft_wrap", NULL),
         MLE_KBINDING_DEF(cmd_open_new, "C-n"),
         MLE_KBINDING_DEF(cmd_open_file, "C-o"),
         MLE_KBINDING_DEF(cmd_open_replace_new, "C-q n"),

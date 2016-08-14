@@ -860,6 +860,8 @@ int cmd_set_opt(cmd_context_t* ctx) {
     } else if (strcmp(ctx->static_param, "syntax") == 0) {
         bview_set_syntax(ctx->bview, val);
         buffer_apply_styles(ctx->bview->buffer, ctx->bview->buffer->first_line, ctx->bview->buffer->line_count);
+    } else if (strcmp(ctx->static_param, "soft_wrap") == 0) {
+        ctx->editor->soft_wrap = vali ? 1 : 0;
     }
     return MLE_OK;
 }
