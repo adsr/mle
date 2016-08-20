@@ -133,9 +133,9 @@ int cmd_move_bol(cmd_context_t* ctx) {
     uint32_t ch;
     mark_t* mark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        mark = mark_clone(cursor->mark);
+        mark_clone(cursor->mark, &mark);
         mark_move_bol(mark);
-        ch = mark_get_char_after(mark);
+        mark_get_char_after(mark, &ch);
         if (isspace((int)ch)) {
             mark_move_next_re(mark, "\\S", 2);
         }
@@ -261,7 +261,7 @@ int cmd_move_word_back(cmd_context_t* ctx) {
 int cmd_delete_word_before(cmd_context_t* ctx) {
     mark_t* tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        tmark = mark_clone(cursor->mark);
+        mark_clone(cursor->mark, &tmark);
         mark_move_prev_re(tmark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
@@ -273,7 +273,7 @@ int cmd_delete_word_before(cmd_context_t* ctx) {
 int cmd_delete_word_after(cmd_context_t* ctx) {
     mark_t* tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        tmark = mark_clone(cursor->mark);
+        mark_clone(cursor->mark, &tmark);
         mark_move_next_re(tmark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
@@ -1097,7 +1097,7 @@ static int _cmd_select_by(cursor_t* cursor, char* strat) {
 // Select by bracket
 static int _cmd_select_by_bracket(cursor_t* cursor) {
     mark_t* orig;
-    orig = mark_clone(cursor->mark);
+    mark_clone(cursor->mark, &orig);
     if (mark_move_bracket_top(cursor->mark, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
         mark_destroy(orig);
         return MLE_ERR;
@@ -1135,13 +1135,13 @@ static int _cmd_select_by_string(cursor_t* cursor) {
     mark_t* orig;
     uint32_t qchar;
     char* qre;
-    orig = mark_clone(cursor->mark);
+    mark_clone(cursor->mark, &orig);
     if (mark_move_prev_re(cursor->mark, "(?<!\\\\)['\"]", strlen("(?<!\\\\)['\"]")) != MLBUF_OK) {
         mark_destroy(orig);
         return MLE_ERR;
     }
     _cmd_toggle_sel_bound(cursor, 0);
-    qchar = mark_get_char_after(cursor->mark);
+    mark_get_char_after(cursor->mark, &qchar);
     mark_move_by(cursor->mark, 1);
     if (qchar == '"') {
         qre = "(?<!\\\\)\"";
@@ -1160,10 +1160,10 @@ static int _cmd_select_by_string(cursor_t* cursor) {
 
 // Select by word
 static int _cmd_select_by_word(cursor_t* cursor) {
-    char after;
+    uint32_t after;
     if (mark_is_at_eol(cursor->mark)) return MLE_ERR;
-    after = mark_get_char_after(cursor->mark);
-    if (!isalnum(after) && after != '_') return MLE_ERR;
+    mark_get_char_after(cursor->mark, &after);
+    if (!isalnum((char)after) && (char)after != '_') return MLE_ERR;
     if (!mark_is_at_word_bound(cursor->mark, -1)) {
         mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     }
@@ -1302,7 +1302,7 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int appe
 // Anchor/unanchor cursor selection bound
 static void _cmd_toggle_sel_bound(cursor_t* cursor, int use_srules) {
     if (!cursor->is_sel_bound_anchored) {
-        cursor->sel_bound = mark_clone(cursor->mark);
+        mark_clone(cursor->mark, &(cursor->sel_bound));
         if (use_srules) {
             cursor->sel_rule = srule_new_range(cursor->mark, cursor->sel_bound, 0, TB_REVERSE);
             buffer_add_srule(cursor->bview->buffer, cursor->sel_rule);
