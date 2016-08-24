@@ -560,11 +560,9 @@ TODO
 [ ] user scripts
 [ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
-[ ] C-d d for strings
 [ ] flash messages "replaced N instances", "wrote N bytes"
 [ ] control viewport
 --- LOW
-[ ] soft word wrapping
 [ ] vim normal mode emulation
 [ ] refactor kmap, ** and ## is inelegant, code not easy to grok
 [ ] refcounting
@@ -579,9 +577,6 @@ TODO
 [ ] experiment with adding ['>','<'] to brkt pairs for <C-d d>'ing html
 [ ] aproc-bview refactor
 [ ] factor out code into async_proc_read
-[ ] large paste cuts off midway?
-[ ] styles perf
-[ ] perf with large files
 [ ] drop/goto mark with char
 [ ] async style refresh
 [ ] find matching html bracket
