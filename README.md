@@ -31,7 +31,7 @@ mle is a small but powerful console text editor written in C.
     $ sudo apt-get install libpcre3-dev # or yum install pcre-devel, etc
     $ make
 
-You can run `make static` instead to build a static binary.
+You can run `make mle_static` instead to build a static binary.
 
 ### mlerc
 

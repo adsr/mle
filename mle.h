@@ -558,44 +558,36 @@ extern editor_t _editor;
 TODO
 --- HIGH
 [ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn, viewport_rectify_fn, help str
-[ ] user scripts
+[ ] help
+[ ] sam command lang and/or vim-normal emulation
+[ ] undo stack with same loop# should get undone as a group
+[ ] scriptability + hooks
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
-[ ] flash messages "replaced N instances", "wrote N bytes"
 [ ] control viewport
---- LOW
-[ ] vim normal mode emulation
-[ ] refactor kmap, ** and ## is inelegant, code not easy to grok
-[ ] refcounting
-[ ] ensure multi_cursor_code impl for all appropriate
-[ ] should not prompt for fname if present on exit
-[ ] makefile params
-[ ] option to ensure trailing newline
+[ ] add more bracket matches
 [ ] segfault hunt: splits
+[ ] review default key bindings
+[ ] [ab]/<file>:<num> should work everywhere
+--- LOW
+[ ] refactor kmap, ** and ## is inelegant, code not easy to grok
+[ ] refactor menu/prompt_menu code
+[ ] refactor aproc/bview, factor out editor.c code into async_proc_read
+[ ] flash messages "replaced N instances", "wrote N bytes"
+[ ] refcounting / guard against invalid api use, e.g., prevent srule_destroy on active srule
+[ ] ensure multi_cursor_code impl for all appropriate
+[ ] makefile params, config.mk
 [ ] segfault hunt: async proc broken pipe
 [ ] use MLE_RETURN_ERR more
-[ ] pgup/down in isearch
-[ ] experiment with adding ['>','<'] to brkt pairs for <C-d d>'ing html
-[ ] aproc-bview refactor
-[ ] factor out code into async_proc_read
+[ ] pgup/down in isearch to control viewport
 [ ] drop/goto mark with char
-[ ] async style refresh
-[ ] find matching html bracket
 [ ] last cmd status code indicator
 [ ] click to set cursor/focus
-[ ] scriptability + hooks
-[ ] cmd_var_set, _clear, _append, _prepend, _print, _incr, _decr
-[ ] count allocs/frees, ensure 0 at exit
 [ ] buffer_repeat
 [ ] multi-level undo/redo
-[ ] nested prompts?
-[ ] bview_config_t
-[ ] more elegant menu/prompt_menu code
+[ ] prompt history view
+[ ] bview_config_t to use in editor and individual bviews
 [ ] command prompt
-[ ] command wildcard param order
-[ ] configurable colors
-[ ] configurable status line
-[ ] configurable caption line
-[ ] guard against invalid api use, e.g., prevent srule_destroy on active srule
+[ ] configurable colors, status line, caption line
 */
 
 #endif
