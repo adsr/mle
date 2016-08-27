@@ -1264,7 +1264,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF_EX(cmd_cut_by, "C-d c", "string", NULL),
         MLE_KBINDING_DEF(cmd_delete_word_before, "C-w"),
         MLE_KBINDING_DEF(cmd_delete_word_after, "M-d"),
-        MLE_KBINDING_DEF(cmd_toggle_sel_bound, "M-a"),
+        MLE_KBINDING_DEF(cmd_toggle_anchor, "M-a"),
         MLE_KBINDING_DEF(cmd_drop_sleeping_cursor, "C-/ ."),
         MLE_KBINDING_DEF(cmd_wake_sleeping_cursors, "C-/ a"),
         MLE_KBINDING_DEF(cmd_remove_extra_cursors, "C-/ /"),

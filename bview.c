@@ -280,16 +280,16 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     return MLE_ERR;
 }
 
-// Get lo and hi marks in a is_sel_bound_anchored=1 cursor
+// Get lo and hi marks in a is_anchored=1 cursor
 int bview_cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
-    if (!cursor->is_sel_bound_anchored) {
+    if (!cursor->is_anchored) {
         return MLE_ERR;
     }
-    if (mark_is_gt(cursor->sel_bound, cursor->mark)) {
+    if (mark_is_gt(cursor->anchor, cursor->mark)) {
         *ret_lo = cursor->mark;
-        *ret_hi = cursor->sel_bound;
+        *ret_hi = cursor->anchor;
     } else {
-        *ret_lo = cursor->sel_bound;
+        *ret_lo = cursor->anchor;
         *ret_hi = cursor->mark;
     }
     return MLE_OK;
@@ -671,7 +671,7 @@ static void _bview_draw_status(bview_t* self) {
     // Anchor indicator
     int i_anchor_fg, i_anchor_bg;
     char* i_anchor;
-    if (active_edit->active_cursor->is_sel_bound_anchored) {
+    if (active_edit->active_cursor->is_anchored) {
         i_anchor_fg = TB_REVERSE | TB_BOLD;
         i_anchor_bg = TB_DEFAULT;
         i_anchor = "a";

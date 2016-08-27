@@ -201,8 +201,8 @@ struct bview_listener_s {
 struct cursor_s {
     bview_t* bview;
     mark_t* mark;
-    mark_t* sel_bound;
-    int is_sel_bound_anchored;
+    mark_t* anchor;
+    int is_anchored;
     int is_asleep;
     srule_t* sel_rule;
     char* cut_buffer;
@@ -414,7 +414,7 @@ int cmd_move_relative(cmd_context_t* ctx);
 int cmd_move_word_forward(cmd_context_t* ctx);
 int cmd_move_word_back(cmd_context_t* ctx);
 int cmd_apply_macro(cmd_context_t* ctx);
-int cmd_toggle_sel_bound(cmd_context_t* ctx);
+int cmd_toggle_anchor(cmd_context_t* ctx);
 int cmd_drop_sleeping_cursor(cmd_context_t* ctx);
 int cmd_wake_sleeping_cursors(cmd_context_t* ctx);
 int cmd_remove_extra_cursors(cmd_context_t* ctx);
