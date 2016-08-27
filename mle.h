@@ -557,8 +557,8 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
+[ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn, viewport_rectify_fn, help str
 [ ] user scripts
-[ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
 [ ] flash messages "replaced N instances", "wrote N bytes"
 [ ] control viewport
