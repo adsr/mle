@@ -39,7 +39,7 @@ static int _cmd_select_by_word_forward(cursor_t* cursor);
 static int _cmd_select_by_string(cursor_t* cursor);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
-static void _cmd_help_inner(kbinding_t* trie, char** h, int* l, int* s);
+static void _cmd_help_inner(char* buf, kbinding_t* trie, char** h, int* l, int* s);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -413,6 +413,7 @@ int cmd_replace(cmd_context_t* ctx) {
     char* repl_backref;
     int repl_backref_len;
     int repl_backref_size;
+    int num_replacements;
 
     regex = NULL;
     replacement = NULL;
@@ -424,6 +425,7 @@ int cmd_replace(cmd_context_t* ctx) {
     search_mark_end = NULL;
     anchored_before = 0;
     all = 0;
+    num_replacements = 0;
     mark_set_pcre_capture(&pcre_rc, pcre_ovector, 30);
 
     do {
@@ -483,6 +485,7 @@ int cmd_replace(cmd_context_t* ctx) {
                         mark_insert_before(search_mark, repl_backref, repl_backref_len);
                         free(repl_backref);
                     }
+                    num_replacements += 1;
                     if (0 == strcmp(yn, MLE_PROMPT_ALL)) all = 1;
                 } else {
                     mark_move_by(search_mark, 1);
@@ -510,6 +513,8 @@ int cmd_replace(cmd_context_t* ctx) {
     if (orig_mark) mark_destroy(orig_mark);
     if (search_mark) mark_destroy(search_mark);
     if (search_mark_end) mark_destroy(search_mark_end);
+
+    MLE_SET_INFO(ctx->editor, "replace: Replaced %d instance(s)", num_replacements);
 
     bview_rectify_viewport(ctx->bview);
     bview_draw(ctx->bview);
@@ -992,7 +997,7 @@ int cmd_push_kmap(cmd_context_t* ctx) {
 
     if (!kmap) {
         // Not found
-        MLE_SET_ERR(ctx->editor, "No kmap defined '%s'", kmap_name);
+        MLE_SET_ERR(ctx->editor, "push_kmap: No kmap defined '%s'", kmap_name);
         rv = MLE_ERR;
     } else {
         // Found, push
@@ -1017,7 +1022,11 @@ int cmd_show_help(cmd_context_t* ctx) {
     int s; // size
     kmap_t* kmap;
     kmap_t* kmap_tmp;
+    kmap_node_t* kmap_node;
+    int kmap_node_depth;
+    int i;
     bview_t* bview;
+    char buf[1024];
 
     h = NULL;
     l = 0;
@@ -1027,17 +1036,49 @@ int cmd_show_help(cmd_context_t* ctx) {
         "# mle command help\n\n"
         "    notes\n"
         "        C- means Ctrl\n"
-        "        M- means Alt\n\n", NULL,
+        "        M- means Alt\n"
+        "        cmd_x=(default) means unmatched input is handled by cmd_x\n"
+        "        (allow_fallthru)=yes means unmatched input is handled by the parent kmap\n\n",
+        NULL,
         &h, &l, &s
     );
 
+    // Build current kmap stack
+    util_str_append("    mode stack\n", NULL, &h, &l, &s);
+    kmap_node_depth = 0;
+    DL_FOREACH(ctx->bview->kmap_stack, kmap_node) {
+        util_str_append("        ", NULL, &h, &l, &s);
+        for (i = 0; i < kmap_node_depth; i++) {
+            util_str_append("    ", NULL, &h, &l, &s);
+        }
+        if (i > 0) {
+            util_str_append("\\_ ", NULL, &h, &l, &s);
+        }
+        util_str_append(kmap_node->kmap->name, NULL, &h, &l, &s);
+        if (kmap_node == ctx->bview->kmap_tail) {
+            util_str_append(" (current)", NULL, &h, &l, &s);
+        }
+        util_str_append("\n", NULL, &h, &l, &s);
+        kmap_node_depth += 1;
+    }
+    util_str_append("\n", NULL, &h, &l, &s);
+
+    // Build kmap bindings
     HASH_ITER(hh, ctx->editor->kmap_map, kmap, kmap_tmp) {
         util_str_append("    ", NULL, &h, &l, &s);
         util_str_append(kmap->name, NULL, &h, &l, &s);
         util_str_append(" mode\n", NULL, &h, &l, &s);
-        _cmd_help_inner(kmap->bindings->children, &h, &l, &s);
+        snprintf(buf, sizeof(buf), "        %-40s %-16s\n", "(allow_fallthru)", kmap->allow_fallthru ? "yes" : "no");
+        util_str_append(buf, NULL, &h, &l, &s);
+        if (kmap->default_cmd_name) {
+            snprintf(buf, sizeof(buf), "        %-40s %-16s\n", kmap->default_cmd_name, "(default)");
+            util_str_append(buf, NULL, &h, &l, &s);
+        }
+        _cmd_help_inner(buf, kmap->bindings->children, &h, &l, &s);
+        util_str_append("\n", NULL, &h, &l, &s);
     }
 
+    // Show help in new bview
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &ctx->editor->rect_edit, NULL, &bview);
     buffer_insert(bview->buffer, 0, h, (bint_t)l, NULL);
     bview->buffer->is_unsaved = 0;
@@ -1049,15 +1090,14 @@ int cmd_show_help(cmd_context_t* ctx) {
 }
 
 // Recursively descend into kbinding trie to build help string
-static void _cmd_help_inner(kbinding_t* trie, char** h, int* l, int* s) {
+static void _cmd_help_inner(char* buf, kbinding_t* trie, char** h, int* l, int* s) {
     kbinding_t* binding;
     kbinding_t* binding_tmp;
-    char buf[1024];
     HASH_ITER(hh, trie, binding, binding_tmp) {
         if (binding->children) {
-            _cmd_help_inner(binding->children, h, l, s);
+            _cmd_help_inner(buf, binding->children, h, l, s);
         } else if (binding->is_leaf) {
-            snprintf(buf, sizeof(buf),
+            snprintf(buf, 1024,
                 "        %-40s %-16s %s\n",
                 binding->cmd_name,
                 binding->key_patt,
@@ -1253,6 +1293,8 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
     char* yn;
     int fname_changed;
     struct stat st;
+    bint_t nbytes;
+
     fname_changed = 0;
     do {
         if (!bview->buffer->path || save_as) {
@@ -1287,11 +1329,14 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
         }
 
         // Save, check error
-        rc = buffer_save_as(bview->buffer, path, strlen(path));
+        rc = buffer_save_as(bview->buffer, path, strlen(path), &nbytes);
         free(path);
         if (rc == MLBUF_ERR) {
-            MLE_SET_ERR(editor, "buffer_save_as: %s", errno ? strerror(errno) : "failed");
+            MLE_SET_ERR(editor, "save: %s", errno ? strerror(errno) : "failed");
+        } else {
+            MLE_SET_INFO(editor, "save: Wrote %ld bytes", nbytes);
         }
+
     } while (rc == MLBUF_ERR && (!bview->buffer->path || save_as));
 
     // Refresh syntax if fname changed
@@ -1496,7 +1541,7 @@ static int _cmd_browse_cb(cmd_context_t* ctx) {
     } else if (util_is_dir(line)) {
         path = line;
     } else {
-        MLE_SET_ERR(ctx->editor, "Cannot browse to: '%s'", line);
+        MLE_SET_ERR(ctx->editor, "browse: Cannot browse to: '%s'", line);
         free(line);
         return MLE_ERR;
     }

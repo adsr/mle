@@ -108,6 +108,7 @@ struct editor_s {
     size_t insertbuf_size;
     #define MLE_ERRSTR_SIZE 256
     char errstr[MLE_ERRSTR_SIZE];
+    char infostr[MLE_ERRSTR_SIZE];
     int exit_code;
 };
 
@@ -506,6 +507,10 @@ extern editor_t _editor;
     snprintf((editor)->errstr, MLE_ERRSTR_SIZE, (fmt), __VA_ARGS__); \
 } while (0)
 
+#define MLE_SET_INFO(editor, fmt, ...) do { \
+    snprintf((editor)->infostr, MLE_ERRSTR_SIZE, (fmt), __VA_ARGS__); \
+} while (0)
+
 #define MLE_RETURN_ERR(editor, fmt, ...) do { \
     MLE_SET_ERR((editor), (fmt), __VA_ARGS__); \
     return MLE_ERR; \
@@ -554,23 +559,20 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] cmd refactor; cmd's should have own void* udata, init, deinit, post_display_fn, viewport_rectify_fn, help str
-[ ] help
 [ ] sam command lang and/or vim-normal emulation
-[ ] undo stack with same loop# should get undone as a group
-[ ] scriptability + hooks
+[ ] undo stack with same loop# should get undone as a group option
+[ ] refcounting / guard against invalid api use, e.g., prevent srule_destroy on active srule
+    [ ] scriptability + hooks
+    [ ] command prompt
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
 [ ] control viewport
-[ ] add more bracket matches
 [ ] segfault hunt: splits
 [ ] review default key bindings
 [ ] [ab]/<file>:<num> should work everywhere
 --- LOW
-[ ] refactor kmap, ** and ## is inelegant, code not easy to grok
+[ ] refactor kmap, ** and ## is kind of inelegant, code not easy to grok
 [ ] refactor menu/prompt_menu code
 [ ] refactor aproc/bview, factor out editor.c code into async_proc_read
-[ ] flash messages "replaced N instances", "wrote N bytes"
-[ ] refcounting / guard against invalid api use, e.g., prevent srule_destroy on active srule
 [ ] ensure multi_cursor_code impl for all appropriate
 [ ] makefile params, config.mk
 [ ] segfault hunt: async proc broken pipe
@@ -583,7 +585,6 @@ TODO
 [ ] multi-level undo/redo
 [ ] prompt history view
 [ ] bview_config_t to use in editor and individual bviews
-[ ] command prompt
 [ ] configurable colors, status line, caption line
 */
 

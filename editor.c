@@ -1230,7 +1230,7 @@ static void _editor_graceful_exit(int signum) {
     CDL_FOREACH2(_editor.all_bviews, bview, all_next) {
         if (bview->buffer->is_unsaved) {
             snprintf((char*)&path, 64, "mle.bak.%d.%d", getpid(), bview_num);
-            buffer_save_as(bview->buffer, path, strlen(path));
+            buffer_save_as(bview->buffer, path, strlen(path), NULL);
             bview_num += 1;
         }
     }
@@ -1504,6 +1504,10 @@ static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, kbindi
     char* cur_key_patt;
     cur_key_patt = strdup(binding_def->key_patt);
     _editor_init_kmap_add_binding_to_trie(&kmap->bindings->children, binding_def->cmd_name, cur_key_patt, binding_def->key_patt, binding_def->static_param);
+    if (strcmp(binding_def->cmd_name, "cmd_show_help") == 0) {
+        // TODO kind of hacky
+        MLE_SET_INFO(editor, "show_help: Press %s", cur_key_patt);
+    }
     free(cur_key_patt);
 }
 

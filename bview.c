@@ -750,6 +750,10 @@ _bview_draw_status_end:
         int errstrlen = strlen(editor->errstr) + 5; // Add 5 for "err! "
         tb_printf(editor->rect_status, editor->rect_status.w - errstrlen, 0, TB_WHITE | TB_BOLD, TB_RED, "err! %s", editor->errstr);
         editor->errstr[0] = '\0'; // Clear errstr
+    } else if (editor->infostr[0] != '\0') {
+        int infostrlen = strlen(editor->infostr);
+        tb_printf(editor->rect_status, editor->rect_status.w - infostrlen, 0, TB_GREEN | TB_BOLD, 0, "%s", editor->infostr);
+        editor->infostr[0] = '\0'; // Clear errstr
     }
 }
 
