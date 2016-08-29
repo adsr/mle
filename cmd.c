@@ -1136,7 +1136,7 @@ static int _cmd_select_by_string(cursor_t* cursor) {
     uint32_t qchar;
     char* qre;
     mark_clone(cursor->mark, &orig);
-    if (mark_move_prev_re(cursor->mark, "(?<!\\\\)['\"]", strlen("(?<!\\\\)['\"]")) != MLBUF_OK) {
+    if (mark_move_prev_re(cursor->mark, "(?<!\\\\)[`'\"]", strlen("(?<!\\\\)[`'\"]")) != MLBUF_OK) {
         mark_destroy(orig);
         return MLE_ERR;
     }
@@ -1145,8 +1145,10 @@ static int _cmd_select_by_string(cursor_t* cursor) {
     mark_move_by(cursor->mark, 1);
     if (qchar == '"') {
         qre = "(?<!\\\\)\"";
-    } else {
+    } else if (qchar == '\'') {
         qre = "(?<!\\\\)'";
+    } else {
+        qre = "(?<!\\\\)`";
     }
     if (mark_move_next_re(cursor->anchor, qre, strlen(qre)) != MLBUF_OK) {
         _cmd_toggle_anchor(cursor, 0);
