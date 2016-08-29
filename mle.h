@@ -15,10 +15,8 @@ typedef struct bview_listener_s bview_listener_t; // A listener to buffer events
 typedef void (*bview_listener_cb_t)(bview_t* bview, baction_t* action, void* udata); // A bview_listener_t callback
 typedef struct cursor_s cursor_t; // A cursor (insertion mark + selection bound mark) in a buffer
 typedef struct loop_context_s loop_context_t; // Context for a single _editor_loop
+typedef struct cmd_s cmd_t; // A command definition
 typedef struct cmd_context_s cmd_context_t; // Context for a single command invocation
-typedef int (*cmd_func_t)(cmd_context_t* ctx); // A command function
-typedef struct cmd_funcref_s cmd_funcref_t; // A reference to a command function
-typedef int (*cmd_init_func_t)(editor_t* editor, cmd_funcref_t* self, int is_deinit); // A command de/init function
 typedef struct kinput_s kinput_t; // A single key input (similar to a tb_event from termbox)
 typedef struct kmacro_s kmacro_t; // A sequence of kinputs and a name
 typedef struct kmap_s kmap_t; // A map of keychords to functions
@@ -34,6 +32,7 @@ typedef struct editor_prompt_params_s editor_prompt_params_t; // Extra params fo
 typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
 typedef struct prompt_hnode_s prompt_hnode_t; // A node in a linked list of prompt history
+typedef int (*cmd_func_t)(cmd_context_t* ctx);
 
 // kinput_t
 struct kinput_s {
@@ -74,7 +73,7 @@ struct editor_s {
     kmacro_t* macro_apply;
     size_t macro_apply_input_index;
     int is_recording_macro;
-    cmd_funcref_t* func_map;
+    cmd_t* cmd_map;
     kmap_t* kmap_map;
     kmap_t* kmap_normal;
     kmap_t* kmap_prompt_input;
@@ -219,28 +218,23 @@ struct kmacro_s {
     UT_hash_handle hh;
 };
 
-// cmd_funcref_t
-struct cmd_funcref_s {
-#define MLE_FUNCREF(pcmdfn) \
-    (cmd_funcref_t){ #pcmdfn, (pcmdfn), NULL,         NULL, NULL }
-#define MLE_FUNCREF_EX(pcmdfn, pcmdinitfn) \
-    (cmd_funcref_t){ #pcmdfn, (pcmdfn), (pcmdinitfn), NULL, NULL }
-#define MLE_FUNCREF_NONE \
-    (cmd_funcref_t){ NULL, NULL, NULL, NULL, NULL }
+// cmd_t
+struct cmd_s {
     char* name;
     cmd_func_t func;
-    cmd_init_func_t func_init;
+    int (*func_viewport)(cmd_t* self);
+    int (*func_init)(cmd_t* self, int is_deinit);
+    int (*func_display)(cmd_t* self);
     void* udata;
+    int is_resolved;
     UT_hash_handle hh;
 };
 
 // kbinding_def_t
 struct kbinding_def_s {
-#define MLE_KBINDING_DEF(pcmdfn, pkey) \
-    { { #pcmdfn, (pcmdfn), NULL,         NULL, NULL }, (pkey), NULL }
-#define MLE_KBINDING_DEF_EX(pcmdfn, pkey, pstatic, pcmdinitfn) \
-    { { #pcmdfn, (pcmdfn), (pcmdinitfn), NULL, NULL }, (pkey), (pstatic) }
-    cmd_funcref_t funcref;
+    #define MLE_KBINDING_DEF(pcmdname, pkeypatt)             { (pcmdname), (pkeypatt), NULL }
+    #define MLE_KBINDING_DEF_EX(pcmdname, pkeypatt, pstatp)  { (pcmdname), (pkeypatt), (pstatp) }
+    char* cmd_name;
     char* key_patt;
     char* static_param;
 };
@@ -248,8 +242,10 @@ struct kbinding_def_s {
 // kbinding_t
 struct kbinding_s {
     kinput_t input;
-    cmd_funcref_t* funcref;
+    char* cmd_name;
+    cmd_t* cmd;
     char* static_param;
+    int is_leaf;
     kbinding_t* children;
     UT_hash_handle hh;
 };
@@ -267,7 +263,8 @@ struct kmap_s {
     char* name;
     kbinding_t* bindings;
     int allow_fallthru;
-    cmd_funcref_t* default_funcref;
+    char* default_cmd_name;
+    cmd_t* default_cmd;
     UT_hash_handle hh;
 };
 
@@ -312,7 +309,7 @@ struct loop_context_s {
     prompt_hnode_t* prompt_hnode;
     int tab_complete_index;
     char tab_complete_term[MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE];
-    cmd_funcref_t* last_cmd;
+    cmd_t* last_cmd;
 };
 
 // async_proc_t
@@ -356,19 +353,14 @@ struct prompt_hnode_s {
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
 int editor_run(editor_t* editor);
-int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
-int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed);
-int editor_set_active(editor_t* editor, bview_t* bview);
-int editor_set_macro_toggle_key(editor_t* editor, char* key);
-int editor_bview_exists(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);
-int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer);
-int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu);
-int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line);
+int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed);
 int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer);
-int editor_register_cmd(editor_t* editor, char* name, cmd_func_t opt_func, cmd_funcref_t** optret_funcref);
-int editor_get_input(editor_t* editor, cmd_context_t* ctx);
-int editor_display(editor_t* editor);
+int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu);
+int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
+int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer);
+int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line);
+int editor_set_active(editor_t* editor, bview_t* bview);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -486,7 +478,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "0.9"
+#define MLE_VERSION "1.0"
 
 #define MLE_OK 0
 #define MLE_ERR 1

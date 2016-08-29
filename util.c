@@ -470,4 +470,3 @@ static void _util_str_append(char* term, char* term_stop, char** ret_result, int
     memcpy(*ret_result + *ret_result_len, term, term_len);
     *ret_result_len += term_len;
 }
-
