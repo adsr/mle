@@ -1236,6 +1236,8 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF(cmd_move_until_back, "M-; **"),
         MLE_KBINDING_DEF(cmd_move_word_forward, "M-f"),
         MLE_KBINDING_DEF(cmd_move_word_back, "M-b"),
+        MLE_KBINDING_DEF(cmd_move_bracket_forward, "M-]"),
+        MLE_KBINDING_DEF(cmd_move_bracket_back, "M-["),
         MLE_KBINDING_DEF(cmd_search, "C-f"),
         MLE_KBINDING_DEF(cmd_search_next, "C-g"),
         MLE_KBINDING_DEF(cmd_search_next, "F3"),

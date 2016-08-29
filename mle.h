@@ -413,6 +413,8 @@ int cmd_move_to_line(cmd_context_t* ctx);
 int cmd_move_relative(cmd_context_t* ctx);
 int cmd_move_word_forward(cmd_context_t* ctx);
 int cmd_move_word_back(cmd_context_t* ctx);
+int cmd_move_bracket_forward(cmd_context_t* ctx);
+int cmd_move_bracket_back(cmd_context_t* ctx);
 int cmd_apply_macro(cmd_context_t* ctx);
 int cmd_toggle_anchor(cmd_context_t* ctx);
 int cmd_drop_sleeping_cursor(cmd_context_t* ctx);
