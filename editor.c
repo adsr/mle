@@ -53,7 +53,7 @@ static void _editor_register_cmds(editor_t* editor);
 static void _editor_init_kmaps(editor_t* editor);
 static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, char* default_cmd_name, int allow_fallthru, kbinding_def_t* defs);
 static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, kbinding_def_t* binding_def);
-static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_name, char* key_patt, char* static_param);
+static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_name, char* cur_key_patt, char* full_key_patt, char* static_param);
 static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* str);
 static int _editor_init_kmap_add_binding_by_str(editor_t* editor, kmap_t* kmap, char* str);
 static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* trie);
@@ -1299,6 +1299,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd(editor, "cmd_search_next", cmd_search_next);
     _editor_register_cmd(editor, "cmd_set_opt", cmd_set_opt);
     _editor_register_cmd(editor, "cmd_shell", cmd_shell);
+    _editor_register_cmd(editor, "cmd_show_help", cmd_show_help);
     _editor_register_cmd(editor, "cmd_split_horizontal", cmd_split_horizontal);
     _editor_register_cmd(editor, "cmd_split_vertical", cmd_split_vertical);
     _editor_register_cmd(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
@@ -1327,6 +1328,7 @@ static void _editor_register_cmds(editor_t* editor) {
 // Init built-in kmaps
 static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(editor, &editor->kmap_normal, "mle_normal", "cmd_insert_data", 0, (kbinding_def_t[]){
+        MLE_KBINDING_DEF("cmd_show_help", "F2"),
         MLE_KBINDING_DEF("cmd_delete_before", "backspace"),
         MLE_KBINDING_DEF("cmd_delete_before", "backspace2"),
         MLE_KBINDING_DEF("cmd_delete_after", "delete"),
@@ -1499,32 +1501,34 @@ static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, c
 
 // Add a binding to a kmap
 static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, kbinding_def_t* binding_def) {
-    char* key_patt_dup;
-    key_patt_dup = strdup(binding_def->key_patt);
-    _editor_init_kmap_add_binding_to_trie(&kmap->bindings->children, binding_def->cmd_name, key_patt_dup, binding_def->static_param);
-    free(key_patt_dup);
+    char* cur_key_patt;
+    cur_key_patt = strdup(binding_def->key_patt);
+    _editor_init_kmap_add_binding_to_trie(&kmap->bindings->children, binding_def->cmd_name, cur_key_patt, binding_def->key_patt, binding_def->static_param);
+    free(cur_key_patt);
 }
 
 // Add a binding to a kmap trie
-static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_name, char* key_patt, char* static_param) {
-    char* next_key;
+static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_name, char* cur_key_patt, char* full_key_patt, char* static_param) {
+    char* next_key_patt;
     kbinding_t* node;
     kinput_t input;
 
-    // Find next_key and add nullchar to key_patt for this key
-    next_key = strchr(key_patt, ' ');
-    if (next_key != NULL) {
-        *next_key = '\0';
-        next_key += 1;
+    // Find next_key_patt and add null-char to cur_key_patt
+    next_key_patt = strchr(cur_key_patt, ' ');
+    if (next_key_patt != NULL) {
+        *next_key_patt = '\0';
+        next_key_patt += 1;
     }
+    // cur_key_patt points to a null-term cstring now
+    // next_key_patt is either NULL or points to a null-term cstring
 
-    // Parse key_patt token as input
+    // Parse cur_key_patt token as input
     memset(&input, 0, sizeof(kinput_t));
-    if (strcmp("##", key_patt) == 0) {
+    if (strcmp("##", cur_key_patt) == 0) {
         input = MLE_KINPUT_NUMERIC;
-    } else if (strcmp("**", key_patt) == 0) {
+    } else if (strcmp("**", cur_key_patt) == 0) {
         input = MLE_KINPUT_WILDCARD;
-    } else if (_editor_key_to_input(key_patt, &input) == MLE_OK) {
+    } else if (_editor_key_to_input(cur_key_patt, &input) == MLE_OK) {
         // Hi mom!
     } else {
         return MLE_ERR;
@@ -1539,15 +1543,16 @@ static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_na
         HASH_ADD(hh, *trie, input, sizeof(kinput_t), node);
     }
 
-    if (next_key) {
+    if (next_key_patt) {
         // Recurse for next key
-        if (_editor_init_kmap_add_binding_to_trie(&node->children, cmd_name, next_key, static_param) != MLE_OK) {
+        if (_editor_init_kmap_add_binding_to_trie(&node->children, cmd_name, next_key_patt, full_key_patt, static_param) != MLE_OK) {
             free(node);
             return MLE_ERR;
         }
     } else {
         // Leaf node, set cmd
         node->static_param = static_param ? strdup(static_param) : NULL;
+        node->key_patt = strdup(full_key_patt);
         node->cmd_name = strdup(cmd_name);
         node->is_leaf = 1;
     }
@@ -1588,6 +1593,7 @@ static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* trie) {
         HASH_DELETE(hh, trie, binding);
         if (binding->static_param) free(binding->static_param);
         if (binding->cmd_name) free(binding->cmd_name);
+        if (binding->key_patt) free(binding->key_patt);
         free(binding);
     }
     if (is_top) {

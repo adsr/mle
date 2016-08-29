@@ -38,8 +38,8 @@ static int _cmd_select_by_word_back(cursor_t* cursor);
 static int _cmd_select_by_word_forward(cursor_t* cursor);
 static int _cmd_select_by_string(cursor_t* cursor);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
-//static int _cmd_indent_lines(bline_t* start, bline_t* end, int use_tabs, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
+static void _cmd_help_inner(kbinding_t* trie, char** h, int* l, int* s);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -1010,47 +1010,63 @@ int cmd_pop_kmap(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-// Indent/outdent lines, optionally using tabs
-/*
-static int _cmd_indent_lines(bline_t* start, bline_t* end, int use_tabs, int outdent) {
-    buffer_t* buffer;
-    char* data;
-    char* idata;
-    bint_t data_len;
-    int idata_len;
-    bint_t nchars;
-    char* regex;
-    char* repl;
-    buffer = start->buffer;
-    if (outdent) {
-        if (use_tabs) {
-            regex = strdup("(?m)^\\t");
-            repl = strdup("");
-        } else {
-            asprintf(&regex, "(?m)^ {1,%d}", buffer->tab_width);
-            repl = strdup("");
-        }
-    } else {
-        regex = strdup("(?m)^");
-        if (use_tabs) {
-            repl = strdup("\t");
-        } else {
-            repl = malloc(buffer->tab_width + 1);
-            memset(repl, ' ', buffer->tab_width);
-            repl[buffer->tab_width] = '\0';
-        }
+// Show help
+int cmd_show_help(cmd_context_t* ctx) {
+    char* h; // help
+    int l; // len
+    int s; // size
+    kmap_t* kmap;
+    kmap_t* kmap_tmp;
+    bview_t* bview;
+
+    h = NULL;
+    l = 0;
+    s = 0;
+
+    util_str_append(
+        "# mle command help\n\n"
+        "    notes\n"
+        "        C- means Ctrl\n"
+        "        M- means Alt\n\n", NULL,
+        &h, &l, &s
+    );
+
+    HASH_ITER(hh, ctx->editor->kmap_map, kmap, kmap_tmp) {
+        util_str_append("    ", NULL, &h, &l, &s);
+        util_str_append(kmap->name, NULL, &h, &l, &s);
+        util_str_append(" mode\n", NULL, &h, &l, &s);
+        _cmd_help_inner(kmap->bindings->children, &h, &l, &s);
     }
-    buffer_substr(buffer, start, 0, end, end->char_count, &data, &data_len, &nchars);
-    util_pcre_replace(regex, data, repl, &idata, &idata_len);
-    bline_delete(start, 0, nchars);
-    bline_insert(start, 0, idata, (bint_t)idata_len, NULL);
-    free(regex);
-    free(repl);
-    free(data);
-    free(idata);
+
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &ctx->editor->rect_edit, NULL, &bview);
+    buffer_insert(bview->buffer, 0, h, (bint_t)l, NULL);
+    bview->buffer->is_unsaved = 0;
+    mark_move_beginning(bview->active_cursor->mark);
+    bview_zero_viewport_y(bview);
+
+    free(h);
     return MLE_OK;
 }
-*/
+
+// Recursively descend into kbinding trie to build help string
+static void _cmd_help_inner(kbinding_t* trie, char** h, int* l, int* s) {
+    kbinding_t* binding;
+    kbinding_t* binding_tmp;
+    char buf[1024];
+    HASH_ITER(hh, trie, binding, binding_tmp) {
+        if (binding->children) {
+            _cmd_help_inner(binding->children, h, l, s);
+        } else if (binding->is_leaf) {
+            snprintf(buf, sizeof(buf),
+                "        %-40s %-16s %s\n",
+                binding->cmd_name,
+                binding->key_patt,
+                binding->static_param ? binding->static_param : ""
+            );
+            util_str_append(buf, NULL, h, l, s);
+        }
+    }
+}
 
 // Indent/outdent a line, optionally using tabs
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {

@@ -5,8 +5,6 @@
 #include <errno.h>
 #include "mle.h"
 
-static void _util_str_append(char* term, char* term_stop, char** ret_result, int* ret_result_len, int* ret_result_size);
-
 // Run a shell command, optionally feeding stdin, collecting stdout
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len) {
     int rv;
@@ -234,7 +232,7 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
         }
 
         // Append part before match
-        _util_str_append(subj + subj_offset, subj + subj_offset_z, &result, &result_len, &result_size);
+        util_str_append(subj + subj_offset, subj + subj_offset_z, &result, &result_len, &result_size);
         subj_offset = ovector[1];
         subj_look_offset = subj_offset + 1;
 
@@ -293,7 +291,7 @@ int util_replace_with_backrefs(char* subj, char* repl, int pcre_rc, int* pcre_ov
         repl_z = repl_backref ? repl_backref : repl_stop;
 
         // Append part before backref
-        _util_str_append(repl_cur, repl_z, ret_result, ret_result_len, ret_result_size);
+        util_str_append(repl_cur, repl_z, ret_result, ret_result_len, ret_result_size);
 
         // Break if no backref
         if (!repl_backref) break;
@@ -321,7 +319,7 @@ int util_replace_with_backrefs(char* subj, char* repl, int pcre_rc, int* pcre_ov
             term = repl_backref;
             term_stop = term + utf8_char_length(*(term+1));
         }
-        _util_str_append(term, term_stop, ret_result, ret_result_len, ret_result_size);
+        util_str_append(term, term_stop, ret_result, ret_result_len, ret_result_size);
 
         // Advance repl_cur by 2 bytes (marker + backref num)
         repl_cur = repl_backref+2;
@@ -457,16 +455,17 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
     return c;
 }
 
-// Append data between term and term_stop to ret_result. Realloc as needed.
-static void _util_str_append(char* term, char* term_stop, char** ret_result, int* ret_result_len, int* ret_result_size) {
+// Append data between str and str_stop to ret_result. Realloc as needed.
+void util_str_append(char* str, char* opt_str_stop, char** ret_result, int* ret_result_len, int* ret_result_size) {
     #define MLE_UTIL_STR_APPEND_INCR 256
-    int term_len;
-    term_len = term_stop - term;
-    if (term_len < 1) return;
-    if (*ret_result_len + term_len + 1 > *ret_result_size) {
-        *ret_result_size += MLE_MAX(*ret_result_len + term_len + 1, MLE_UTIL_STR_APPEND_INCR);
+    int str_len;
+    if (!opt_str_stop) opt_str_stop = str + strlen(str);
+    str_len = opt_str_stop - str;
+    if (str_len < 1) return;
+    if (*ret_result_len + str_len + 1 > *ret_result_size) {
+        *ret_result_size += MLE_MAX(*ret_result_len + str_len + 1, MLE_UTIL_STR_APPEND_INCR);
         *ret_result = realloc(*ret_result, *ret_result_size);
     }
-    memcpy(*ret_result + *ret_result_len, term, term_len);
-    *ret_result_len += term_len;
+    memcpy(*ret_result + *ret_result_len, str, str_len);
+    *ret_result_len += str_len;
 }

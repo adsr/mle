@@ -245,6 +245,7 @@ struct kbinding_s {
     char* cmd_name;
     cmd_t* cmd;
     char* static_param;
+    char* key_patt;
     int is_leaf;
     kbinding_t* children;
     UT_hash_handle hh;
@@ -453,6 +454,7 @@ int cmd_drop_cursor_column(cmd_context_t* ctx);
 int cmd_noop(cmd_context_t* ctx);
 int cmd_push_kmap(cmd_context_t* ctx);
 int cmd_pop_kmap(cmd_context_t* ctx);
+int cmd_show_help(cmd_context_t* ctx);
 
 // async functions
 async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
@@ -470,6 +472,7 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
 int util_replace_with_backrefs(char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize, char** ret_result, int* ret_result_len, int* ret_result_size);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int len);
+void util_str_append(char* str, char* opt_str_stop, char** ret_result, int* ret_result_len, int* ret_result_size);
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
