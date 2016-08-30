@@ -560,17 +560,21 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] sam command lang and/or vim-normal emulation
-[ ] undo stack with same loop# should get undone as a group option
 [ ] refcounting / guard against invalid api use, e.g., prevent srule_destroy on active srule
     [ ] scriptability + hooks
     [ ] command prompt
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
-[ ] control viewport
+    [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
+    [ ] get rid of bol_rule
+    [ ] test at tests/test_buffer_srule_overlap.c
+[ ] better control of viewport
 [ ] segfault hunt: splits
 [ ] review default key bindings
+[ ] sam command lang and/or vim-normal emulation
+[ ] crash when cat'ing huge files
 --- LOW
-[ ] refactor kmap, ** and ## is kind of inelegant, code not easy to grok
+[ ] undo stack with same loop# should get undone as a group option
+[ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok
 [ ] refactor menu/prompt_menu code
 [ ] refactor aproc/bview, factor out editor.c code into async_proc_read
 [ ] ensure multi_cursor_code impl for all appropriate
