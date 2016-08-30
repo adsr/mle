@@ -35,7 +35,6 @@ static int _editor_prompt_menu_page_down(cmd_context_t* ctx);
 static int _editor_prompt_isearch_next(cmd_context_t* ctx);
 static int _editor_prompt_isearch_prev(cmd_context_t* ctx);
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx);
-static void _editor_startup(editor_t* editor);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
 static void _editor_resize(editor_t* editor, int w, int h);
@@ -90,7 +89,6 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         editor->soft_wrap = MLE_DEFAULT_SOFT_WRAP;
         editor->viewport_scope_x = -4;
         editor->viewport_scope_y = -1;
-        editor->startup_linenum = -1;
         editor->color_col = -1;
         editor->exit_code = EXIT_SUCCESS;
         _editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
@@ -149,7 +147,6 @@ int editor_run(editor_t* editor) {
     loop_context_t loop_ctx;
     memset(&loop_ctx, 0, sizeof(loop_context_t));
     _editor_resize(editor, -1, -1);
-    _editor_startup(editor);
     _editor_loop(editor, &loop_ctx);
     return MLE_OK;
 }
@@ -775,15 +772,6 @@ static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
     ctx->loop_ctx->prompt_answer = NULL;
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
-}
-
-// Run startup actions. This is before any user-input is processed.
-static void _editor_startup(editor_t* editor) {
-    // Jump to line in current bview if specified
-    if (editor->startup_linenum >= 0) {
-        mark_move_to(editor->active_edit->active_cursor->mark, editor->startup_linenum, 0);
-        bview_center_viewport_y(editor->active_edit);
-    }
 }
 
 // Run editor loop
@@ -2029,32 +2017,19 @@ static void _editor_init_status(editor_t* editor) {
 // Init bviews
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
     int i;
-    char* colon;
     char *path;
     int path_len;
 
     // Open bviews
     if (optind >= argc) {
         // Open blank
-        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, NULL);
+        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, NULL);
     } else {
         // Open files
         for (i = optind; i < argc; i++) {
             path = argv[i];
             path_len = strlen(path);
-            if (util_is_file(path, NULL, NULL) || util_is_dir(path)) {
-                // Hi mom
-            } else if ((colon = strrchr(path, ':')) != NULL) {
-                // Try <path>:<lineno> format
-                path_len = colon - path;
-                editor->startup_linenum = strtoul(colon + 1, NULL, 10);
-                if (editor->startup_linenum > 0) editor->startup_linenum -= 1;
-            } else if (strncmp(path, "a/", 2) == 0 || strncmp(path, "b/", 2) == 0) {
-                // Try [ab]/<path> format (git diff prefix)
-                path += 2;
-                path_len -= 2;
-            }
-            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &editor->rect_edit, NULL, NULL);
+            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, NULL, NULL, NULL);
         }
     }
 }

@@ -3,21 +3,23 @@
 #include <wctype.h>
 #include "mle.h"
 
+static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
+static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol);
 static void _bview_init(bview_t* self, buffer_t* buffer);
+static void _bview_init_resized(bview_t* self);
 static kmap_t* _bview_get_init_kmap(editor_t* editor);
+static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
+static int _bview_set_linenum_width(bview_t* self);
 static void _bview_deinit(bview_t* self);
-static buffer_t* _bview_open_buffer(bview_t* self, char* path, int path_len);
+static void _bview_set_tab_width(bview_t* self, int tab_width);
+static void _bview_fix_path(bview_t* self, char* path, int path_len, char** ret_path, int* ret_path_len, bint_t* ret_line_num);
+static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_len);
 static void _bview_draw_prompt(bview_t* self);
 static void _bview_draw_status(bview_t* self);
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t** optret_bline, int* optret_rect_y);
-static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
-static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
-static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol);
-static int _bview_set_linenum_width(bview_t* self);
 static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark);
 static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell);
-static void _bview_set_tab_width(bview_t* self, int tab_width);
 
 // Create a new bview
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
@@ -131,6 +133,11 @@ int bview_resize(bview_t* self, int x, int y, int w, int h) {
             w - (self->split_is_vertical ? aw : 0),
             h - (self->split_is_vertical ? 0 : ah)
         );
+    }
+
+    if (!self->is_resized) {
+        _bview_init_resized(self);
+        self->is_resized = 1;
     }
 
     bview_rectify_viewport(self);
@@ -422,6 +429,15 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
     bview_add_cursor(self, self->buffer->first_line, 0, &cursor_tmp);
 }
 
+// Invoked once after a bview has been resized for the first time
+static void _bview_init_resized(bview_t* self) {
+    // Move cursor to startup line if present
+    if (self->startup_linenum > 0) {
+        mark_move_to(self->active_cursor->mark, self->startup_linenum, 0);
+        bview_center_viewport_y(self);
+    }
+}
+
 // Return initial kmap to use
 static kmap_t* _bview_get_init_kmap(editor_t* editor) {
     if (!editor->kmap_init) {
@@ -612,16 +628,92 @@ static void _bview_set_tab_width(bview_t* self, int tab_width) {
     }
 }
 
+// Attempt to fix path by stripping away git-style diff prefixes ([ab/]) and/or
+// by extracting a trailing line number after a colon (:)
+static void _bview_fix_path(bview_t* self, char* path, int path_len, char** ret_path, int* ret_path_len, bint_t* ret_line_num) {
+    char* tmp;
+    int tmp_len;
+    char* colon;
+    int is_valid;
+    int fix_nudge;
+    int fix_len;
+    bint_t line_num;
+
+    fix_nudge = 0;
+    fix_len = path_len;
+    line_num = 0;
+
+    // Path already valid?
+    if (util_is_file(path, NULL, NULL) || util_is_dir(path)) {
+        goto _bview_fix_path_ret;
+    }
+
+    // Path valid if we strip "[ab]/" prefix?
+    if (path_len >= 3
+        && (strncmp(path, "a/", 2) == 0 || strncmp(path, "b/", 2) == 0)
+        && (util_is_file(path+2, NULL, NULL) || util_is_dir(path+2))
+    ) {
+        fix_nudge = 2;
+        fix_len -= 2;
+        goto _bview_fix_path_ret;
+    }
+
+    // Path valid if we extract line num after colon?
+    if ((colon = strrchr(path, ':')) != NULL) {
+        tmp_len = colon - path;
+        tmp = strndup(path, tmp_len);
+        is_valid = util_is_file(tmp, NULL, NULL) ? 1 : 0;
+        free(tmp);
+        if (is_valid) {
+            fix_len = tmp_len;
+            line_num = strtoul(colon + 1, NULL, 10);
+            goto _bview_fix_path_ret;
+        }
+    }
+
+    // Path valid if we strip "[ab]/" prefix and extract line num?
+    if (path_len >= 3
+        && (strncmp(path, "a/", 2) == 0 || strncmp(path, "b/", 2) == 0)
+        && (colon = strrchr(path, ':')) != NULL
+    ) {
+        tmp_len = (colon - path) - 2;
+        tmp = strndup(path+2, tmp_len);
+        is_valid = util_is_file(tmp, NULL, NULL) ? 1 : 0;
+        free(tmp);
+        if (is_valid) {
+            fix_nudge = 2;
+            fix_len = tmp_len;
+            line_num = strtoul(colon + 1, NULL, 10);
+            goto _bview_fix_path_ret;
+        }
+    }
+
+_bview_fix_path_ret:
+    *ret_path = strndup(path + fix_nudge, fix_len);
+    *ret_path_len = strlen(*ret_path);
+    *ret_line_num = line_num > 0 ? line_num - 1 : 0;
+}
+
 // Open a buffer with an optional path to load, otherwise empty
 static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_len) {
     buffer_t* buffer;
+    int has_path;
+    bint_t startup_line_num;
+    char* fix_path;
+    int fix_path_len;
+
     buffer = NULL;
-    if (opt_path && opt_path_len > 0) {
-        buffer = buffer_new_open(opt_path, opt_path_len);
+    has_path = opt_path && opt_path_len > 0 ? 1 : 0;
+
+    if (has_path) {
+        _bview_fix_path(self, opt_path, opt_path_len, &fix_path, &fix_path_len, &startup_line_num);
+        buffer = buffer_new_open(fix_path, fix_path_len);
+        if (buffer) self->startup_linenum = startup_line_num;
+        free(fix_path);
     }
     if (!buffer) {
         buffer = buffer_new();
-        if (opt_path && opt_path_len > 0) {
+        if (has_path) {
             buffer->path = strndup(opt_path, opt_path_len);
         }
     }
@@ -752,7 +844,7 @@ _bview_draw_status_end:
         editor->errstr[0] = '\0'; // Clear errstr
     } else if (editor->infostr[0] != '\0') {
         int infostrlen = strlen(editor->infostr);
-        tb_printf(editor->rect_status, editor->rect_status.w - infostrlen, 0, TB_GREEN | TB_BOLD, 0, "%s", editor->infostr);
+        tb_printf(editor->rect_status, editor->rect_status.w - infostrlen, 0, TB_WHITE, 0, "%s", editor->infostr);
         editor->infostr[0] = '\0'; // Clear errstr
     }
 }

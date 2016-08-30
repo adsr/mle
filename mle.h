@@ -102,7 +102,6 @@ struct editor_s {
     int viewport_scope_y; // TODO cli option
     loop_context_t* loop_ctx;
     int loop_depth;
-    bint_t startup_linenum;
     int is_in_init;
     char* insertbuf;
     size_t insertbuf_size;
@@ -147,6 +146,7 @@ struct bview_s {
     int y;
     int w;
     int h;
+    int is_resized;
     int type;
     int linenum_width;
     int abs_linenum_width;
@@ -169,6 +169,7 @@ struct bview_s {
     int split_is_vertical;
     char* prompt_str;
     char* path;
+    bint_t startup_linenum;
     kmap_node_t* kmap_stack;
     kmap_node_t* kmap_tail;
     cursor_t* cursors;
@@ -568,7 +569,6 @@ TODO
 [ ] control viewport
 [ ] segfault hunt: splits
 [ ] review default key bindings
-[ ] [ab]/<file>:<num> should work everywhere
 --- LOW
 [ ] refactor kmap, ** and ## is kind of inelegant, code not easy to grok
 [ ] refactor menu/prompt_menu code
