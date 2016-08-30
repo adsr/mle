@@ -60,7 +60,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str);
 static void _editor_init_syntaxes(editor_t* editor);
 static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, int tab_width, int tab_to_space, srule_def_t* defs);
 static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str);
-static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def);
+static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t* def);
 static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str);
 static void _editor_destroy_syntax_map(syntax_t* map);
 static int _editor_init_from_rc_read(editor_t* editor, FILE* rc, char** ret_rc_data, size_t* ret_rc_data_len);
@@ -1699,7 +1699,7 @@ static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char
     syntax->tab_to_space = tab_to_space >= 0 ? (tab_to_space ? 1 : 0) : -1;
 
     while (defs && defs->re) {
-        _editor_init_syntax_add_rule(syntax, *defs);
+        _editor_init_syntax_add_rule(syntax, defs);
         defs++;
     }
     HASH_ADD_KEYPTR(hh, editor->syntax_map, syntax->name, strlen(syntax->name), syntax);
@@ -1719,13 +1719,13 @@ static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, c
 }
 
 // Add rule to syntax
-static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t def) {
+static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t* def) {
     srule_node_t* node;
     node = calloc(1, sizeof(srule_node_t));
-    if (def.re_end) {
-        node->srule = srule_new_multi(def.re, strlen(def.re), def.re_end, strlen(def.re_end), def.fg, def.bg);
+    if (def->re_end) {
+        node->srule = srule_new_multi(def->re, strlen(def->re), def->re_end, strlen(def->re_end), def->fg, def->bg);
     } else {
-        node->srule = srule_new_single(def.re, strlen(def.re), 0, def.fg, def.bg);
+        node->srule = srule_new_single(def->re, strlen(def->re), 0, def->fg, def->bg);
     }
     if (node->srule) DL_APPEND(syntax->srules, node);
 }
@@ -1739,7 +1739,7 @@ static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str) {
     args[2] = strtok(NULL, ","); if (!args[2]) return MLE_ERR;
     args[3] = strtok(NULL, ",");
     style_i = args[3] ? 2 : 1;
-    _editor_init_syntax_add_rule(syntax, (srule_def_t){ args[0], style_i == 2 ? args[1] : NULL, atoi(args[style_i]), atoi(args[style_i + 1]) });
+    _editor_init_syntax_add_rule(syntax, &((srule_def_t){ args[0], style_i == 2 ? args[1] : NULL, atoi(args[style_i]), atoi(args[style_i + 1]) }));
     return MLE_OK;
 }
 
