@@ -695,7 +695,7 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_
 
     if (has_path) {
         _bview_fix_path(self, opt_path, opt_path_len, &fix_path, &fix_path_len, &startup_line_num);
-        buffer = buffer_new_open(fix_path, fix_path_len);
+        buffer = buffer_new_open(fix_path);
         if (buffer) self->startup_linenum = startup_line_num;
         free(fix_path);
     }

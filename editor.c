@@ -1218,7 +1218,7 @@ static void _editor_graceful_exit(int signum) {
     CDL_FOREACH2(_editor.all_bviews, bview, all_next) {
         if (bview->buffer->is_unsaved) {
             snprintf((char*)&path, 64, "mle.bak.%d.%d", getpid(), bview_num);
-            buffer_save_as(bview->buffer, path, strlen(path), NULL);
+            buffer_save_as(bview->buffer, path, NULL);
             bview_num += 1;
         }
     }

@@ -1331,7 +1331,7 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
         }
 
         // Save, check error
-        rc = buffer_save_as(bview->buffer, path, strlen(path), &nbytes);
+        rc = buffer_save_as(bview->buffer, path, &nbytes);
         free(path);
         if (rc == MLBUF_ERR) {
             MLE_SET_ERR(editor, "save: %s", errno ? strerror(errno) : "failed");

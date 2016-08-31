@@ -15,6 +15,7 @@ mle is a small but powerful console text editor written in C.
 * Multiple windows
 * Window splitting
 * Regex search and replace
+* Large file support
 * Incremental search
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
@@ -39,7 +40,7 @@ mle is customized via an rc file, `~/.mlerc` (or `/etc/mlerc`). The contents of
 the rc file are any number of cli options separated by newlines. (Run `mle -h`
 to view all cli options.) Lines that begin with a semi-colon are comments.
 
-Alternatively, if `~/.mlerc` executable, mle executes it and interprets the
+Alternatively, if `~/.mlerc` is executable, mle executes it and interprets the
 resulting stdout as described above.
 
 For example, my rc file is an executable php script, and includes the following

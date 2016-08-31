@@ -560,7 +560,6 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] large file support (almost done)
 [ ] refcounting / guard against invalid api use, e.g., prevent srule_destroy on active srule
     [ ] scriptability + hooks
     [ ] command prompt
