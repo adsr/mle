@@ -560,6 +560,7 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
+[ ] large file support (almost done)
 [ ] refcounting / guard against invalid api use, e.g., prevent srule_destroy on active srule
     [ ] scriptability + hooks
     [ ] command prompt
@@ -571,7 +572,7 @@ TODO
 [ ] segfault hunt: splits
 [ ] review default key bindings
 [ ] sam command lang and/or vim-normal emulation
-[ ] crash when cat'ing huge files
+[ ] crash when M-e cat'ing huge files?
 --- LOW
 [ ] undo stack with same loop# should get undone as a group option
 [ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok

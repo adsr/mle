@@ -1817,7 +1817,7 @@ static int _editor_init_from_rc_exec(editor_t* editor, char* rc_path, char** ret
 // Parse rc file
 static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path) {
     int rv;
-    size_t rc_data_len;;
+    size_t rc_data_len;
     char *rc_data;
     char *rc_data_stop;
     char* eol;
@@ -1826,6 +1826,8 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path) {
     char** fargv;
     struct stat statbuf;
     rv = MLE_OK;
+    rc_data = NULL;
+    rc_data_len = 0;
 
     // Read or exec rc file
     if (fstat(fileno(rc), &statbuf) == 0 && statbuf.st_mode & S_IXUSR) {

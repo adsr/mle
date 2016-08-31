@@ -344,6 +344,7 @@ int cmd_drop_cursor_column(cmd_context_t* ctx) {
         col = cursor->mark->col;
         bview_cursor_get_lo_hi(cursor, &lo, &hi);
         for (bline = lo->bline; bline != hi->bline->next; bline = bline->next) {
+            MLBUF_BLINE_ENSURE_CHARS(bline);
             if ((bline == lo->bline && col < lo->col)
                 || (bline == hi->bline && col > hi->col)
                 || col > bline->char_count
@@ -1117,6 +1118,7 @@ static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {
     bint_t ig;
     tab_char = use_tabs ? '\t' : ' ';
     num_chars = use_tabs ? 1 : bline->buffer->tab_width;
+    MLBUF_BLINE_ENSURE_CHARS(bline);
     if (outdent) {
         num_to_del = 0;
         for (i = 0; i < num_chars; i++) {

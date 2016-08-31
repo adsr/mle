@@ -4,7 +4,6 @@
 #include "mle.h"
 
 static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
-static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol);
 static void _bview_init(bview_t* self, buffer_t* buffer);
 static void _bview_init_resized(bview_t* self);
 static kmap_t* _bview_get_init_kmap(editor_t* editor);
@@ -330,7 +329,7 @@ int bview_rectify_viewport(bview_t* self) {
 
     // Rectify each dimension of the viewport
     _bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x_vcol);
-    self->viewport_x = _bview_get_col_from_vcol(self, mark->bline, self->viewport_x_vcol);
+    bline_get_col_from_vcol(mark->bline, self->viewport_x_vcol, &(self->viewport_x));
 
     if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y)) {
         // TODO viewport_y_vrow (soft-wrapped lines, code folding, etc)
@@ -389,17 +388,6 @@ static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpo
     }
 
     return rc;
-}
-
-// Convert a vcol to a col
-static bint_t _bview_get_col_from_vcol(bview_t* self, bline_t* bline, bint_t vcol) {
-    bint_t i;
-    for (i = 0; i < bline->char_count; i++) {
-        if (vcol <= bline->chars[i].vcol) {
-            return i;
-        }
-    }
-    return bline->char_count;
 }
 
 // Init a bview with a buffer
@@ -780,10 +768,10 @@ static void _bview_draw_status(bview_t* self) {
     if (editor->async_procs) {
         i_async_fg = TB_BLACK | TB_BOLD;
         i_async_bg = TB_YELLOW;
-        if (i_async_idx < 100)      i_async = "\xe2\x96\x9d";
-        else if (i_async_idx < 200) i_async = "\xe2\x96\x97";
-        else if (i_async_idx < 300) i_async = "\xe2\x96\x96";
-        else if (i_async_idx < 400) i_async = "\xe2\x96\x98";
+        if (i_async_idx < 100)         i_async = "\xe2\x96\x9d";
+        else if (i_async_idx < 200)    i_async = "\xe2\x96\x97";
+        else if (i_async_idx < 300)    i_async = "\xe2\x96\x96";
+        else /* (i_async_idx < 400) */ i_async = "\xe2\x96\x98";
         if (++i_async_idx >= 400) i_async_idx = 0;
     } else {
         i_async_fg = 0;
@@ -817,6 +805,7 @@ static void _bview_draw_status(bview_t* self) {
     }
 
     // Render status line
+    MLBUF_BLINE_ENSURE_CHARS(mark->bline);
     tb_printf(editor->rect_status, 0, 0, 0, 0, "%*.*s", editor->rect_status.w, editor->rect_status.w, " ");
     tb_printf_attr(editor->rect_status, 0, 0,
         "@%d,%d;%s@%d,%d;"                                // mle_normal    mode
@@ -940,6 +929,8 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t
     int is_soft_wrap;
     int orig_rect_y;
 
+    MLBUF_BLINE_ENSURE_CHARS(bline);
+
     // Set is_cursor_line
     is_cursor_line = self->active_cursor->mark->bline == bline ? 1 : 0;
 
@@ -982,8 +973,8 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t
         char_w = 1;
         if (char_col < bline->char_count) {
             ch = bline->chars[char_col].ch;
-            fg = bline->char_styles[char_col].fg;
-            bg = bline->char_styles[char_col].bg;
+            fg = bline->chars[char_col].style.fg;
+            bg = bline->chars[char_col].style.bg;
             char_w = char_col == bline->char_count - 1
                 ? bline->char_vwidth - bline->chars[char_col].vcol
                 : bline->chars[char_col + 1].vcol - bline->chars[char_col].vcol;
@@ -1031,6 +1022,9 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
     int screen_x;
     int screen_y;
     struct tb_cell* cell;
+
+    MLBUF_BLINE_ENSURE_CHARS(mark->bline);
+
     if (mark_is_at_eol(mark) || !util_get_bracket_pair(mark->bline->chars[mark->col].ch, NULL)) {
         // Not a bracket
         return;
@@ -1058,6 +1052,8 @@ static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int
     int screen_x;
     int screen_y;
     int is_soft_wrapped;
+
+    MLBUF_BLINE_ENSURE_CHARS(mark->bline);
 
     is_soft_wrapped = self->editor->soft_wrap
         && self->active_cursor->mark->bline == mark->bline
