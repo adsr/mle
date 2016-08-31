@@ -57,6 +57,8 @@ working directory.
 
 View more demos [here](http://imgur.com/a/ZBmmQ).
 
+View startup benchmark against vim [here](http://i.imgur.com/VGGMmGg.gif).
+
 ### Known bugs
 
 * Multi-line style rules don't work properly when overlapped/staggered.
