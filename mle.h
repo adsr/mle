@@ -573,6 +573,7 @@ TODO
 [ ] sam command lang and/or vim-normal emulation
 [ ] crash when M-e cat'ing huge files?
 --- LOW
+[ ] when opening path check if a buffer exists that already has it open via inode
 [ ] undo stack with same loop# should get undone as a group option
 [ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok
 [ ] refactor menu/prompt_menu code
