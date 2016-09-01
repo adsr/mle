@@ -8,41 +8,37 @@
 #include "mle.h"
 
 // Return a new async_proc_t
-async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd) {
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int timeout_sec, int timeout_usec, async_proc_cb_t callback) {
     async_proc_t* aproc;
-
-    // Make async proc
     aproc = calloc(1, sizeof(async_proc_t));
-    async_proc_set_invoker(aproc, invoker);
-    aproc->pipe = popen(shell_cmd, "r");
-    setvbuf(aproc->pipe, NULL, _IONBF, 0);
-    aproc->pipefd = fileno(aproc->pipe);
+    aproc->editor = editor;
+    async_proc_set_owner(aproc, owner, owner_aproc);
+    aproc->rpipe = popen(shell_cmd, "r");
+    aproc->rfd = fileno(aproc->rpipe);
     aproc->timeout.tv_sec = timeout_sec;
     aproc->timeout.tv_usec = timeout_usec;
     aproc->callback = callback;
-
-    DL_APPEND(aproc->editor->async_procs, aproc);
+    DL_APPEND(editor->async_procs, aproc);
     return aproc;
 }
 
-// Set invoker
-int async_proc_set_invoker(async_proc_t* aproc, bview_t* invoker) {
-    if (aproc->invoker) {
-        aproc->invoker->async_proc = NULL;
+// Set aproc owner
+int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_aproc) {
+    if (aproc->owner_aproc) {
+        *aproc->owner_aproc = NULL;
     }
-    aproc->invoker = invoker;
-    aproc->editor = invoker->editor;
-    invoker->async_proc = aproc;
+    *owner_aproc = aproc;
+    aproc->owner = owner;
+    aproc->owner_aproc = owner_aproc;
     return MLE_OK;
 }
 
 // Destroy an async_proc_t
 int async_proc_destroy(async_proc_t* aproc) {
     DL_DELETE(aproc->editor->async_procs, aproc);
-    pclose(aproc->pipe);
-    if (aproc->invoker && aproc->invoker->async_proc == aproc) {
-        aproc->invoker->async_proc = NULL;
-    }
+    if (aproc->owner_aproc) *aproc->owner_aproc = NULL;
+    if (aproc->rpipe) pclose(aproc->rpipe);
+    if (aproc->wpipe) pclose(aproc->wpipe);
     free(aproc);
     return MLE_OK;
 }
@@ -83,8 +79,8 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     // Add async procs to readfds
     maxfd = *ttyfd;
     DL_FOREACH(aprocs, aproc) {
-        FD_SET(aproc->pipefd, &readfds);
-        if (aproc->pipefd > maxfd) maxfd = aproc->pipefd;
+        FD_SET(aproc->rfd, &readfds);
+        if (aproc->rfd > maxfd) maxfd = aproc->rfd;
     }
 
     // Perform select
@@ -105,13 +101,13 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
         DL_FOREACH_SAFE(aprocs, aproc, aproc_tmp) {
             // Read and invoke callback
             is_done = 0;
-            if (FD_ISSET(aproc->pipefd, &readfds)) {
-                nbytes = fread(&buf, sizeof(char), 1024, aproc->pipe);
+            if (FD_ISSET(aproc->rfd, &readfds)) {
+                nbytes = fread(&buf, sizeof(char), 1024, aproc->rpipe);
                 if (nbytes > 0) {
                     buf[nbytes] = '\0';
-                    aproc->callback(aproc, buf, nbytes, ferror(aproc->pipe), feof(aproc->pipe), 0);
+                    aproc->callback(aproc, buf, nbytes, ferror(aproc->rpipe), feof(aproc->rpipe), 0);
                 }
-                is_done = ferror(aproc->pipe) || feof(aproc->pipe);
+                is_done = ferror(aproc->rpipe) || feof(aproc->rpipe);
             }
 
             // Close and free if eof, error, or timeout

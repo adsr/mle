@@ -265,7 +265,7 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
     menu->menu_callback = callback;
     bview_push_kmap(menu, editor->kmap_menu);
     if (opt_aproc) {
-        async_proc_set_invoker(opt_aproc, menu);
+        async_proc_set_owner(opt_aproc, menu, &(menu->async_proc));
     }
     if (opt_buf_data) {
         mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);

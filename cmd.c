@@ -27,7 +27,7 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
 static void _cmd_toggle_anchor(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
-static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
+static void _cmd_aproc_bview_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_browse_cb(cmd_context_t* ctx);
 static int _cmd_grep_cb(cmd_context_t* ctx);
@@ -682,7 +682,8 @@ int cmd_grep(cmd_context_t* ctx) {
     if (!cmd) {
         MLE_RETURN_ERR(ctx->editor, "Failed to format grep cmd: %s", grep_fmt);
     }
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
+
+    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 1, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     editor_menu(ctx->editor, _cmd_grep_cb, NULL, 0, aproc, NULL);
     return MLE_OK;
@@ -694,7 +695,7 @@ int cmd_browse(cmd_context_t* ctx) {
     async_proc_t* aproc;
     char* cmd;
     asprintf(&cmd, "tree --charset C -n -f -L 2 %s 2>/dev/null", ctx->static_param ? ctx->static_param : "");
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, cmd);
+    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 1, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     editor_menu(ctx->editor, _cmd_browse_cb, "..\n", 3, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
@@ -1427,22 +1428,25 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
 }
 
 // Aproc callback that writes buf to bview buffer
-static void _cmd_aproc_passthru_cb(async_proc_t* aproc, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout) {
+static void _cmd_aproc_bview_passthru_cb(async_proc_t* aproc, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout) {
     mark_t* active_mark;
     mark_t* ins_mark;
     int is_cursor_at_zero;
+    bview_t* bview;
+
     if (!buf || buf_len < 1) return;
 
     // Remeber if cursor is at 0
-    active_mark = aproc->invoker->active_cursor->mark;
+    bview = (bview_t*)aproc->owner;
+    active_mark = bview->active_cursor->mark;
     is_cursor_at_zero = active_mark->bline->line_index == 0 && active_mark->col == 0 ? 1 : 0;
 
     // Append data at end of menu buffer
-    ins_mark = buffer_add_mark(aproc->invoker->buffer, NULL, 0);
+    ins_mark = buffer_add_mark(bview->buffer, NULL, 0);
     mark_move_end(ins_mark);
     mark_insert_before(ins_mark, buf, buf_len);
     mark_destroy(ins_mark);
-    bview_rectify_viewport(aproc->invoker);
+    bview_rectify_viewport(bview);
 
     if (is_cursor_at_zero) mark_move_beginning(active_mark);
 }

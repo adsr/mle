@@ -319,9 +319,12 @@ struct loop_context_s {
 // async_proc_t
 struct async_proc_s {
     editor_t* editor;
-    bview_t* invoker;
-    FILE* pipe;
-    int pipefd;
+    void* owner;
+    async_proc_t** owner_aproc;
+    FILE* rpipe;
+    FILE* wpipe;
+    int rfd;
+    int wfd;
     int is_done;
     struct timeval timeout;
     async_proc_cb_t callback;
@@ -466,8 +469,8 @@ int cmd_pop_kmap(cmd_context_t* ctx);
 int cmd_show_help(cmd_context_t* ctx);
 
 // async functions
-async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
-int async_proc_set_invoker(async_proc_t* aproc, bview_t* invoker);
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int timeout_sec, int timeout_usec, async_proc_cb_t callback);
+int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_aproc);
 int async_proc_destroy(async_proc_t* aproc);
 int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd);
 
@@ -585,7 +588,7 @@ TODO
 [ ] when opening path check if a buffer exists that already has it open via inode
 [ ] undo stack with same loop# should get undone as a group option
 [ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok
-[ ] refactor aproc and menu code, decouple aproc and bview
+[ ] refactor aproc and menu code
 [ ] ensure multi_cursor_code impl for all appropriate
 [ ] makefile params, config.mk
 [ ] segfault hunt: async proc broken pipe
