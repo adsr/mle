@@ -6,7 +6,9 @@
 #include "mle.h"
 
 // Run a shell command, optionally feeding stdin, collecting stdout
+// Specify timeout_s=-1 for no timeout
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len) {
+    // TODO clean this crap up
     int rv;
     int readfd;
     int writefd;
@@ -17,15 +19,21 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     ssize_t nbytes;
     fd_set readfds;
     struct timeval timeout;
+    struct timeval* timeoutptr;
+    FILE* readfp;
 
     // Open cmd
-    if (!util_popen2(cmd, opt_shell, &readfd, &writefd)) {
-        MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
-    }
-
-    // Close write pipe if no input
-    if (input_len < 1) {
-        close(writefd);
+    readfp = NULL;
+    if (input && input_len > 0) {
+        if (!util_popen2(cmd, opt_shell, &readfd, &writefd)) {
+            MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
+        }
+    } else {
+        if (!(readfp = popen(cmd, "r"))) {
+            MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
+        }
+        readfd = fileno(readfp);
+        writefd = 0; // TODO 0 is a valid albeit unlikely fd, should use -1
     }
 
     // Read-write loop
@@ -53,11 +61,16 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
         }
 
         // Read shell cmd, timing out after timeout_sec
-        timeout.tv_sec = timeout_s;
-        timeout.tv_usec = 0;
+        if (timeout_s >= 0) {
+            timeout.tv_sec = timeout_s;
+            timeout.tv_usec = 0;
+            timeoutptr = &timeout;
+        } else {
+            timeoutptr = NULL;
+        }
         FD_ZERO(&readfds);
         FD_SET(readfd, &readfds);
-        rc = select(readfd + 1, &readfds, NULL, NULL, &timeout);
+        rc = select(readfd + 1, &readfds, NULL, NULL, timeoutptr);
         if (rc < 0) {
             // Err on select
             MLE_SET_ERR(editor, "select error: %s", strerror(errno));
@@ -87,7 +100,11 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     } while(nbytes > 0);
 
     // Close pipes
-    if (readfd) close(readfd);
+    if (readfp) {
+        pclose(readfp);
+    } else if (readfd) {
+        close(readfd);
+    }
     if (writefd) close(writefd);
 
     *ret_output = readbuf;
@@ -99,7 +116,6 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
 
 // Like popen, but bidirectional. Returns 1 on success, 0 on failure.
 int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite) {
-    FILE* fr;
     pid_t pid;
     int pin[2];
     int pout[2];
@@ -132,9 +148,6 @@ int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite) {
     // Parent
     close(pout[1]);
     close(pin[0]);
-    fr = fdopen(dup(pout[0]), "r");
-    setvbuf(fr, NULL, _IONBF, 0);
-    fclose(fr);
     *ret_fdread = pout[0];
     *ret_fdwrite = pin[1];
     return 1;

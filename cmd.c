@@ -20,6 +20,7 @@
     } \
 } while(0)
 
+static void _cmd_force_redraw(cmd_context_t* ctx);
 static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview, int save_as);
@@ -27,7 +28,6 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int appe
 static void _cmd_toggle_anchor(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
 static void _cmd_aproc_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
-static void _cmd_fsearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_browse_cb(cmd_context_t* ctx);
 static int _cmd_grep_cb(cmd_context_t* ctx);
@@ -520,19 +520,8 @@ int cmd_replace(cmd_context_t* ctx) {
 
 // Redraw screen
 int cmd_redraw(cmd_context_t* ctx) {
-    int w;
-    int h;
-    int x;
-    int y;
     bview_center_viewport_y(ctx->bview);
-    w = tb_width();
-    h = tb_height();
-    for (x = 0; x < w; x++) {
-        for (y = 0; y < h; y++) {
-            tb_change_cell(x, y, 160, 0, 0);
-        }
-    }
-    tb_present();
+    _cmd_force_redraw(ctx);
     return MLE_OK;
 }
 
@@ -652,20 +641,23 @@ int cmd_split_horizontal(cmd_context_t* ctx) {
 
 // Fuzzy path search via fzf
 int cmd_fsearch(cmd_context_t* ctx) {
-    async_proc_t* aproc;
     char* path;
-    int replace_view;
-    replace_view = ctx->static_param && strcmp(ctx->static_param, "replace") == 0 ? 1 : 0;
-    if (replace_view && _cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
-    aproc = async_proc_new(ctx->bview, 1, 0, _cmd_aproc_passthru_cb, "fzf -f '' 2>/dev/null");
-    editor_prompt_menu(ctx->editor, "fsearch: Fuzzy path?", NULL, 0, _cmd_fsearch_prompt_cb, aproc, &path);
-    if (replace_view) {
-        bview_open(ctx->bview, path, path ? strlen(path) : 0);
-        bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
-    } else if (path) {
-        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+    size_t path_len;
+    path = NULL;
+    if (util_shell_exec(ctx->editor, "fzf", -1, NULL, 0, NULL, &path, &path_len) == MLE_ERR) {
+        return MLE_ERR;
     }
-    if (path) free(path);
+    _cmd_force_redraw(ctx);
+    if (path && path_len > 0) {
+        while (path[path_len-1] == '\n') {
+            // Strip trailing newlines
+            path_len -= 1;
+        }
+        if (path_len > 0) {
+            editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+        }
+    }
+    free(path);
     return MLE_OK;
 }
 
@@ -941,6 +933,26 @@ int cmd_shell(cmd_context_t* ctx) {
 
     free(cmd);
     return MLE_OK;
+}
+
+// Force a redraw of the screen
+static void _cmd_force_redraw(cmd_context_t* ctx) {
+    int w;
+    int h;
+    int x;
+    int y;
+    tb_shutdown();
+    tb_init();
+    tb_select_input_mode(TB_INPUT_ALT);
+    tb_set_cursor(-1, -1);
+    w = tb_width();
+    h = tb_height();
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            tb_change_cell(x, y, 160, 0, 0);
+        }
+    }
+    tb_present();
 }
 
 // Indent or outdent line(s)
@@ -1463,32 +1475,6 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
     }
 
     bview_center_viewport_y(bview);
-}
-
-// Fuzzy path search prompt callback
-static void _cmd_fsearch_prompt_cb(bview_t* bview_prompt, baction_t* action, void* udata) {
-    async_proc_t* aproc;
-    bview_t* menu;
-    char* shell_cmd;
-    char* shell_arg;
-
-    // Get menu and aproc
-    menu = bview_prompt->editor->active_edit;
-    aproc = menu->async_proc;
-    if (aproc && aproc->invoker == menu) {
-        // Mark current aproc is_done
-        aproc->is_done = 1;
-    }
-
-    // Clear menu
-    buffer_set(menu->buffer, "", 0);
-
-    // Make new aproc
-    shell_arg = util_escape_shell_arg(bview_prompt->buffer->first_line->data, bview_prompt->buffer->first_line->data_len);
-    asprintf(&shell_cmd, "fzf -f %s 2>/dev/null", shell_arg);
-    menu->async_proc = async_proc_new(menu, 1, 0, _cmd_aproc_passthru_cb, shell_cmd);
-    free(shell_arg);
-    free(shell_cmd);
 }
 
 // Callback from cmd_grep

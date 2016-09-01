@@ -268,41 +268,13 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
     menu->is_menu = 1;
     menu->menu_callback = callback;
     bview_push_kmap(menu, editor->kmap_menu);
-    if (opt_buf_data) {
-        mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
-    }
     if (opt_aproc) {
         async_proc_set_invoker(opt_aproc, menu);
+    }
+    if (opt_buf_data) {
+        mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
     }
     if (optret_menu) *optret_menu = menu;
-    return MLE_OK;
-}
-
-// Open dialog menu with prompt
-int editor_prompt_menu(editor_t* editor, char* prompt, char* opt_buf_data, int opt_buf_data_len, bview_listener_cb_t opt_prompt_cb, async_proc_t* opt_aproc, char** optret_line) {
-    bview_t* menu;
-    bview_t* orig;
-    char* prompt_answer;
-    orig = editor->active;
-    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, &menu);
-    menu->is_menu = 1;
-    if (opt_aproc) {
-        async_proc_set_invoker(opt_aproc, menu);
-    }
-    if (opt_buf_data) {
-        mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
-    }
-    editor_prompt(editor, prompt, &(editor_prompt_params_t) { .kmap = editor->kmap_prompt_menu, .prompt_cb = opt_prompt_cb }, &prompt_answer);
-    if (optret_line) {
-        if (prompt_answer) {
-            *optret_line = strndup(menu->active_cursor->mark->bline->data, menu->active_cursor->mark->bline->data_len);
-            free(prompt_answer);
-        } else {
-            *optret_line = NULL;
-        }
-    }
-    editor_close_bview(editor, menu, NULL);
-    editor_set_active(editor, orig);
     return MLE_OK;
 }
 
