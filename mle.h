@@ -469,7 +469,7 @@ int cmd_pop_kmap(cmd_context_t* ctx);
 int cmd_show_help(cmd_context_t* ctx);
 
 // async functions
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int timeout_sec, int timeout_usec, async_proc_cb_t callback);
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int timeout_sec, int timeout_usec, async_proc_cb_t callback);
 int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_aproc);
 int async_proc_destroy(async_proc_t* aproc);
 int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd);

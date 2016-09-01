@@ -8,18 +8,32 @@
 #include "mle.h"
 
 // Return a new async_proc_t
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int timeout_sec, int timeout_usec, async_proc_cb_t callback) {
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int timeout_sec, int timeout_usec, async_proc_cb_t callback) {
     async_proc_t* aproc;
     aproc = calloc(1, sizeof(async_proc_t));
     aproc->editor = editor;
     async_proc_set_owner(aproc, owner, owner_aproc);
-    aproc->rpipe = popen(shell_cmd, "r");
-    aproc->rfd = fileno(aproc->rpipe);
+    if (rw) {
+        if (!util_popen2(shell_cmd, NULL, &aproc->rfd, &aproc->wfd)) {
+            goto async_proc_new_failure;
+        }
+        aproc->rpipe = fdopen(aproc->rfd, "r");
+        aproc->wpipe = fdopen(aproc->wfd, "w");
+    } else {
+        if (!(aproc->rpipe = popen(shell_cmd, "r"))) {
+            goto async_proc_new_failure;
+        }
+        aproc->rfd = fileno(aproc->rpipe);
+    }
     aproc->timeout.tv_sec = timeout_sec;
     aproc->timeout.tv_usec = timeout_usec;
     aproc->callback = callback;
     DL_APPEND(editor->async_procs, aproc);
     return aproc;
+
+async_proc_new_failure:
+    free(aproc);
+    return NULL;
 }
 
 // Set aproc owner

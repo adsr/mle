@@ -683,8 +683,9 @@ int cmd_grep(cmd_context_t* ctx) {
         MLE_RETURN_ERR(ctx->editor, "Failed to format grep cmd: %s", grep_fmt);
     }
 
-    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 1, 0, _cmd_aproc_bview_passthru_cb);
+    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, 1, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
+    if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_grep_cb, NULL, 0, aproc, NULL);
     return MLE_OK;
 }
@@ -695,8 +696,9 @@ int cmd_browse(cmd_context_t* ctx) {
     async_proc_t* aproc;
     char* cmd;
     asprintf(&cmd, "tree --charset C -n -f -L 2 %s 2>/dev/null", ctx->static_param ? ctx->static_param : "");
-    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 1, 0, _cmd_aproc_bview_passthru_cb);
+    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, 1, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
+    if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_browse_cb, "..\n", 3, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
     return MLE_OK;
