@@ -469,6 +469,7 @@ int cmd_show_help(cmd_context_t* ctx);
 async_proc_t* async_proc_new(bview_t* invoker, int timeout_sec, int timeout_usec, async_proc_cb_t callback, char* shell_cmd);
 int async_proc_set_invoker(async_proc_t* aproc, bview_t* invoker);
 int async_proc_destroy(async_proc_t* aproc);
+int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd);
 
 // util functions
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len);
@@ -570,9 +571,7 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] refcounting / guard against invalid api use, e.g., prevent srule_destroy on active srule
-    [ ] scriptability + hooks
-    [ ] command prompt
+[ ] scriptability + hooks
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
     [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
     [ ] get rid of bol_rule
@@ -586,8 +585,7 @@ TODO
 [ ] when opening path check if a buffer exists that already has it open via inode
 [ ] undo stack with same loop# should get undone as a group option
 [ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok
-[ ] refactor menu/prompt_menu code
-[ ] refactor aproc/bview, factor out editor.c code into async_proc_read
+[ ] refactor aproc and menu code, decouple aproc and bview
 [ ] ensure multi_cursor_code impl for all appropriate
 [ ] makefile params, config.mk
 [ ] segfault hunt: async proc broken pipe

@@ -1,8 +1,5 @@
 #include <unistd.h>
 #include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <termbox.h>
 #include "uthash.h"
 #include "utlist.h"
@@ -69,7 +66,6 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path);
 static int _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
-static int _editor_drain_async_procs(editor_t* editor);
 static int _editor_init_or_deinit_commands(editor_t* editor, int is_deinit);
 
 // Init editor from args
@@ -208,7 +204,7 @@ int editor_deinit(editor_t* editor) {
     _editor_destroy_syntax_map(editor->syntax_map);
     if (editor->kmap_init_name) free(editor->kmap_init_name);
     if (editor->insertbuf) free(editor->insertbuf);
-    if (editor->tty) fclose(editor->tty);
+    if (editor->ttyfd) close(editor->ttyfd);
     return MLE_OK;
 }
 
@@ -769,8 +765,9 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             editor_display(editor);
         }
 
-        // Check for async input
-        if (editor->async_procs && _editor_drain_async_procs(editor)) {
+        // Check for async io
+        // async_proc_drain_all will bail and return 0 if there's any tty data
+        if (editor->async_procs && async_proc_drain_all(editor->async_procs, &editor->ttyfd)) {
             continue;
         }
 
@@ -2006,83 +2003,6 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
             editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, NULL, NULL, NULL);
         }
     }
-}
-
-// Manage async procs, giving priority to user input. Return 1 if drain should
-// be called again, else return 0.
-static int _editor_drain_async_procs(editor_t* editor) {
-    int maxfd;
-    fd_set readfds;
-    struct timeval timeout;
-    struct timeval now;
-    async_proc_t* aproc;
-    async_proc_t* aproc_tmp;
-    char buf[1024 + 1];
-    size_t nbytes;
-    int rc;
-    int is_done;
-
-    // Open tty if not already open
-    if (!editor->tty) {
-        if (!(editor->tty = fopen("/dev/tty", "r"))) {
-            // TODO error
-            return 0;
-        }
-        editor->ttyfd = fileno(editor->tty);
-    }
-
-    // Set timeout to 1s
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
-
-    // Add tty to readfds
-    FD_ZERO(&readfds);
-    FD_SET(editor->ttyfd, &readfds);
-
-    // Add async procs to readfds
-    maxfd = editor->ttyfd;
-    DL_FOREACH(editor->async_procs, aproc) {
-        FD_SET(aproc->pipefd, &readfds);
-        if (aproc->pipefd > maxfd) maxfd = aproc->pipefd;
-    }
-
-    // Perform select
-    rc = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
-    gettimeofday(&now, NULL);
-
-    if (rc < 0) {
-        return 0; // TODO Display errors
-    } else if (rc == 0) {
-        return 1; // Nothing to ready, call again
-    }
-
-    if (FD_ISSET(editor->ttyfd, &readfds)) {
-        // Immediately give priority to user input
-        return 0;
-    } else {
-        // Read async procs
-        DL_FOREACH_SAFE(editor->async_procs, aproc, aproc_tmp) {
-            // Read and invoke callback
-            is_done = 0;
-            if (FD_ISSET(aproc->pipefd, &readfds)) {
-                nbytes = fread(&buf, sizeof(char), 1024, aproc->pipe);
-                if (nbytes > 0) {
-                    buf[nbytes] = '\0';
-                    aproc->callback(aproc, buf, nbytes, ferror(aproc->pipe), feof(aproc->pipe), 0);
-                }
-                is_done = ferror(aproc->pipe) || feof(aproc->pipe);
-            }
-
-            // Close and free if eof, error, or timeout
-            // TODO Alert user when timeout occurs
-            if (is_done || aproc->is_done || util_timeval_is_gt(&aproc->timeout, &now)) {
-                aproc->callback(aproc, NULL, 0, 0, 0, 1);
-                async_proc_destroy(aproc); // Calls DL_DELETE
-            }
-        }
-    }
-
-    return 1;
 }
 
 // Init/deinit commands
