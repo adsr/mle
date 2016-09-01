@@ -33,6 +33,7 @@ typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
 typedef struct prompt_hnode_s prompt_hnode_t; // A node in a linked list of prompt history
 typedef int (*cmd_func_t)(cmd_context_t* ctx);
+typedef struct str_s str_t; // A dynamic string
 
 // kinput_t
 struct kinput_s {
@@ -352,6 +353,13 @@ struct prompt_hnode_s {
     prompt_hnode_t* next;
 };
 
+// str_t
+struct str_s {
+    char* data;
+    size_t len;
+    size_t cap;
+};
+
 // editor functions
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
@@ -469,15 +477,18 @@ int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite);
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
 int util_is_file(char* path, char* opt_mode, FILE** optret_file);
 int util_is_dir(char* path);
-int util_pcre_match(char* re, char* subj);
+int util_pcre_match(char* re, char* subject);
 int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* ret_result_len);
-int util_replace_with_backrefs(char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize, char** ret_result, int* ret_result_len, int* ret_result_size);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
-char* util_escape_shell_arg(char* str, int len);
-void util_str_append(char* str, char* opt_str_stop, char** ret_result, int* ret_result_len, int* ret_result_size);
+char* util_escape_shell_arg(char* str, int l);
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
+void str_append_stop(str_t* str, char* data, char* data_stop);
+void str_append(str_t* str, char* data);
+void str_append_len(str_t* str, char* data, size_t data_len);
+void str_append_replace_with_backrefs(str_t* str, char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize);
+void str_free(str_t* str);
 
 // Globals
 extern editor_t _editor;

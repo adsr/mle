@@ -199,16 +199,11 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     int subj_look_offset;
     int ovector[30];
     int num_repls;
-    int result_size;
-    int result_len;
-    char* result;
     int got_match = 0;
+    str_t result = {0};
 
-    result_size = 0;
-    result_len = 0;
-    result = NULL;
-    *ret_result_len = 0;
     *ret_result = NULL;
+    *ret_result_len = 0;
 
     // Compile regex
     cre = pcre_compile((const char*)re, PCRE_CASELESS, &error, &erroffset, NULL);
@@ -232,15 +227,15 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
         }
 
         // Append part before match
-        util_str_append(subj + subj_offset, subj + subj_offset_z, &result, &result_len, &result_size);
+        str_append_stop(&result, subj + subj_offset, subj + subj_offset_z);
         subj_offset = ovector[1];
         subj_look_offset = subj_offset + 1;
 
         // Break if no match
         if (!got_match) break;
 
-        // Replace with backrefs
-        util_replace_with_backrefs(subj, repl, rc, ovector, 30, &result, &result_len, &result_size);
+        // Append replacements with backrefs
+        str_append_replace_with_backrefs(&result, subj, repl, rc, ovector, 30);
 
         // Increment num_repls
         num_repls += 1;
@@ -249,83 +244,12 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     // Free regex
     pcre_free(cre);
 
-    // Null-terminate result and set ret_result
-    if (!result) {
-        result = strdup("");
-        result_len = 0;
-    } else {
-        result[result_len] = '\0';
-    }
-    *ret_result = result;
-    *ret_result_len = result_len;
+    // Return result
+    *ret_result = result.data ? result.data : strdup("");
+    *ret_result_len = result.len;
 
     // Return number of replacements
     return num_repls;
-}
-
-// Build a replacement string with backreferences. The results are appended to
-// ret_result which is (re)allocated as needed.
-//
-//   subj          subject string
-//   repl          replacement string with $1 or \1 style backrefs
-//   pcre_rc       return code from pcre_exec
-//   pcre_ovector  ovector used with pcre_exec
-//   pcre_ovecsize size of pcre_ovector
-//
-int util_replace_with_backrefs(char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize, char** ret_result, int* ret_result_len, int* ret_result_size) {
-    char* repl_stop;
-    char* repl_cur;
-    char* repl_z;
-    char* repl_backref;
-    int ibackref;
-    char* term;
-    char* term_stop;
-
-    repl_stop = repl + strlen(repl);
-
-    // Start replace loop
-    repl_cur = repl;
-    while (repl_cur < repl_stop) {
-        // Find backref marker (dollar sign or backslash) in replacement str
-        repl_backref = strpbrk(repl_cur, "$\\");
-        repl_z = repl_backref ? repl_backref : repl_stop;
-
-        // Append part before backref
-        util_str_append(repl_cur, repl_z, ret_result, ret_result_len, ret_result_size);
-
-        // Break if no backref
-        if (!repl_backref) break;
-
-        // Append backref
-        term = NULL;
-        if (repl_backref+1 >= repl_stop) {
-            // No data after backref marker; append the marker itself
-            term = repl_backref;
-            term_stop = repl_stop;
-        } else if (*(repl_backref+1) >= '0' && *(repl_backref+1) <= '9') {
-            // N was a number; append Nth captured substring from match
-            ibackref = *(repl_backref+1) - '0';
-            if (ibackref < pcre_rc && ibackref < pcre_ovecsize/3) {
-                // Backref exists
-                term = subj + pcre_ovector[ibackref*2];
-                term_stop = subj + pcre_ovector[ibackref*2 + 1];
-            } else {
-                // Backref does not exist; append marker + whatever character it was
-                term = repl_backref;
-                term_stop = term + utf8_char_length(*(term+1));
-            }
-        } else {
-            // N was not a number; append marker + whatever character it was
-            term = repl_backref;
-            term_stop = term + utf8_char_length(*(term+1));
-        }
-        util_str_append(term, term_stop, ret_result, ret_result_len, ret_result_size);
-
-        // Advance repl_cur by 2 bytes (marker + backref num)
-        repl_cur = repl_backref+2;
-    }
-
-    return 0;
 }
 
 // Return 1 if a > b, else return 0.
@@ -455,17 +379,98 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
     return c;
 }
 
-// Append data between str and str_stop to ret_result. Realloc as needed.
-void util_str_append(char* str, char* opt_str_stop, char** ret_result, int* ret_result_len, int* ret_result_size) {
-    #define MLE_UTIL_STR_APPEND_INCR 256
-    int str_len;
-    if (!opt_str_stop) opt_str_stop = str + strlen(str);
-    str_len = opt_str_stop - str;
-    if (str_len < 1) return;
-    if (*ret_result_len + str_len + 1 > *ret_result_size) {
-        *ret_result_size += MLE_MAX(*ret_result_len + str_len + 1, MLE_UTIL_STR_APPEND_INCR);
-        *ret_result = realloc(*ret_result, *ret_result_size);
+// Append from data up until data_stop to str
+void str_append_stop(str_t* str, char* data, char* data_stop) {
+    size_t data_len;
+    data_len = data_stop - data;
+    str_append_len(str, data, data_len);
+}
+
+// Append data to str
+void str_append(str_t* str, char* data) {
+    str_append_len(str, data, strlen(data));
+}
+
+// Append data_len bytes of data to str
+void str_append_len(str_t* str, char* data, size_t data_len) {
+    #define MLE_STR_APPEND_INCR 256
+    size_t req_cap;
+    req_cap = str->len + data_len + 1;
+    if (req_cap > str->cap) {
+        str->cap = MLE_MAX(req_cap, 256);
+        str->data = realloc(str->data, str->cap);
     }
-    memcpy(*ret_result + *ret_result_len, str, str_len);
-    *ret_result_len += str_len;
+    memcpy(str->data + str->len, data, data_len);
+    str->len += data_len;
+    *(str->data + str->len) = '\0';
+}
+
+// Replace `repl` in `subj` and append result to `str`. PCRE style backrefs are
+// supported.
+//
+//   str           where to append data
+//   subj          subject string
+//   repl          replacement string with $1 or \1 style backrefs
+//   pcre_rc       return code from pcre_exec
+//   pcre_ovector  ovector used with pcre_exec
+//   pcre_ovecsize size of pcre_ovector
+//
+void str_append_replace_with_backrefs(str_t* str, char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize) {
+    char* repl_stop;
+    char* repl_cur;
+    char* repl_z;
+    char* repl_backref;
+    int ibackref;
+    char* term;
+    char* term_stop;
+
+    repl_stop = repl + strlen(repl);
+
+    // Start replace loop
+    repl_cur = repl;
+    while (repl_cur < repl_stop) {
+        // Find backref marker (dollar sign or backslash) in replacement str
+        repl_backref = strpbrk(repl_cur, "$\\");
+        repl_z = repl_backref ? repl_backref : repl_stop;
+
+        // Append part before backref
+        str_append_stop(str, repl_cur, repl_z);
+
+        // Break if no backref
+        if (!repl_backref) break;
+
+        // Append backref
+        term = NULL;
+        if (repl_backref+1 >= repl_stop) {
+            // No data after backref marker; append the marker itself
+            term = repl_backref;
+            term_stop = repl_stop;
+        } else if (*(repl_backref+1) >= '0' && *(repl_backref+1) <= '9') {
+            // N was a number; append Nth captured substring from match
+            ibackref = *(repl_backref+1) - '0';
+            if (ibackref < pcre_rc && ibackref < pcre_ovecsize/3) {
+                // Backref exists
+                term = subj + pcre_ovector[ibackref*2];
+                term_stop = subj + pcre_ovector[ibackref*2 + 1];
+            } else {
+                // Backref does not exist; append marker + whatever character it was
+                term = repl_backref;
+                term_stop = term + utf8_char_length(*(term+1));
+            }
+        } else {
+            // N was not a number; append marker + whatever character it was
+            term = repl_backref;
+            term_stop = term + utf8_char_length(*(term+1));
+        }
+        str_append_stop(str, term, term_stop);
+
+        // Advance repl_cur by 2 bytes (marker + backref num)
+        repl_cur = repl_backref+2;
+    }
+}
+
+// Free str
+void str_free(str_t* str) {
+    if (str->data) free(str->data);
+    memset(str, 0, sizeof(str_t));
 }

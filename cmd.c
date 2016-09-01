@@ -39,7 +39,7 @@ static int _cmd_select_by_word_forward(cursor_t* cursor);
 static int _cmd_select_by_string(cursor_t* cursor);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
-static void _cmd_help_inner(char* buf, kbinding_t* trie, char** h, int* l, int* s);
+static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -411,9 +411,7 @@ int cmd_replace(cmd_context_t* ctx) {
     bint_t char_count;
     int pcre_rc;
     int pcre_ovector[30];
-    char* repl_backref;
-    int repl_backref_len;
-    int repl_backref_size;
+    str_t repl_backref = {0};
     int num_replacements;
 
     regex = NULL;
@@ -477,15 +475,12 @@ int cmd_replace(cmd_context_t* ctx) {
                 if (!yn) {
                     break;
                 } else if (0 == strcmp(yn, MLE_PROMPT_YES) || 0 == strcmp(yn, MLE_PROMPT_ALL)) {
-                    repl_backref = NULL;
-                    repl_backref_len = 0;
-                    repl_backref_size = 0;
-                    util_replace_with_backrefs(search_mark->bline->data, replacement, pcre_rc, pcre_ovector, 30, &repl_backref, &repl_backref_len, &repl_backref_size);
+                    str_append_replace_with_backrefs(&repl_backref, search_mark->bline->data, replacement, pcre_rc, pcre_ovector, 30);
                     mark_delete_between_mark(search_mark, search_mark_end);
-                    if (repl_backref) {
-                        mark_insert_before(search_mark, repl_backref, repl_backref_len);
-                        free(repl_backref);
+                    if (repl_backref.len > 0) {
+                        mark_insert_before(search_mark, repl_backref.data, repl_backref.len);
                     }
+                    str_free(&repl_backref);
                     num_replacements += 1;
                     if (0 == strcmp(yn, MLE_PROMPT_ALL)) all = 1;
                 } else {
@@ -1018,9 +1013,7 @@ int cmd_pop_kmap(cmd_context_t* ctx) {
 
 // Show help
 int cmd_show_help(cmd_context_t* ctx) {
-    char* h; // help
-    int l; // len
-    int s; // size
+    str_t h = {0}; // help
     kmap_t* kmap;
     kmap_t* kmap_tmp;
     kmap_node_t* kmap_node;
@@ -1029,74 +1022,68 @@ int cmd_show_help(cmd_context_t* ctx) {
     bview_t* bview;
     char buf[1024];
 
-    h = NULL;
-    l = 0;
-    s = 0;
-
-    util_str_append(
+    str_append(&h,
         "# mle command help\n\n"
         "    notes\n"
         "        C- means Ctrl\n"
         "        M- means Alt\n"
         "        cmd_x=(default) means unmatched input is handled by cmd_x\n"
-        "        (allow_fallthru)=yes means unmatched input is handled by the parent kmap\n\n",
-        NULL,
-        &h, &l, &s
+        "        (allow_fallthru)=yes means unmatched input is handled by the parent kmap\n\n"
     );
 
     // Build current kmap stack
-    util_str_append("    mode stack\n", NULL, &h, &l, &s);
+    str_append(&h, "    mode stack\n");
     kmap_node_depth = 0;
     DL_FOREACH(ctx->bview->kmap_stack, kmap_node) {
-        util_str_append("        ", NULL, &h, &l, &s);
+        str_append(&h, "        ");
         for (i = 0; i < kmap_node_depth; i++) {
-            util_str_append("    ", NULL, &h, &l, &s);
+            str_append(&h, "    ");
         }
         if (i > 0) {
-            util_str_append("\\_ ", NULL, &h, &l, &s);
+            str_append(&h, "\\_ ");
         }
-        util_str_append(kmap_node->kmap->name, NULL, &h, &l, &s);
+        str_append(&h, kmap_node->kmap->name);
         if (kmap_node == ctx->bview->kmap_tail) {
-            util_str_append(" (current)", NULL, &h, &l, &s);
+            str_append(&h, " (current)");
         }
-        util_str_append("\n", NULL, &h, &l, &s);
+        str_append(&h, "\n");
         kmap_node_depth += 1;
     }
-    util_str_append("\n", NULL, &h, &l, &s);
+    str_append(&h, "\n");
 
     // Build kmap bindings
     HASH_ITER(hh, ctx->editor->kmap_map, kmap, kmap_tmp) {
-        util_str_append("    ", NULL, &h, &l, &s);
-        util_str_append(kmap->name, NULL, &h, &l, &s);
-        util_str_append(" mode\n", NULL, &h, &l, &s);
+        str_append(&h, "    ");
+        str_append(&h, kmap->name);
+        str_append(&h, " mode\n");
         snprintf(buf, sizeof(buf), "        %-40s %-16s\n", "(allow_fallthru)", kmap->allow_fallthru ? "yes" : "no");
-        util_str_append(buf, NULL, &h, &l, &s);
+        str_append(&h, buf);
         if (kmap->default_cmd_name) {
             snprintf(buf, sizeof(buf), "        %-40s %-16s\n", kmap->default_cmd_name, "(default)");
-            util_str_append(buf, NULL, &h, &l, &s);
+            str_append(&h, buf);
         }
-        _cmd_help_inner(buf, kmap->bindings->children, &h, &l, &s);
-        util_str_append("\n", NULL, &h, &l, &s);
+        _cmd_help_inner(buf, kmap->bindings->children, &h);
+        str_append(&h, "\n");
     }
 
     // Show help in new bview
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &ctx->editor->rect_edit, NULL, &bview);
-    buffer_insert(bview->buffer, 0, h, (bint_t)l, NULL);
+    buffer_insert(bview->buffer, 0, h.data, (bint_t)h.len, NULL);
     bview->buffer->is_unsaved = 0;
     mark_move_beginning(bview->active_cursor->mark);
     bview_zero_viewport_y(bview);
 
-    free(h);
+    str_free(&h);
     return MLE_OK;
 }
 
 // Recursively descend into kbinding trie to build help string
-static void _cmd_help_inner(char* buf, kbinding_t* trie, char** h, int* l, int* s) {
+static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h) {
     kbinding_t* binding;
     kbinding_t* binding_tmp;
     HASH_ITER(hh, trie, binding, binding_tmp) {
         if (binding->children) {
-            _cmd_help_inner(buf, binding->children, h, l, s);
+            _cmd_help_inner(buf, binding->children, h);
         } else if (binding->is_leaf) {
             snprintf(buf, 1024,
                 "        %-40s %-16s %s\n",
@@ -1104,7 +1091,7 @@ static void _cmd_help_inner(char* buf, kbinding_t* trie, char** h, int* l, int* 
                 binding->key_patt,
                 binding->static_param ? binding->static_param : ""
             );
-            util_str_append(buf, NULL, h, l, s);
+            str_append(h, buf);
         }
     }
 }
