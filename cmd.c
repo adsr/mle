@@ -27,10 +27,10 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
 static void _cmd_toggle_anchor(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
-static void _cmd_aproc_bview_passthru_cb(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout);
+static void _cmd_aproc_bview_passthru_cb(async_proc_t* self, char* buf, size_t buf_len);
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
-static int _cmd_browse_cb(cmd_context_t* ctx);
-static int _cmd_grep_cb(cmd_context_t* ctx);
+static int _cmd_menu_browse_cb(cmd_context_t* ctx);
+static int _cmd_menu_grep_cb(cmd_context_t* ctx);
 static int _cmd_select_by(cursor_t* cursor, char* strat);
 static int _cmd_select_by_bracket(cursor_t* cursor);
 static int _cmd_select_by_word(cursor_t* cursor);
@@ -683,10 +683,10 @@ int cmd_grep(cmd_context_t* ctx) {
         MLE_RETURN_ERR(ctx->editor, "Failed to format grep cmd: %s", grep_fmt);
     }
 
-    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, 1, 0, _cmd_aproc_bview_passthru_cb);
+    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, 1, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     if (!aproc) return MLE_ERR;
-    editor_menu(ctx->editor, _cmd_grep_cb, NULL, 0, aproc, NULL);
+    editor_menu(ctx->editor, _cmd_menu_grep_cb, NULL, 0, aproc, NULL);
     return MLE_OK;
 }
 
@@ -696,10 +696,10 @@ int cmd_browse(cmd_context_t* ctx) {
     async_proc_t* aproc;
     char* cmd;
     asprintf(&cmd, "tree --charset C -n -f -L 2 %s 2>/dev/null", ctx->static_param ? ctx->static_param : "");
-    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, 1, 0, _cmd_aproc_bview_passthru_cb);
+    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, 1, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     if (!aproc) return MLE_ERR;
-    editor_menu(ctx->editor, _cmd_browse_cb, "..\n", 3, aproc, &menu);
+    editor_menu(ctx->editor, _cmd_menu_browse_cb, "..\n", 3, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
     return MLE_OK;
 }
@@ -1430,7 +1430,7 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
 }
 
 // Aproc callback that writes buf to bview buffer
-static void _cmd_aproc_bview_passthru_cb(async_proc_t* aproc, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout) {
+static void _cmd_aproc_bview_passthru_cb(async_proc_t* aproc, char* buf, size_t buf_len) {
     mark_t* active_mark;
     mark_t* ins_mark;
     int is_cursor_at_zero;
@@ -1484,7 +1484,7 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
 }
 
 // Callback from cmd_grep
-static int _cmd_grep_cb(cmd_context_t* ctx) {
+static int _cmd_menu_grep_cb(cmd_context_t* ctx) {
     bint_t linenum;
     char* line;
     char* colon;
@@ -1506,7 +1506,7 @@ static int _cmd_grep_cb(cmd_context_t* ctx) {
 }
 
 // Callback from cmd_browse
-static int _cmd_browse_cb(cmd_context_t* ctx) {
+static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     char* line;
     char* path;
     char* cwd;

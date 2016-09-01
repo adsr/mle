@@ -8,10 +8,11 @@
 #include "mle.h"
 
 // Return a new async_proc_t
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int timeout_sec, int timeout_usec, async_proc_cb_t callback) {
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int destroy_on_eof, async_proc_cb_t callback) {
     async_proc_t* aproc;
     aproc = calloc(1, sizeof(async_proc_t));
     aproc->editor = editor;
+    aproc->destroy_on_eof = destroy_on_eof;
     async_proc_set_owner(aproc, owner, owner_aproc);
     if (rw) {
         if (!util_popen2(shell_cmd, NULL, &aproc->rfd, &aproc->wfd)) {
@@ -25,8 +26,6 @@ async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner
         }
         aproc->rfd = fileno(aproc->rpipe);
     }
-    aproc->timeout.tv_sec = timeout_sec;
-    aproc->timeout.tv_usec = timeout_usec;
     aproc->callback = callback;
     DL_APPEND(editor->async_procs, aproc);
     return aproc;
@@ -63,13 +62,11 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     int maxfd;
     fd_set readfds;
     struct timeval timeout;
-    struct timeval now;
     async_proc_t* aproc;
     async_proc_t* aproc_tmp;
     char buf[1024 + 1];
     size_t nbytes;
     int rc;
-    int is_done;
 
     // Exit early if no aprocs
     if (!aprocs) return 0;
@@ -91,16 +88,22 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     FD_SET(*ttyfd, &readfds);
 
     // Add async procs to readfds
+    // Simultaneously check for solo, which takes precedence over everything
     maxfd = *ttyfd;
     DL_FOREACH(aprocs, aproc) {
-        FD_SET(aproc->rfd, &readfds);
-        if (aproc->rfd > maxfd) maxfd = aproc->rfd;
+        if (aproc->is_solo) {
+            FD_ZERO(&readfds);
+            FD_SET(aproc->rfd, &readfds);
+            maxfd = aproc->rfd;
+            break;
+        } else {
+            FD_SET(aproc->rfd, &readfds);
+            if (aproc->rfd > maxfd) maxfd = aproc->rfd;
+        }
     }
 
     // Perform select
     rc = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
-    gettimeofday(&now, NULL);
-
     if (rc < 0) {
         return 0; // TODO Display errors
     } else if (rc == 0) {
@@ -114,21 +117,14 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
         // Read async procs
         DL_FOREACH_SAFE(aprocs, aproc, aproc_tmp) {
             // Read and invoke callback
-            is_done = 0;
             if (FD_ISSET(aproc->rfd, &readfds)) {
                 nbytes = fread(&buf, sizeof(char), 1024, aproc->rpipe);
-                if (nbytes > 0) {
-                    buf[nbytes] = '\0';
-                    aproc->callback(aproc, buf, nbytes, ferror(aproc->rpipe), feof(aproc->rpipe), 0);
-                }
-                is_done = ferror(aproc->rpipe) || feof(aproc->rpipe);
+                buf[nbytes] = '\0';
+                aproc->callback(aproc, buf, nbytes);
             }
-
             // Close and free if eof, error, or timeout
-            // TODO Alert user when timeout occurs
-            if (is_done || aproc->is_done || util_timeval_is_gt(&aproc->timeout, &now)) {
-                aproc->callback(aproc, NULL, 0, 0, 0, 1);
-                async_proc_destroy(aproc); // Calls DL_DELETE
+            if (ferror(aproc->rpipe) || aproc->is_done || (aproc->destroy_on_eof && feof(aproc->rpipe))) {
+                async_proc_destroy(aproc);
             }
         }
     }

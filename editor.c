@@ -784,10 +784,10 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             if (cmd_ctx.is_user_input && cmd->func == cmd_insert_data) {
                 _editor_ingest_paste(editor, &cmd_ctx);
             }
+            cmd_ctx.cmd = cmd;
             cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
             cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
             cmd_ctx.buffer = cmd_ctx.bview->buffer;
-            cmd_ctx.udata = cmd->udata;
             cmd->func(&cmd_ctx);
             loop_ctx->binding_node = NULL;
             loop_ctx->wildcard_params_len = 0;

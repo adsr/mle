@@ -27,7 +27,7 @@ typedef struct syntax_s syntax_t; // A syntax definition
 typedef struct syntax_node_s syntax_node_t; // A node in a linked list of syntaxes
 typedef struct srule_def_s srule_def_t; // A definition of a syntax
 typedef struct async_proc_s async_proc_t; // An asynchronous process
-typedef void (*async_proc_cb_t)(async_proc_t* self, char* buf, size_t buf_len, int is_error, int is_eof, int is_timeout); // An async_proc_t callback
+typedef void (*async_proc_cb_t)(async_proc_t* self, char* buf, size_t buf_len); // An async_proc_t callback
 typedef struct editor_prompt_params_s editor_prompt_params_t; // Extra params for editor_prompt
 typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
@@ -276,19 +276,19 @@ struct kmap_s {
 struct cmd_context_s {
     #define MLE_PASTEBUF_INCR 1024
     editor_t* editor;
+    loop_context_t* loop_ctx;
+    cmd_t* cmd;
     buffer_t* buffer;
     bview_t* bview;
     cursor_t* cursor;
     kinput_t input;
     char* static_param;
-    loop_context_t* loop_ctx;
     int is_user_input;
     kinput_t* pastebuf;
     size_t pastebuf_len;
     size_t pastebuf_size;
     int has_pastebuf_leftover;
     kinput_t pastebuf_leftover;
-    void** udata;
 };
 
 // loop_context_t
@@ -326,7 +326,8 @@ struct async_proc_s {
     int rfd;
     int wfd;
     int is_done;
-    struct timeval timeout;
+    int is_solo;
+    int destroy_on_eof;
     async_proc_cb_t callback;
     async_proc_t* next;
     async_proc_t* prev;
@@ -469,7 +470,7 @@ int cmd_pop_kmap(cmd_context_t* ctx);
 int cmd_show_help(cmd_context_t* ctx);
 
 // async functions
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int timeout_sec, int timeout_usec, async_proc_cb_t callback);
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int destroy_on_eof, async_proc_cb_t callback);
 int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_aproc);
 int async_proc_destroy(async_proc_t* aproc);
 int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd);
