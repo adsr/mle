@@ -398,7 +398,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
 // Append from data up until data_stop to str
 void str_append_stop(str_t* str, char* data, char* data_stop) {
     size_t data_len;
-    data_len = data_stop - data;
+    data_len = data_stop >= data ? data_stop - data : 0;
     str_append_len(str, data, data_len);
 }
 
@@ -413,12 +413,23 @@ void str_append_len(str_t* str, char* data, size_t data_len) {
     size_t req_cap;
     req_cap = str->len + data_len + 1;
     if (req_cap > str->cap) {
-        str->cap = MLE_MAX(req_cap, 256);
+        str->cap = MLE_MAX(req_cap, str->cap+MLE_STR_APPEND_INCR);
         str->data = realloc(str->data, str->cap);
     }
     memcpy(str->data + str->len, data, data_len);
     str->len += data_len;
     *(str->data + str->len) = '\0';
+}
+
+// Clear str
+void str_clear(str_t* str) {
+    str->len = 0;
+}
+
+// Free str
+void str_free(str_t* str) {
+    if (str->data) free(str->data);
+    memset(str, 0, sizeof(str_t));
 }
 
 // Replace `repl` in `subj` and append result to `str`. PCRE style backrefs are
@@ -483,10 +494,4 @@ void str_append_replace_with_backrefs(str_t* str, char* subj, char* repl, int pc
         // Advance repl_cur by 2 bytes (marker + backref num)
         repl_cur = repl_backref+2;
     }
-}
-
-// Free str
-void str_free(str_t* str) {
-    if (str->data) free(str->data);
-    memset(str, 0, sizeof(str_t));
 }
