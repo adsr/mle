@@ -22,6 +22,9 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     struct timeval* timeoutptr;
     FILE* readfp;
 
+    *ret_output = NULL;
+    *ret_output_len = 0;
+
     // Open cmd
     readfp = NULL;
     if (input && input_len > 0) {

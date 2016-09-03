@@ -32,8 +32,10 @@ typedef struct editor_prompt_params_s editor_prompt_params_t; // Extra params fo
 typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
 typedef struct prompt_hnode_s prompt_hnode_t; // A node in a linked list of prompt history
-typedef int (*cmd_func_t)(cmd_context_t* ctx);
+typedef int (*cmd_func_t)(cmd_context_t* ctx); // A command function
 typedef struct str_s str_t; // A dynamic string
+typedef struct uscript_s uscript_t; // A userscript
+typedef struct uscript_msg_s uscript_msg_t; // A message between the editor and a userscript
 
 // kinput_t
 struct kinput_s {
@@ -88,6 +90,7 @@ struct editor_s {
     char* kmap_init_name;
     kmap_t* kmap_init;
     async_proc_t* async_procs;
+    uscript_t* uscripts;
     FILE* tty;
     int ttyfd;
     char* syntax_override;
@@ -364,6 +367,33 @@ struct str_s {
     size_t cap;
 };
 
+// uscript_t
+struct uscript_s {
+    async_proc_t* aproc;
+    str_t readbuf;
+    uscript_msg_t* msgs;
+    uintmax_t msg_count;
+    uintmax_t msg_counter;
+    int has_internal_err;
+    uscript_t* next;
+    uscript_t* prev;
+};
+
+// uscript_msg_t
+struct uscript_msg_s {
+    char* cmd_name;
+    char* result;
+    char* id;
+    char* error;
+    char** params;
+    int params_len;
+    int is_request;
+    int is_response;
+    uscript_msg_t* next;
+    uscript_msg_t* prev;
+    UT_hash_handle hh;
+};
+
 // editor functions
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_deinit(editor_t* editor);
@@ -475,6 +505,10 @@ int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_
 int async_proc_destroy(async_proc_t* aproc);
 int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd);
 
+// uscript functions
+uscript_t* uscript_run(editor_t* editor, char* cmd);
+int uscript_destroy(uscript_t* self);
+
 // util functions
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len);
 int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite);
@@ -575,7 +609,8 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] scriptability + hooks
+[ ] stdin, startup keys
+[ ] uscripts
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
     [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
     [ ] get rid of bol_rule

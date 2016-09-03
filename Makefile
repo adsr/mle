@@ -4,11 +4,15 @@ export BINDIR=/usr/bin
 
 all: mle
 
+# TODO clean this crap up
+
 mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre
+	php uscript_code_gen.php >uscript_code_gen.inc
+	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ -I./jsmn/ *.c jsmn/*.c -o mle ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre
 
 mle_static: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
+	php uscript_code_gen.php >uscript_code_gen.inc
+	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ -I./jsmn/ *.c jsmn/*.c -o mle -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
 
 ./mlbuf/libmlbuf.a:
 	$(MAKE) -C mlbuf
