@@ -1,8 +1,9 @@
 #include "jsmn.h"
 #include "mle.h"
 
-// TODO consider swapping out jsmn for another lib that can handle json string enc/dec
-// TODO write lightweight lib for json string enc/dec
+// TODO use urlencode/decode instead of json
+//      method=foo&params[]=baz&params[]=42&id=bar
+//      result[foo]=bar&result[baz]=quux&error=0&id=thud
 
 static int uscript_cmd_handler(cmd_context_t* ctx);
 static void _uscript_aproc_callback(async_proc_t* aproc, char* buf, size_t buf_len);
