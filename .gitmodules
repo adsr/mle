@@ -4,6 +4,3 @@
 [submodule "termbox"]
 	path = termbox
 	url = https://github.com/nsf/termbox
-[submodule "jsmn"]
-	path = jsmn
-	url = https://github.com/zserge/jsmn
