@@ -7,10 +7,10 @@ all: mle
 # TODO clean this crap up
 
 mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ -I./jsmn/ *.c jsmn/*.c -o mle ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre
+	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre
 
 mle_static: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ -I./jsmn/ *.c jsmn/*.c -o mle -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
+	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
 
 ./mlbuf/libmlbuf.a:
 	$(MAKE) -C mlbuf
