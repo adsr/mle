@@ -421,6 +421,14 @@ void str_append_len(str_t* str, char* data, size_t data_len) {
     *(str->data + str->len) = '\0';
 }
 
+// Ensure space in str
+void str_ensure_cap(str_t* str, size_t cap) {
+    if (cap < str->cap) {
+        str->cap = cap;
+        str->data = realloc(str->data, str->cap);
+    }
+}
+
 // Clear str
 void str_clear(str_t* str) {
     str->len = 0;

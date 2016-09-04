@@ -369,11 +369,11 @@ struct str_s {
 
 // uscript_t
 struct uscript_s {
+    editor_t* editor;
     async_proc_t* aproc;
     str_t readbuf;
     uscript_msg_t* msgs;
-    uintmax_t msg_count;
-    uintmax_t msg_counter;
+    uintmax_t msg_id_counter;
     int has_internal_err;
     uscript_t* next;
     uscript_t* prev;
@@ -382,10 +382,11 @@ struct uscript_s {
 // uscript_msg_t
 struct uscript_msg_s {
     char* cmd_name;
-    char* result;
     char* id;
     char* error;
+    char** result;
     char** params;
+    int result_len;
     int params_len;
     int is_request;
     int is_response;
@@ -405,6 +406,7 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
 int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer);
 int editor_set_active(editor_t* editor, bview_t* bview);
+int editor_register_cmd(editor_t* editor, cmd_t* cmd);
 
 // bview functions
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
@@ -525,8 +527,10 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 void str_append_stop(str_t* str, char* data, char* data_stop);
 void str_append(str_t* str, char* data);
 void str_append_len(str_t* str, char* data, size_t data_len);
-void str_append_replace_with_backrefs(str_t* str, char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize);
+void str_ensure_cap(str_t* str, size_t cap);
+void str_clear(str_t* str);
 void str_free(str_t* str);
+void str_append_replace_with_backrefs(str_t* str, char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize);
 
 // Globals
 extern editor_t _editor;

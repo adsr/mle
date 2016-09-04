@@ -26,6 +26,8 @@ async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner
         }
         aproc->rfd = fileno(aproc->rpipe);
     }
+    setvbuf(aproc->rpipe, NULL, _IONBF, 0);
+    setvbuf(aproc->wpipe, NULL, _IONBF, 0);
     aproc->callback = callback;
     DL_APPEND(editor->async_procs, aproc);
     return aproc;
@@ -65,7 +67,7 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     async_proc_t* aproc;
     async_proc_t* aproc_tmp;
     char buf[1024 + 1];
-    size_t nbytes;
+    ssize_t nbytes;
     int rc;
 
     // Exit early if no aprocs
@@ -118,7 +120,7 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
         DL_FOREACH_SAFE(aprocs, aproc, aproc_tmp) {
             // Read and invoke callback
             if (FD_ISSET(aproc->rfd, &readfds)) {
-                nbytes = fread(&buf, sizeof(char), 1024, aproc->rpipe);
+                nbytes = read(aproc->rfd, &buf, 1024);
                 buf[nbytes] = '\0';
                 aproc->callback(aproc, buf, nbytes);
             }

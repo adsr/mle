@@ -8,8 +8,7 @@
 
 static int _editor_set_macro_toggle_key(editor_t* editor, char* key);
 static int _editor_bview_exists(editor_t* editor, bview_t* bview);
-static int _editor_register_cmd(editor_t* editor, char* name, int (*func)(cmd_context_t* ctx));
-static int _editor_register_cmd_ex(editor_t* editor, cmd_t* cmd);
+static int _editor_register_cmd_fn(editor_t* editor, char* name, int (*func)(cmd_context_t* ctx));
 static int _editor_should_skip_rc(char** argv);
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optret_num_closed);
 static int _editor_destroy_cmd(editor_t* editor, cmd_t* cmd);
@@ -382,16 +381,15 @@ int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer) {
 }
 
 // Register a command
-static int _editor_register_cmd(editor_t* editor, char* name, int (*func)(cmd_context_t* ctx)) {
-    cmd_t cmd;
-    memset(&cmd, 0, sizeof(cmd_t));
+static int _editor_register_cmd_fn(editor_t* editor, char* name, int (*func)(cmd_context_t* ctx)) {
+    cmd_t cmd = {0};
     cmd.name = name;
     cmd.func = func;
-    return _editor_register_cmd_ex(editor, &cmd);
+    return editor_register_cmd(editor, &cmd);
 }
 
 // Register a command (extended)
-static int _editor_register_cmd_ex(editor_t* editor, cmd_t* cmd) {
+int editor_register_cmd(editor_t* editor, cmd_t* cmd) {
     cmd_t* existing_cmd;
     cmd_t* new_cmd;
     HASH_FIND_STR(editor->cmd_map, cmd->name, existing_cmd);
@@ -1181,6 +1179,7 @@ static void _editor_init_signal_handlers(editor_t* editor) {
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGQUIT, &action, NULL);
     sigaction(SIGHUP, &action, NULL);
+    signal(SIGPIPE, SIG_IGN);
 }
 
 // Gracefully exit
@@ -1203,89 +1202,89 @@ static void _editor_graceful_exit(int signum) {
 
 // Register built-in commands
 static void _editor_register_cmds(editor_t* editor) {
-    _editor_register_cmd(editor, "cmd_apply_macro", cmd_apply_macro);
-    _editor_register_cmd(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
-    _editor_register_cmd(editor, "cmd_browse", cmd_browse);
-    _editor_register_cmd(editor, "cmd_close", cmd_close);
-    _editor_register_cmd(editor, "cmd_copy", cmd_copy);
-    _editor_register_cmd(editor, "cmd_copy_by", cmd_copy_by);
-    _editor_register_cmd(editor, "cmd_cut", cmd_cut);
-    _editor_register_cmd(editor, "cmd_cut_by", cmd_cut_by);
-    _editor_register_cmd(editor, "cmd_delete_after", cmd_delete_after);
-    _editor_register_cmd(editor, "cmd_delete_before", cmd_delete_before);
-    _editor_register_cmd(editor, "cmd_delete_word_after", cmd_delete_word_after);
-    _editor_register_cmd(editor, "cmd_delete_word_before", cmd_delete_word_before);
-    _editor_register_cmd(editor, "cmd_drop_cursor_column", cmd_drop_cursor_column);
-    _editor_register_cmd(editor, "cmd_drop_sleeping_cursor", cmd_drop_sleeping_cursor);
-    _editor_register_cmd(editor, "cmd_find_word", cmd_find_word);
-    _editor_register_cmd(editor, "cmd_fsearch", cmd_fsearch);
-    _editor_register_cmd(editor, "cmd_grep", cmd_grep);
-    _editor_register_cmd(editor, "cmd_indent", cmd_indent);
-    _editor_register_cmd(editor, "cmd_insert_data", cmd_insert_data);
-    _editor_register_cmd(editor, "cmd_insert_newline_above", cmd_insert_newline_above);
-    _editor_register_cmd(editor, "cmd_isearch", cmd_isearch);
-    _editor_register_cmd(editor, "cmd_move_beginning", cmd_move_beginning);
-    _editor_register_cmd(editor, "cmd_move_bol", cmd_move_bol);
-    _editor_register_cmd(editor, "cmd_move_bracket_back", cmd_move_bracket_back);
-    _editor_register_cmd(editor, "cmd_move_bracket_forward", cmd_move_bracket_forward);
-    _editor_register_cmd(editor, "cmd_move_down", cmd_move_down);
-    _editor_register_cmd(editor, "cmd_move_end", cmd_move_end);
-    _editor_register_cmd(editor, "cmd_move_eol", cmd_move_eol);
-    _editor_register_cmd(editor, "cmd_move_left", cmd_move_left);
-    _editor_register_cmd(editor, "cmd_move_page_down", cmd_move_page_down);
-    _editor_register_cmd(editor, "cmd_move_page_up", cmd_move_page_up);
-    _editor_register_cmd(editor, "cmd_move_relative", cmd_move_relative);
-    _editor_register_cmd(editor, "cmd_move_right", cmd_move_right);
-    _editor_register_cmd(editor, "cmd_move_to_line", cmd_move_to_line);
-    _editor_register_cmd(editor, "cmd_move_until_back", cmd_move_until_back);
-    _editor_register_cmd(editor, "cmd_move_until_forward", cmd_move_until_forward);
-    _editor_register_cmd(editor, "cmd_move_up", cmd_move_up);
-    _editor_register_cmd(editor, "cmd_move_word_back", cmd_move_word_back);
-    _editor_register_cmd(editor, "cmd_move_word_forward", cmd_move_word_forward);
-    _editor_register_cmd(editor, "cmd_next", cmd_next);
-    _editor_register_cmd(editor, "cmd_open_file", cmd_open_file);
-    _editor_register_cmd(editor, "cmd_open_new", cmd_open_new);
-    _editor_register_cmd(editor, "cmd_open_replace_file", cmd_open_replace_file);
-    _editor_register_cmd(editor, "cmd_open_replace_new", cmd_open_replace_new);
-    _editor_register_cmd(editor, "cmd_outdent", cmd_outdent);
-    _editor_register_cmd(editor, "cmd_pop_kmap", cmd_pop_kmap);
-    _editor_register_cmd(editor, "cmd_prev", cmd_prev);
-    _editor_register_cmd(editor, "cmd_push_kmap", cmd_push_kmap);
-    _editor_register_cmd(editor, "cmd_quit", cmd_quit);
-    _editor_register_cmd(editor, "cmd_redo", cmd_redo);
-    _editor_register_cmd(editor, "cmd_redraw", cmd_redraw);
-    _editor_register_cmd(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
-    _editor_register_cmd(editor, "cmd_replace", cmd_replace);
-    _editor_register_cmd(editor, "cmd_save", cmd_save);
-    _editor_register_cmd(editor, "cmd_save_as", cmd_save_as);
-    _editor_register_cmd(editor, "cmd_search", cmd_search);
-    _editor_register_cmd(editor, "cmd_search_next", cmd_search_next);
-    _editor_register_cmd(editor, "cmd_set_opt", cmd_set_opt);
-    _editor_register_cmd(editor, "cmd_shell", cmd_shell);
-    _editor_register_cmd(editor, "cmd_show_help", cmd_show_help);
-    _editor_register_cmd(editor, "cmd_split_horizontal", cmd_split_horizontal);
-    _editor_register_cmd(editor, "cmd_split_vertical", cmd_split_vertical);
-    _editor_register_cmd(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
-    _editor_register_cmd(editor, "cmd_uncut", cmd_uncut);
-    _editor_register_cmd(editor, "cmd_undo", cmd_undo);
-    _editor_register_cmd(editor, "cmd_wake_sleeping_cursors", cmd_wake_sleeping_cursors);
-    _editor_register_cmd(editor, "_editor_menu_cancel", _editor_menu_cancel);
-    _editor_register_cmd(editor, "_editor_menu_submit", _editor_menu_submit);
-    _editor_register_cmd(editor, "_editor_prompt_cancel", _editor_prompt_cancel);
-    _editor_register_cmd(editor, "_editor_prompt_history_down", _editor_prompt_history_down);
-    _editor_register_cmd(editor, "_editor_prompt_history_up", _editor_prompt_history_up);
-    _editor_register_cmd(editor, "_editor_prompt_input_complete", _editor_prompt_input_complete);
-    _editor_register_cmd(editor, "_editor_prompt_input_submit", _editor_prompt_input_submit);
-    _editor_register_cmd(editor, "_editor_prompt_isearch_drop_cursors", _editor_prompt_isearch_drop_cursors);
-    _editor_register_cmd(editor, "_editor_prompt_isearch_next", _editor_prompt_isearch_next);
-    _editor_register_cmd(editor, "_editor_prompt_isearch_prev", _editor_prompt_isearch_prev);
-    _editor_register_cmd(editor, "_editor_prompt_menu_down", _editor_prompt_menu_down);
-    _editor_register_cmd(editor, "_editor_prompt_menu_page_down", _editor_prompt_menu_page_down);
-    _editor_register_cmd(editor, "_editor_prompt_menu_page_up", _editor_prompt_menu_page_up);
-    _editor_register_cmd(editor, "_editor_prompt_menu_up", _editor_prompt_menu_up);
-    _editor_register_cmd(editor, "_editor_prompt_yna_all", _editor_prompt_yna_all);
-    _editor_register_cmd(editor, "_editor_prompt_yn_no", _editor_prompt_yn_no);
-    _editor_register_cmd(editor, "_editor_prompt_yn_yes", _editor_prompt_yn_yes);
+    _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
+    _editor_register_cmd_fn(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
+    _editor_register_cmd_fn(editor, "cmd_browse", cmd_browse);
+    _editor_register_cmd_fn(editor, "cmd_close", cmd_close);
+    _editor_register_cmd_fn(editor, "cmd_copy", cmd_copy);
+    _editor_register_cmd_fn(editor, "cmd_copy_by", cmd_copy_by);
+    _editor_register_cmd_fn(editor, "cmd_cut", cmd_cut);
+    _editor_register_cmd_fn(editor, "cmd_cut_by", cmd_cut_by);
+    _editor_register_cmd_fn(editor, "cmd_delete_after", cmd_delete_after);
+    _editor_register_cmd_fn(editor, "cmd_delete_before", cmd_delete_before);
+    _editor_register_cmd_fn(editor, "cmd_delete_word_after", cmd_delete_word_after);
+    _editor_register_cmd_fn(editor, "cmd_delete_word_before", cmd_delete_word_before);
+    _editor_register_cmd_fn(editor, "cmd_drop_cursor_column", cmd_drop_cursor_column);
+    _editor_register_cmd_fn(editor, "cmd_drop_sleeping_cursor", cmd_drop_sleeping_cursor);
+    _editor_register_cmd_fn(editor, "cmd_find_word", cmd_find_word);
+    _editor_register_cmd_fn(editor, "cmd_fsearch", cmd_fsearch);
+    _editor_register_cmd_fn(editor, "cmd_grep", cmd_grep);
+    _editor_register_cmd_fn(editor, "cmd_indent", cmd_indent);
+    _editor_register_cmd_fn(editor, "cmd_insert_data", cmd_insert_data);
+    _editor_register_cmd_fn(editor, "cmd_insert_newline_above", cmd_insert_newline_above);
+    _editor_register_cmd_fn(editor, "cmd_isearch", cmd_isearch);
+    _editor_register_cmd_fn(editor, "cmd_move_beginning", cmd_move_beginning);
+    _editor_register_cmd_fn(editor, "cmd_move_bol", cmd_move_bol);
+    _editor_register_cmd_fn(editor, "cmd_move_bracket_back", cmd_move_bracket_back);
+    _editor_register_cmd_fn(editor, "cmd_move_bracket_forward", cmd_move_bracket_forward);
+    _editor_register_cmd_fn(editor, "cmd_move_down", cmd_move_down);
+    _editor_register_cmd_fn(editor, "cmd_move_end", cmd_move_end);
+    _editor_register_cmd_fn(editor, "cmd_move_eol", cmd_move_eol);
+    _editor_register_cmd_fn(editor, "cmd_move_left", cmd_move_left);
+    _editor_register_cmd_fn(editor, "cmd_move_page_down", cmd_move_page_down);
+    _editor_register_cmd_fn(editor, "cmd_move_page_up", cmd_move_page_up);
+    _editor_register_cmd_fn(editor, "cmd_move_relative", cmd_move_relative);
+    _editor_register_cmd_fn(editor, "cmd_move_right", cmd_move_right);
+    _editor_register_cmd_fn(editor, "cmd_move_to_line", cmd_move_to_line);
+    _editor_register_cmd_fn(editor, "cmd_move_until_back", cmd_move_until_back);
+    _editor_register_cmd_fn(editor, "cmd_move_until_forward", cmd_move_until_forward);
+    _editor_register_cmd_fn(editor, "cmd_move_up", cmd_move_up);
+    _editor_register_cmd_fn(editor, "cmd_move_word_back", cmd_move_word_back);
+    _editor_register_cmd_fn(editor, "cmd_move_word_forward", cmd_move_word_forward);
+    _editor_register_cmd_fn(editor, "cmd_next", cmd_next);
+    _editor_register_cmd_fn(editor, "cmd_open_file", cmd_open_file);
+    _editor_register_cmd_fn(editor, "cmd_open_new", cmd_open_new);
+    _editor_register_cmd_fn(editor, "cmd_open_replace_file", cmd_open_replace_file);
+    _editor_register_cmd_fn(editor, "cmd_open_replace_new", cmd_open_replace_new);
+    _editor_register_cmd_fn(editor, "cmd_outdent", cmd_outdent);
+    _editor_register_cmd_fn(editor, "cmd_pop_kmap", cmd_pop_kmap);
+    _editor_register_cmd_fn(editor, "cmd_prev", cmd_prev);
+    _editor_register_cmd_fn(editor, "cmd_push_kmap", cmd_push_kmap);
+    _editor_register_cmd_fn(editor, "cmd_quit", cmd_quit);
+    _editor_register_cmd_fn(editor, "cmd_redo", cmd_redo);
+    _editor_register_cmd_fn(editor, "cmd_redraw", cmd_redraw);
+    _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
+    _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
+    _editor_register_cmd_fn(editor, "cmd_save", cmd_save);
+    _editor_register_cmd_fn(editor, "cmd_save_as", cmd_save_as);
+    _editor_register_cmd_fn(editor, "cmd_search", cmd_search);
+    _editor_register_cmd_fn(editor, "cmd_search_next", cmd_search_next);
+    _editor_register_cmd_fn(editor, "cmd_set_opt", cmd_set_opt);
+    _editor_register_cmd_fn(editor, "cmd_shell", cmd_shell);
+    _editor_register_cmd_fn(editor, "cmd_show_help", cmd_show_help);
+    _editor_register_cmd_fn(editor, "cmd_split_horizontal", cmd_split_horizontal);
+    _editor_register_cmd_fn(editor, "cmd_split_vertical", cmd_split_vertical);
+    _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
+    _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
+    _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
+    _editor_register_cmd_fn(editor, "cmd_wake_sleeping_cursors", cmd_wake_sleeping_cursors);
+    _editor_register_cmd_fn(editor, "_editor_menu_cancel", _editor_menu_cancel);
+    _editor_register_cmd_fn(editor, "_editor_menu_submit", _editor_menu_submit);
+    _editor_register_cmd_fn(editor, "_editor_prompt_cancel", _editor_prompt_cancel);
+    _editor_register_cmd_fn(editor, "_editor_prompt_history_down", _editor_prompt_history_down);
+    _editor_register_cmd_fn(editor, "_editor_prompt_history_up", _editor_prompt_history_up);
+    _editor_register_cmd_fn(editor, "_editor_prompt_input_complete", _editor_prompt_input_complete);
+    _editor_register_cmd_fn(editor, "_editor_prompt_input_submit", _editor_prompt_input_submit);
+    _editor_register_cmd_fn(editor, "_editor_prompt_isearch_drop_cursors", _editor_prompt_isearch_drop_cursors);
+    _editor_register_cmd_fn(editor, "_editor_prompt_isearch_next", _editor_prompt_isearch_next);
+    _editor_register_cmd_fn(editor, "_editor_prompt_isearch_prev", _editor_prompt_isearch_prev);
+    _editor_register_cmd_fn(editor, "_editor_prompt_menu_down", _editor_prompt_menu_down);
+    _editor_register_cmd_fn(editor, "_editor_prompt_menu_page_down", _editor_prompt_menu_page_down);
+    _editor_register_cmd_fn(editor, "_editor_prompt_menu_page_up", _editor_prompt_menu_page_up);
+    _editor_register_cmd_fn(editor, "_editor_prompt_menu_up", _editor_prompt_menu_up);
+    _editor_register_cmd_fn(editor, "_editor_prompt_yna_all", _editor_prompt_yna_all);
+    _editor_register_cmd_fn(editor, "_editor_prompt_yn_no", _editor_prompt_yn_no);
+    _editor_register_cmd_fn(editor, "_editor_prompt_yn_yes", _editor_prompt_yn_yes);
 }
 
 // Init built-in kmaps
@@ -1861,7 +1860,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:Nn:S:s:t:vw:y:z:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:Nn:S:s:t:vw:x:y:z:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
