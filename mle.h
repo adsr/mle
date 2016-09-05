@@ -233,6 +233,7 @@ struct cmd_s {
     int (*func_display)(cmd_t* self);
     void* udata;
     int is_resolved;
+    int is_dead;
     UT_hash_handle hh;
 };
 
@@ -326,11 +327,11 @@ struct async_proc_s {
     async_proc_t** owner_aproc;
     FILE* rpipe;
     FILE* wpipe;
+    pid_t pid;
     int rfd;
     int wfd;
     int is_done;
     int is_solo;
-    int destroy_on_eof;
     async_proc_cb_t callback;
     async_proc_t* next;
     async_proc_t* prev;
@@ -502,9 +503,9 @@ int cmd_pop_kmap(cmd_context_t* ctx);
 int cmd_show_help(cmd_context_t* ctx);
 
 // async functions
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int destroy_on_eof, async_proc_cb_t callback);
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, async_proc_cb_t callback);
 int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_aproc);
-int async_proc_destroy(async_proc_t* aproc);
+int async_proc_destroy(async_proc_t* aproc, int preempt);
 int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd);
 
 // uscript functions
@@ -513,7 +514,7 @@ int uscript_destroy(uscript_t* self);
 
 // util functions
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len);
-int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite);
+int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite, pid_t* optret_pid);
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
 int util_is_file(char* path, char* opt_mode, FILE** optret_file);
 int util_is_dir(char* path);
@@ -619,12 +620,14 @@ TODO
     [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
     [ ] get rid of bol_rule
     [ ] test at tests/test_buffer_srule_overlap.c
+    [ ] bugfix: insert lines, drop anchor at bof, delete up, type on 1st line, leftover styling?
 [ ] better control of viewport
 [ ] segfault hunt: splits
 [ ] review default key bindings
 [ ] sam command lang and/or vim-normal emulation
 [ ] crash when M-e cat'ing huge files?
 --- LOW
+[ ] ctrl-enter in prompt inserts newline
 [ ] when opening path check if a buffer exists that already has it open via inode
 [ ] undo stack with same loop# should get undone as a group option
 [ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok

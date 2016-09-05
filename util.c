@@ -28,7 +28,7 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     // Open cmd
     readfp = NULL;
     if (input && input_len > 0) {
-        if (!util_popen2(cmd, opt_shell, &readfd, &writefd)) {
+        if (!util_popen2(cmd, opt_shell, &readfd, &writefd, NULL)) {
             MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
         }
     } else {
@@ -116,9 +116,8 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     return rv;
 }
 
-
 // Like popen, but bidirectional. Returns 1 on success, 0 on failure.
-int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite) {
+int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite, pid_t* optret_pid) {
     pid_t pid;
     int pin[2];
     int pout[2];
@@ -153,6 +152,7 @@ int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite) {
     close(pin[0]);
     *ret_fdread = pout[0];
     *ret_fdwrite = pin[1];
+    if (optret_pid) *optret_pid = pid;
     return 1;
 }
 

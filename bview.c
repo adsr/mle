@@ -528,7 +528,7 @@ static void _bview_deinit(bview_t* self) {
 
     // Destroy async proc
     if (self->async_proc) {
-        async_proc_destroy(self->async_proc);
+        async_proc_destroy(self->async_proc, 1);
         self->async_proc = NULL;
     }
 

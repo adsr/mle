@@ -4,18 +4,18 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <fcntl.h>
+#include <signal.h>
 #include "utlist.h"
 #include "mle.h"
 
 // Return a new async_proc_t
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, int destroy_on_eof, async_proc_cb_t callback) {
+async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, async_proc_cb_t callback) {
     async_proc_t* aproc;
     aproc = calloc(1, sizeof(async_proc_t));
     aproc->editor = editor;
-    aproc->destroy_on_eof = destroy_on_eof;
     async_proc_set_owner(aproc, owner, owner_aproc);
     if (rw) {
-        if (!util_popen2(shell_cmd, NULL, &aproc->rfd, &aproc->wfd)) {
+        if (!util_popen2(shell_cmd, NULL, &aproc->rfd, &aproc->wfd, &aproc->pid)) {
             goto async_proc_new_failure;
         }
         aproc->rpipe = fdopen(aproc->rfd, "r");
@@ -27,7 +27,7 @@ async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner
         aproc->rfd = fileno(aproc->rpipe);
     }
     setvbuf(aproc->rpipe, NULL, _IONBF, 0);
-    setvbuf(aproc->wpipe, NULL, _IONBF, 0);
+    if (aproc->wpipe) setvbuf(aproc->wpipe, NULL, _IONBF, 0);
     aproc->callback = callback;
     DL_APPEND(editor->async_procs, aproc);
     return aproc;
@@ -49,9 +49,14 @@ int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_
 }
 
 // Destroy an async_proc_t
-int async_proc_destroy(async_proc_t* aproc) {
+int async_proc_destroy(async_proc_t* aproc, int preempt) {
     DL_DELETE(aproc->editor->async_procs, aproc);
     if (aproc->owner_aproc) *aproc->owner_aproc = NULL;
+    if (preempt) {
+        if (aproc->rfd) close(aproc->rfd);
+        if (aproc->wfd) close(aproc->wfd);
+        if (aproc->pid) kill(aproc->pid, SIGTERM);
+    }
     if (aproc->rpipe) pclose(aproc->rpipe);
     if (aproc->wpipe) pclose(aproc->wpipe);
     free(aproc);
@@ -107,7 +112,7 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     // Perform select
     rc = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
     if (rc < 0) {
-        return 0; // TODO Display errors
+        return 0; // TODO error
     } else if (rc == 0) {
         return 1; // Nothing to read, call again
     }
@@ -123,10 +128,13 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
                 nbytes = read(aproc->rfd, &buf, 1024);
                 buf[nbytes] = '\0';
                 aproc->callback(aproc, buf, nbytes);
+                if (nbytes == 0) aproc->is_done = 1;
             }
-            // Close and free if eof, error, or timeout
-            if (ferror(aproc->rpipe) || aproc->is_done || (aproc->destroy_on_eof && feof(aproc->rpipe))) {
-                async_proc_destroy(aproc);
+            // Destroy on eof.
+            // Not sure if ferror and feof have any effect here given we're not
+            // using fread.
+            if (ferror(aproc->rpipe) || feof(aproc->rpipe) || aproc->is_done) {
+                async_proc_destroy(aproc, 0);
             }
         }
     }

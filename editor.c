@@ -393,10 +393,7 @@ int editor_register_cmd(editor_t* editor, cmd_t* cmd) {
     cmd_t* existing_cmd;
     cmd_t* new_cmd;
     HASH_FIND_STR(editor->cmd_map, cmd->name, existing_cmd);
-    if (existing_cmd) {
-        HASH_DEL(editor->cmd_map, cmd);
-        _editor_destroy_cmd(editor, existing_cmd);
-    }
+    if (existing_cmd) return MLE_ERR;
     new_cmd = calloc(1, sizeof(cmd_t));
     *new_cmd = *cmd;
     new_cmd->name = strdup(new_cmd->name);
@@ -671,7 +668,7 @@ static int _editor_menu_submit(cmd_context_t* ctx) {
 
 // Invoked when user hits C-c in a menu
 static int _editor_menu_cancel(cmd_context_t* ctx) {
-    if (ctx->bview->async_proc) async_proc_destroy(ctx->bview->async_proc);
+    if (ctx->bview->async_proc) async_proc_destroy(ctx->bview->async_proc, 1);
     return MLE_OK;
 }
 
@@ -1120,14 +1117,16 @@ static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, 
 
 // Resolve a potentially unresolved cmd by name
 static cmd_t* _editor_resolve_cmd(editor_t* editor, cmd_t** rcmd, char* cmd_name) {
+    cmd_t* tcmd;
     cmd_t* cmd;
     cmd = NULL;
-    if ((*rcmd)) {
+    if ((*rcmd) && !(*rcmd)->is_dead) {
         cmd = *rcmd;
     } else if (cmd_name) {
-        HASH_FIND_STR(editor->cmd_map, cmd_name, cmd);
-        if (cmd) {
-            *rcmd = cmd;
+        HASH_FIND_STR(editor->cmd_map, cmd_name, tcmd);
+        if (tcmd && !tcmd->is_dead) {
+            *rcmd = tcmd;
+            cmd = tcmd;
         }
     }
     return cmd;

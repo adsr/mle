@@ -29,7 +29,7 @@ uscript_t* uscript_run(editor_t* editor, char* cmd) {
     uscript_t* uscript;
     uscript = calloc(1, sizeof(uscript_t));
     uscript->editor = editor;
-    uscript->aproc = async_proc_new(editor, uscript, &(uscript->aproc), cmd, 1, 0, _uscript_aproc_callback);
+    uscript->aproc = async_proc_new(editor, uscript, &(uscript->aproc), cmd, 1, _uscript_aproc_callback);
     if (!uscript->aproc) {
         free(uscript);
         return NULL;
@@ -41,11 +41,16 @@ uscript_t* uscript_run(editor_t* editor, char* cmd) {
 int uscript_destroy(uscript_t* uscript) {
     uscript_msg_t* msg;
     uscript_msg_t* msg_tmp;
-    async_proc_destroy(uscript->aproc);
+    cmd_t* cmd;
+    cmd_t* cmd_tmp;
+    if (uscript->aproc) async_proc_destroy(uscript->aproc, 1);
+    DL_DELETE(uscript->editor->uscripts, uscript);
     DL_FOREACH_SAFE(uscript->msgs, msg, msg_tmp) {
         _uscript_destroy_msg(uscript, msg);
     }
-    // TODO editor_unregister_cmds we own
+    HASH_ITER(hh, uscript->editor->cmd_map, cmd, cmd_tmp) {
+        if (cmd->udata == uscript) cmd->is_dead = 1;
+    }
     str_free(&uscript->readbuf);
     free(uscript);
     return MLE_OK;
@@ -60,7 +65,6 @@ static int _uscript_cmd_handler(cmd_context_t* ctx) {
     rc = _uscript_do_convo(uscript, ctx);
     if (uscript->has_internal_err) {
         // Commit suicide
-        DL_DELETE(ctx->editor->uscripts, uscript);
         uscript_destroy(uscript);
     }
     return rc;
@@ -72,6 +76,12 @@ static void _uscript_aproc_callback(async_proc_t* aproc, char* buf, size_t buf_l
     uscript_t* uscript;
     if (!aproc->owner) return;
     uscript = (uscript_t*)aproc->owner;
+    if (buf_len == 0) { // EOF
+        uscript->aproc = NULL; // async_proc_drain_all calls async_proc_destroy
+        aproc->owner_aproc = NULL; // unset otherwise async_proc_destroy will err
+        uscript_destroy(uscript);
+        return;
+    }
     str_append_len(&uscript->readbuf, buf, buf_len);
     _uscript_parse_msgs(uscript);
     _uscript_register_cmds(uscript);
@@ -309,11 +319,11 @@ static int _uscript_write_request(uscript_t* uscript, cmd_context_t* ctx, char**
     str_append(&req, "method=");
     str_append(&req, ctx->cmd->name);
     str_append(&req, "&");
-    str_append(&req, "params[mark]=");
+    str_append(&req, "params%5Bmark%5D=");
         MLE_USCRIPT_PTR_TO_STR(ptrbuf, ctx->cursor->mark);
         str_append(&req, ptrbuf);
         str_append(&req, "&");
-    str_append(&req, "params[static_param]=");
+    str_append(&req, "params%5Bstatic_param%5D=");
         if (ctx->static_param) str_append(&req, ctx->static_param);
         str_append(&req, "&");
     str_append(&req, "id=");
@@ -344,14 +354,14 @@ static int _uscript_write_response(uscript_t* uscript, uscript_msg_t* msg, int r
 
     // Build response
     if (rc == MLE_OK) {
-        str_append(&res, "result[rc]=");
+        str_append(&res, "result%5Brc%5D=");
         sprintf(numbuf, "%d", rc);
         str_append(&res, numbuf);
         str_append(&res, "&");
         for (i = 0; i < retvar_count; i++) {
-            str_append(&res, "result[");
+            str_append(&res, "result%5B");
             str_append(&res, retvar_name[i]);
-            str_append(&res, "]=");
+            str_append(&res, "%5D=");
             _uscript_url_encode(retvar[i], &tmp);
             str_append(&res, tmp.data);
             str_append(&res, "&");
@@ -377,6 +387,7 @@ static int _uscript_write_response(uscript_t* uscript, uscript_msg_t* msg, int r
 
 // Write str to uscript wpipe
 static int _uscript_write_to_wpipe(uscript_t* uscript, str_t* str) {
+    // TODO maybe ensure writeable via select?
     if (str->len != fwrite(str->data, sizeof(char), str->len, uscript->aproc->wpipe)) {
         return MLE_ERR;
     }
