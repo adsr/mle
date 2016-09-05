@@ -1,36 +1,38 @@
-export SHELL=/bin/bash
-export CC=$(shell if which colorgcc >/dev/null 2>&1; then echo colorgcc; else echo gcc; fi)
-export BINDIR=/usr/bin
+SHELL=/bin/bash
+DESTDIR?=/usr/bin/
+mle_cflags:=$(CFLAGS) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/
+mle_ldlibs:=$(LDLIBS) -lm -lpcre
+mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
+mle_static:=
 
 all: mle
 
-# TODO clean this crap up
+mle: $(mle_objects) ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
+	$(CC) $(mle_objects) $(mle_static) ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a $(mle_ldlibs) -o mle
 
-mle: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre
+mle_static: mle_static:=-static
+mle_static: mle_ldlibs:=$(mle_ldlibs) -lpthread
+mle_static: mle
 
-mle_static: *.c *.h ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a
-	$(CC) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ *.c -o mle -static ./mlbuf/libmlbuf.a ./termbox/build/src/libtermbox.a -lm -lpcre -lpthread
+$(mle_objects): %.o: %.c
+	$(CC) -c $(mle_cflags) $< -o $@
 
 ./mlbuf/libmlbuf.a:
 	$(MAKE) -C mlbuf
 
 ./termbox/build/src/libtermbox.a:
-	pushd termbox && ./waf configure && ./waf && popd
+	pushd termbox && ./waf configure &>/dev/null && ./waf &>/dev/null && popd
 
 test: mle
 	$(MAKE) -C mlbuf test
 	./mle -v
 
 install: mle
-	install -v -m 755 mle $(BINDIR)
+	install -v -m 755 mle $(DESTDIR)
 
 clean:
-	rm -f *.o
-	rm -f mle.bak.*
-	rm -f gmon.out perf.data perf.data.old
-	rm -f mle
+	rm -f *.o mle.bak.* gmon.out perf.data perf.data.old mle
 	$(MAKE) -C mlbuf clean
 	pushd termbox && ./waf clean && popd
 
-.PHONY: all test mle_static install clean
+.PHONY: all mle_static test install clean
