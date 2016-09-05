@@ -785,6 +785,7 @@ int cmd_apply_macro_by(cmd_context_t* ctx) {
     kmacro_t* macro;
     uint32_t ch;
     char name[6] = { 0 };
+    if (ctx->editor->macro_apply) MLE_RETURN_ERR(ctx->editor, "Cannot nest macros%s", "");
     ch = MLE_PARAM_WILDCARD(ctx, 0);
     if (!ch) return MLE_OK;
     utf8_unicode_to_char(name, ch);

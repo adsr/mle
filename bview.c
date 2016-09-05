@@ -759,12 +759,12 @@ static void _bview_draw_status(bview_t* self) {
     char* i_macro;
     if (editor->is_recording_macro) {
         i_macro_fg = TB_RED | TB_BOLD;
-        i_macro_bg = TB_WHITE;
-        i_macro = "\xe2\x97\x8f";
+        i_macro_bg = TB_BLACK;
+        i_macro = "r";
     } else if (editor->macro_apply) {
-        i_macro_fg = TB_WHITE | TB_BOLD;
-        i_macro_bg = TB_GREEN;
-        i_macro = "\xe2\x96\xb6";
+        i_macro_fg = TB_GREEN | TB_BOLD;
+        i_macro_bg = TB_BLACK;
+        i_macro = "p";
     } else {
         i_macro_fg = 0;
         i_macro_bg = 0;
@@ -775,9 +775,9 @@ static void _bview_draw_status(bview_t* self) {
     int i_anchor_fg, i_anchor_bg;
     char* i_anchor;
     if (active_edit->active_cursor->is_anchored) {
-        i_anchor_fg = TB_REVERSE | TB_BOLD;
-        i_anchor_bg = TB_DEFAULT;
-        i_anchor = "a";
+        i_anchor_fg = TB_WHITE | TB_BOLD;
+        i_anchor_bg = TB_BLACK;
+        i_anchor = "\xe2\x97\xa8";
     } else {
         i_anchor_fg = 0;
         i_anchor_bg = 0;
@@ -787,15 +787,10 @@ static void _bview_draw_status(bview_t* self) {
     // Async indicator
     int i_async_fg, i_async_bg;
     char* i_async;
-    static int i_async_idx = 0;
     if (editor->async_procs) {
-        i_async_fg = TB_BLACK | TB_BOLD;
-        i_async_bg = TB_YELLOW;
-        if (i_async_idx < 100)         i_async = "\xe2\x96\x9d";
-        else if (i_async_idx < 200)    i_async = "\xe2\x96\x97";
-        else if (i_async_idx < 300)    i_async = "\xe2\x96\x96";
-        else /* (i_async_idx < 400) */ i_async = "\xe2\x96\x98";
-        if (++i_async_idx >= 400) i_async_idx = 0;
+        i_async_fg = TB_YELLOW | TB_BOLD;
+        i_async_bg = TB_BLACK;
+        i_async = "x";
     } else {
         i_async_fg = 0;
         i_async_bg = 0;
@@ -807,9 +802,9 @@ static void _bview_draw_status(bview_t* self) {
     int i_needinput_bg;
     char* i_needinput;
     if (editor->loop_ctx->need_more_input) {
-        i_needinput_fg = TB_BLACK;
-        i_needinput_bg = TB_BLUE;
-        i_needinput = "\xe2\x80\xa6";
+        i_needinput_fg = TB_BLUE | TB_BOLD;
+        i_needinput_bg = TB_BLACK;
+        i_needinput = "n";
     } else {
         i_needinput_fg = 0;
         i_needinput_bg = 0;
