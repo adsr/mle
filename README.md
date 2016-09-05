@@ -6,24 +6,22 @@ mle is a small but powerful console text editor written in C.
 
 ### Features
 
-* Small codebase (~6k sloc)
+* Small codebase (~9k sloc)
 * Only 1 out-of-repo dependency (pcre)
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
-* Extensible via any language (via stdio)
+* Extensible via stdio
 * Scriptable rc file
 * Macros
-* Multiple windows
-* Window splitting
+* Multiple splittable windows
 * Regex search and replace
 * Large file support
 * Incremental search
+* Multiple cursors
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
-* File grep
-* Multiple cursors
-* Mutate text via any shell command
+* File grep via [grep](https://www.gnu.org/software/grep/)
 
 ### Building
 
