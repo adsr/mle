@@ -70,24 +70,24 @@ All messages are URL-encoded and end with a newline.
 Example exchange between a user script and mle:
 
     usx -> mle    method=editor_register_cmd&params%5B%5D=hello&id=57cc98bb168ae
-    mle -> usx    result[rc]=0&id=57cc98bb168ae
+    mle -> usx    result%5Brc%5D=0&id=57cc98bb168ae
     ...
-    mle -> usx    method=hello&params[mark]=76d6e0&params[static_param]=&id=0x76d3a0-0
+    mle -> usx    method=hello&params%5Bmark%5D=76d6e0&params%5Bstatic_param%5D=&id=0x76d3a0-0
     usx -> mle    method=mark_insert_before&params%5B%5D=76d6e0&params%5B%5D=hello%3F&params%5B%5D=5&id=57cc98bb6ab3d
-    mle -> usx    result[rc]=0&id=57cc98bb6ab3d
+    mle -> usx    result%5Brc%5D=0&id=57cc98bb6ab3d
     usx -> mle    result%5Brc%5D=0&error=&id=0x76d3a0-0
 
 In the example above, the user script registers a command called `hello` at
-startup, and mle replies with success. Later, the end user invokes the `hello`
+startup, and mle replies with success. Later, the end-user invokes the `hello`
 command, so mle sends a request to the user script. The user script receives the
-request and send a sub-request invoking `mark_insert_before`, to which mle
+request and sends a sub-request invoking `mark_insert_before`, to which mle
 replies with success. Finally the user script returns overall success for the
 `hello` command.
 
 Currently, mle only accepts requests from user scripts while a request to the
-user script itself is pending. (In other words, "only do stuff if I ask you
-to".) The exception to this is `editor_register_cmd` which can be invoked by
-user scripts at startup time.
+user script itself is pending. (In other words, mle enforces an "only do stuff
+if I ask you to" policy.) The exception to this is `editor_register_cmd` which
+can be invoked by user scripts at startup time.
 
 For end-users, user scripts are loaded via the `-x` cli option. Commands
 registered by user scripts can be mapped to keys as normal via `-k`.
