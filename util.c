@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
 #include "mle.h"
@@ -20,23 +21,16 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     fd_set readfds;
     struct timeval timeout;
     struct timeval* timeoutptr;
-    FILE* readfp;
+    int rw;
+    pid_t pid;
 
     *ret_output = NULL;
     *ret_output_len = 0;
 
     // Open cmd
-    readfp = NULL;
-    if (input && input_len > 0) {
-        if (!util_popen2(cmd, opt_shell, &readfd, &writefd, NULL)) {
-            MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
-        }
-    } else {
-        if (!(readfp = popen(cmd, "r"))) {
-            MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
-        }
-        readfd = fileno(readfp);
-        writefd = 0; // TODO 0 is a valid albeit unlikely fd, should use -1
+    rw = input && input_len > 0 ? 1 : 0;
+    if (!util_popen2(cmd, opt_shell, rw, &readfd, &writefd, &pid)) {
+        MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
     }
 
     // Read-write loop
@@ -100,15 +94,12 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
                 readbuf_len += nbytes;
             }
         }
-    } while(nbytes > 0);
+    } while(nbytes > 0); // until EOF
 
-    // Close pipes
-    if (readfp) {
-        pclose(readfp);
-    } else if (readfd) {
-        close(readfd);
-    }
-    if (writefd) close(writefd);
+    // Close pipes and reap child proc
+    close(readfd);
+    if (rw) close(writefd);
+    waitpid(pid, NULL, WNOHANG);
 
     *ret_output = readbuf;
     *ret_output_len = readbuf_len;
@@ -116,18 +107,18 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     return rv;
 }
 
-// Like popen, but bidirectional. Returns 1 on success, 0 on failure.
-int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite, pid_t* optret_pid) {
+// Like popen, but optionally bidirectional if rw==1. Returns 1 on success, 0 on failure.
+int util_popen2(char* cmd, char* opt_shell, int rw, int* ret_fdread, int* ret_fdwrite, pid_t* optret_pid) {
     pid_t pid;
-    int pin[2];
     int pout[2];
+    int pin[2];
 
     // Set shell
     opt_shell = opt_shell ? opt_shell : "sh";
 
     // Make pipes
-    if (pipe(pin)) return 0;
     if (pipe(pout)) return 0;
+    if (rw) if (pipe(pin)) return 0;
 
     // Fork
     pid = fork();
@@ -140,18 +131,20 @@ int util_popen2(char* cmd, char* opt_shell, int* ret_fdread, int* ret_fdwrite, p
         dup2(pout[1], STDOUT_FILENO);
         close(pout[1]);
 
-        close(pin[1]);
-        dup2(pin[0], STDIN_FILENO);
-        close(pin[0]);
+        if (rw) {
+            close(pin[1]);
+            dup2(pin[0], STDIN_FILENO);
+            close(pin[0]);
+        }
 
         execlp(opt_shell, opt_shell, "-c", cmd, NULL);
         exit(EXIT_FAILURE);
     }
     // Parent
     close(pout[1]);
-    close(pin[0]);
+    if (rw) close(pin[0]);
     *ret_fdread = pout[0];
-    *ret_fdwrite = pin[1];
+    if (rw) *ret_fdwrite = pin[1];
     if (optret_pid) *optret_pid = pid;
     return 1;
 }

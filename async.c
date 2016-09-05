@@ -15,7 +15,7 @@ async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner
     aproc->editor = editor;
     async_proc_set_owner(aproc, owner, owner_aproc);
     if (rw) {
-        if (!util_popen2(shell_cmd, NULL, &aproc->rfd, &aproc->wfd, &aproc->pid)) {
+        if (!util_popen2(shell_cmd, NULL, 1, &aproc->rfd, &aproc->wfd, &aproc->pid)) {
             goto async_proc_new_failure;
         }
         aproc->rpipe = fdopen(aproc->rfd, "r");
