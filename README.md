@@ -19,6 +19,7 @@ mle is a small but powerful console text editor written in C.
 * Large file support
 * Incremental search
 * Multiple cursors
+* Headless mode
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
 * File grep via [grep](https://www.gnu.org/software/grep/)
@@ -89,6 +90,19 @@ can be invoked by user scripts at startup time.
 
 For end-users, user scripts are loaded via the `-x` cli option. Commands
 registered by user scripts can be mapped to keys as normal via `-k`.
+
+### Headless mode
+
+mle provides support for non-interactive editing which may be useful for using
+the editor as a regular command line tool. In headless mode, mle reads stdin
+into a buffer, applies a startup macro if specified, and then writes the buffer
+contents to stdout. For example:
+
+    $ echo -n hello | mle -M 'test C-e space w o r l d enter' -p test
+    hello world
+
+If stdin is a pipe, mle goes into headless mode automatically. Headless mode can
+be explicitly enabled or disabled with the `-H` option.
 
 ### Runtime dependencies (optional)
 
