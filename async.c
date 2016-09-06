@@ -68,7 +68,6 @@ int async_proc_destroy(async_proc_t* aproc, int preempt) {
 int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     int maxfd;
     fd_set readfds;
-    struct timeval timeout;
     async_proc_t* aproc;
     async_proc_t* aproc_tmp;
     char buf[1024 + 1];
@@ -85,10 +84,6 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
             return 0;
         }
     }
-
-    // Set timeout to 1s
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
 
     // Add tty to readfds
     FD_ZERO(&readfds);
@@ -110,7 +105,7 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     }
 
     // Perform select
-    rc = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
+    rc = select(maxfd + 1, &readfds, NULL, NULL, NULL);
     if (rc < 0) {
         return 0; // TODO error
     } else if (rc == 0) {
