@@ -33,6 +33,6 @@ install: mle
 clean:
 	rm -f *.o mle.bak.* gmon.out perf.data perf.data.old mle
 	$(MAKE) -C mlbuf clean
-	pushd termbox && ./waf clean && popd
+	pushd termbox && ./waf clean &>/dev/null && popd
 
 .PHONY: all mle_static test install clean
