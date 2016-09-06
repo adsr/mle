@@ -65,6 +65,8 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path);
 static int _editor_init_from_args(editor_t* editor, int argc, char** argv);
 static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
+static int _editor_init_headless_mode(editor_t* editor);
+static int _editor_init_startup_macro(editor_t* editor);
 static int _editor_init_or_deinit_commands(editor_t* editor, int is_deinit);
 
 // Init editor from args
@@ -86,6 +88,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         editor->viewport_scope_y = -1;
         editor->color_col = -1;
         editor->exit_code = EXIT_SUCCESS;
+        editor->headless_mode = isatty(STDIN_FILENO) == 0 ? 1 : 0;
         _editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
 
         // Init signal handlers
@@ -131,6 +134,12 @@ int editor_init(editor_t* editor, int argc, char** argv) {
 
         // Init commands
         _editor_init_or_deinit_commands(editor, 0);
+
+        // Init startup macro
+        _editor_init_headless_mode(editor);
+
+        // Init headless mode
+        _editor_init_startup_macro(editor);
     } while(0);
 
     editor->is_in_init = 0;
@@ -210,6 +219,7 @@ int editor_deinit(editor_t* editor) {
     if (editor->kmap_init_name) free(editor->kmap_init_name);
     if (editor->insertbuf) free(editor->insertbuf);
     if (editor->ttyfd) close(editor->ttyfd);
+    if (editor->startup_macro_name) free(editor->startup_macro_name);
     return MLE_OK;
 }
 
@@ -402,7 +412,7 @@ int editor_register_cmd(editor_t* editor, cmd_t* cmd) {
 }
 
 // Get input from either macro or user
-int editor_get_input(editor_t* editor, cmd_context_t* ctx) {
+int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* ctx) {
     ctx->is_user_input = 0;
     if (editor->macro_apply
         && editor->macro_apply_input_index < editor->macro_apply->inputs_len
@@ -411,14 +421,20 @@ int editor_get_input(editor_t* editor, cmd_context_t* ctx) {
         ctx->input = editor->macro_apply->inputs[editor->macro_apply_input_index];
         editor->macro_apply_input_index += 1;
     } else {
-        // Clear macro
+        // Get input from user
         if (editor->macro_apply) {
+            // Clear macro if present
             editor->macro_apply = NULL;
             editor->macro_apply_input_index = 0;
         }
-        // Get user input
-        _editor_get_user_input(editor, ctx);
-        ctx->is_user_input = 1;
+        if (editor->headless_mode) {
+            // Bail if in headless mode
+            loop_ctx->should_exit = 1;
+        } else {
+            // Get input from user
+            _editor_get_user_input(editor, ctx);
+            ctx->is_user_input = 1;
+        }
     }
     if (editor->is_recording_macro && editor->macro_record) {
         // Record macro input
@@ -430,6 +446,7 @@ int editor_get_input(editor_t* editor, cmd_context_t* ctx) {
 // Display the editor
 int editor_display(editor_t* editor) {
     bview_t* bview;
+    if (editor->headless_mode) return MLE_OK;
     tb_clear();
     bview_draw(editor->active_edit_root);
     bview_draw(editor->status);
@@ -773,7 +790,7 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         }
 
         // Get input
-        editor_get_input(editor, &cmd_ctx);
+        editor_get_input(editor, loop_ctx, &cmd_ctx);
 
         // Toggle macro?
         if (_editor_maybe_toggle_macro(editor, &cmd_ctx.input)) {
@@ -1859,7 +1876,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:K:k:l:M:m:Nn:S:s:t:vw:x:y:z:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1868,6 +1885,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -a <1|0>     Enable/disable tab_to_space (default: %d)\n", MLE_DEFAULT_TAB_TO_SPACE);
                 printf("    -b <1|0>     Enable/disbale highlight bracket pairs (dfeault: %d)\n", MLE_DEFAULT_HILI_BRACKET_PAIRS);
                 printf("    -c <column>  Color column\n");
+                printf("    -H <1|0>     Enable/disable headless mode (default: 1 if no tty, else 0)\n");
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
                 printf("    -l <ltype>   Set linenum type (default: 0)\n");
@@ -1875,6 +1893,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
                 printf("    -N           Skip reading of rc file\n");
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
+                printf("    -p <macro>   Set startup macro\n");
                 printf("    -S <syndef>  Set current syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use with -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
@@ -1905,6 +1924,9 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'c':
                 editor->color_col = atoi(optarg);
+                break;
+            case 'H':
+                editor->headless_mode = atoi(optarg) ? 1 : 0;
                 break;
             case 'K':
                 if (_editor_init_kmap_by_str(editor, &cur_kmap, optarg) != MLE_OK) {
@@ -1943,6 +1965,9 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'n':
                 editor->kmap_init_name = strdup(optarg);
+                break;
+            case 'p':
+                editor->startup_macro_name = strdup(optarg);
                 break;
             case 'S':
                 if (_editor_init_syntax_by_str(editor, &cur_syntax, optarg) != MLE_OK) {
@@ -2017,6 +2042,43 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
             editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, NULL, NULL, NULL);
         }
     }
+}
+
+// Init headless mode
+static int _editor_init_headless_mode(editor_t* editor) {
+    fd_set readfds;
+    ssize_t nbytes;
+    char buf[1024];
+    bview_t* bview;
+    if (!editor->headless_mode) return MLE_OK;
+
+    // Read stdin into blank bview
+    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, &bview);
+    do {
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        select(STDIN_FILENO + 1, &readfds, NULL, NULL, NULL);
+        nbytes = 0;
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+            nbytes = read(STDIN_FILENO, &buf, 1024);
+            if (nbytes > 0) {
+                mark_insert_before(bview->active_cursor->mark, buf, nbytes);
+            }
+        }
+    } while (nbytes > 0);
+    return MLE_OK;
+}
+
+// Init startup macro if present
+static int _editor_init_startup_macro(editor_t* editor) {
+    kmacro_t* macro;
+    if (!editor->startup_macro_name) return MLE_OK;
+    macro = NULL;
+    HASH_FIND_STR(editor->macro_map, editor->startup_macro_name, macro);
+    if (!macro) return MLE_ERR;
+    editor->macro_apply = macro;
+    editor->macro_apply_input_index = 0;
+    return MLE_OK;
 }
 
 // Init/deinit commands

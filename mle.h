@@ -2,8 +2,8 @@
 #define __MLE_H
 
 #include <stdint.h>
-#include <termbox.h>
 #include <limits.h>
+#include "termbox.h"
 #include "uthash.h"
 #include "mlbuf.h"
 
@@ -76,6 +76,7 @@ struct editor_s {
     kmacro_t* macro_apply;
     size_t macro_apply_input_index;
     int is_recording_macro;
+    char* startup_macro_name;
     cmd_t* cmd_map;
     kmap_t* kmap_map;
     kmap_t* kmap_normal;
@@ -104,6 +105,7 @@ struct editor_s {
     int soft_wrap;
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
+    int headless_mode;
     loop_context_t* loop_ctx;
     int loop_depth;
     int is_in_init;
@@ -537,7 +539,7 @@ void str_append_replace_with_backrefs(str_t* str, char* subj, char* repl, int pc
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "1.0"
+#define MLE_VERSION "1.1"
 
 #define MLE_OK 0
 #define MLE_ERR 1
