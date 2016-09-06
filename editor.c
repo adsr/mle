@@ -430,6 +430,7 @@ int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* 
         if (editor->headless_mode) {
             // Bail if in headless mode
             loop_ctx->should_exit = 1;
+            return MLE_ERR;
         } else {
             // Get input from user
             _editor_get_user_input(editor, ctx);
@@ -790,7 +791,9 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         }
 
         // Get input
-        editor_get_input(editor, loop_ctx, &cmd_ctx);
+        if (editor_get_input(editor, loop_ctx, &cmd_ctx) == MLE_ERR) {
+            break;
+        }
 
         // Toggle macro?
         if (_editor_maybe_toggle_macro(editor, &cmd_ctx.input)) {
@@ -2052,8 +2055,11 @@ static int _editor_init_headless_mode(editor_t* editor) {
     bview_t* bview;
     if (!editor->headless_mode) return MLE_OK;
 
-    // Read stdin into blank bview
+    // Open blank bview
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, &bview);
+
+    // If we have a pipe, read stdin into bview
+    if (isatty(STDIN_FILENO) == 1) return MLE_OK;
     do {
         FD_ZERO(&readfds);
         FD_SET(STDIN_FILENO, &readfds);
