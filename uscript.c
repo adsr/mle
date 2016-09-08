@@ -301,7 +301,7 @@ static int _uscript_read_until_msg(uscript_t* uscript) {
 
 // Run command on behalf of uscript and send back response
 static int _uscript_run_cmd_and_send_response(uscript_t* uscript, uscript_msg_t* msg) {
-#include "uscript_code_gen.inc"
+#include "uscript.inc"
 }
 
 // Write request to uscript
