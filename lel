@@ -1,0 +1,98 @@
+a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~
+x x x x x x x x x   x x x x     x x x x   x x x x x x x x x
+
+A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _ ` 
+x x   x x x x x x     x x x x   x x x x x   x x x x       x x x
+
+  ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @
+x   x x x     x       x   x x x x x x x x x x x x x x   x x x x
+
+Any command can be prefixed by [0-9]+
+
+move
+
+    l[0-9]+         abs line num
+    l[+-][0-9]+     rel line num
+    #[0-9]+         abs col
+    #[+-][0-9]+     rel col
+    ^               bol
+    $               eol
+    w               next word outer
+    W               prev word outer
+    n               next word inner
+    N               prev word inner
+    /regex/         next regex
+    ?regex?         prev regex
+    'str'           next str
+    "str"           prev str
+    r@regex@        next regex
+    R@regex@        prev regex
+    f@str@          next str
+    F@str@          prev str
+    tX              next char
+    TX              prev char
+    b               matching bracket
+    ~               orig position
+    h               begin loop bound
+    H               end loop bound
+    g               bof
+    G               eof
+    mX              mark
+
+actions
+
+    a@...@          insert-before
+    c@...@          change
+    i@...@          insert-after
+    d               delete
+    s@regex@repl@   search and replace
+    k               cut
+    y               copy
+    Y               copy-append
+    v               paste
+    |@cmd@          pipe sel into stdin, insert-before stdout
+    `@cmd@          insert-before stdout
+    :{              select bracket
+    :"              select quote (or ', or `)
+    :w              select word
+    :i              select inverted
+    :a              select all
+    D               drop anchor
+    U               lift anchor
+    O               swap anchor/mark
+    z               drop cloned sleeping cursor
+    Z               wake sleeping cursors
+    .               collapse cursors
+    MX              drop mark
+    >X              append sel to register
+    <X              prepend sel to register
+    =X              set register
+    _X              clear register
+    AX              insert-before register
+    IX              insert-after register
+
+loops
+
+    x@re@<cmd>      foreach regex
+    X@re@<cmd>      foreach regex inverted
+    e@re@re@<cmd>   foreach start-end regex
+    E@re@re@<cmd>   foreach start-end regex inverted
+    L<cmd>          foreach line
+    B<cmd>          foreach buffer
+
+filters
+
+    S@re@repl@<cmd> regex/replace all output of cmd
+    q@re@<cmd>      do cmd if re matches sel
+    Q@re@<cmd>      do cmd if re does not match sel
+
+examples
+
+    func prototypes
+    x/^static/Y S/ {$/;/v
+
+    delete this line and next 2
+    3d
+
+    e/function.*{\s*$/}/}{ h a"// " A0 a"\n" }
+
