@@ -18,7 +18,6 @@ struct lel_pstate_s {
 
 struct lel_pnode_s {
     char ch;
-    char cparam;
     char* sparam;
     char* param1;
     char* param2;
@@ -47,17 +46,17 @@ static void _lel_func_cursor_lift_anchor(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_cursor_wake(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_cursor_drop_mark(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_filter_regex_condition_inner(lel_pnode_t* node, lel_ectx_t* ectx, int negated);
 static void _lel_func_filter_regex_condition(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_filter_regex_condition_not(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_filter_regex_replace(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx_orig);
+static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx_orig);
 static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_move_char(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ectx);
@@ -84,10 +83,13 @@ static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx);
+static lel_ectx_t* _lel_clone_context(lel_ectx_t* ectx_orig);
+static void _lel_free_context(lel_ectx_t* ectx);
+static int _lel_ensure_compiled_regex(char* re, pcre** ret_pcre);
 static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx);
-static int _lel_compile_regex(char* re, pcre** ret_pcre);
 static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx);
 static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s);
+static void _lel_free_node(lel_pnode_t* node);
 static lel_pnode_t* _lel_accept_cmds(lel_pstate_t* s);
 static char* _lel_accept_any(lel_pstate_t* s, char* any);
 static int _lel_accept_num_inner(lel_pstate_t* s, int expect);
@@ -102,7 +104,6 @@ static char _lel_expect_one(lel_pstate_t* s);
 static void _lel_expect_set_delim(lel_pstate_t* s);
 static char* _lel_accept_any_set_delim(lel_pstate_t* s, char* any);
 static char* _lel_expect_delim_str(lel_pstate_t* s);
-static void _lel_free_node(lel_pnode_t* node);
 
 static lel_func_t func_table[] = {
     NULL,                                    // !
@@ -156,7 +157,7 @@ static lel_func_t func_table[] = {
     _lel_func_filter_regex_condition_not,    // Q
     _lel_func_move_re,                       // R
     _lel_func_filter_regex_replace,          // S
-    _lel_func_move_char,                     // T
+    _lel_func_move_str,                      // T
     _lel_func_cursor_lift_anchor,            // U
     NULL,                                    // V
     _lel_func_move_word,                     // W
@@ -188,7 +189,7 @@ static lel_func_t func_table[] = {
     _lel_func_filter_regex_condition,        // q
     _lel_func_move_re,                       // r
     _lel_func_text_search_replace,           // s
-    _lel_func_move_char,                     // t
+    _lel_func_move_str,                      // t
     NULL,                                    // u
     _lel_func_text_paste,                    // v
     _lel_func_move_word,                     // w
@@ -224,12 +225,14 @@ int cmd_lel(cmd_context_t* ctx) {
     lel_ctx.ctx = ctx;
     bview_add_cursor(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, &lel_ctx.cursor);
     lel_ctx.bview = ctx->bview;
+    mark_clone(ctx->cursor->mark, &lel_ctx.orig);
     lel_ctx.mark_start = buffer_add_mark(ctx->buffer, ctx->buffer->first_line, 0);
     lel_ctx.mark_end = buffer_add_mark(ctx->buffer, ctx->buffer->last_line, ctx->buffer->last_line->data_len);
     _lel_execute(lel_tree, &lel_ctx);
     _lel_free_node(lel_tree);
-    buffer_destroy_mark(ctx->buffer, lel_ctx.mark_start);
-    buffer_destroy_mark(ctx->buffer, lel_ctx.mark_end);
+    mark_destroy(lel_ctx.mark_start);
+    mark_destroy(lel_ctx.mark_end);
+    mark_destroy(lel_ctx.orig);
     bview_remove_cursor(ctx->bview, lel_ctx.cursor);
 
     return MLE_OK;
@@ -272,7 +275,7 @@ static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ectx) {
 static void _lel_func_filter_regex_condition_inner(lel_pnode_t* node, lel_ectx_t* ectx, int negated) {
     char* sel;
     int rc;
-    if (!_lel_compile_regex(node->param1, &node->re1)) return;
+    if (!_lel_ensure_compiled_regex(node->param1, &node->re1)) return;
     sel = _lel_get_sel(node, ectx);
     rc = pcre_exec(node->re1, NULL, sel, strlen(sel), 0, 0, NULL, 0);
     if ((!negated && rc > 0) || (negated && rc < 0)) {
@@ -301,14 +304,10 @@ static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ectx) {
     // TODO
 }
 
-static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx) {
+static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
+    lel_ectx_t* ectx;
     bline_t* bline;
-    mark_t* orig_cur;
-    mark_t* orig_start;
-    mark_t* orig_end;
-    mark_clone(ectx->cursor->mark, &orig_cur);
-    mark_clone(ectx->mark_start, &orig_start);
-    mark_clone(ectx->mark_end, &orig_end);
+    ectx = _lel_clone_context(ectx_orig);
     for (bline = ectx->mark_start->bline; bline && bline != ectx->mark_end->bline->next; bline = bline->next) {
         mark_move_to_w_bline(ectx->cursor->mark, bline, 0);
         mark_move_to_w_bline(ectx->mark_start, bline, 0);
@@ -319,66 +318,126 @@ static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx) {
         }
         _lel_execute(node->child, ectx);
     }
-    mark_join(ectx->cursor->mark, orig_cur);
-    mark_join(ectx->mark_start, orig_start);
-    mark_join(ectx->mark_end, orig_end);
-    mark_destroy(orig_cur);
-    mark_destroy(orig_start);
-    mark_destroy(orig_end);
+    _lel_free_context(ectx);
 }
 
-static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx) {
-    if (!_lel_compile_regex(node->param1, &node->re1)) return;
-
-    //mark_move_next_cre
-
-    // find regex matches from ctx->start to >end
-    // foreach match {
-    //   set ctx->start and >end
-    //   for (node = tree->child; node; node = node->next) {
-    //     node->func(node, &ctx);
-    //   }
-    // }
-    // reset >start >end
+static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
+    lel_ectx_t* ectx;
+    bint_t num_chars;
+    if (!_lel_ensure_compiled_regex(node->param1, &node->re1)) return;
+    ectx = _lel_clone_context(ectx_orig);
+    mark_join(ectx->cursor->mark, ectx->mark_start);
+    while (mark_is_lte(ectx->cursor->mark, ectx_orig->mark_end)) {
+        if (mark_move_next_cre_ex(ectx->cursor->mark, node->re1, NULL, NULL, &num_chars) != MLBUF_OK) {
+            break;
+        } else if (mark_is_gt(ectx->cursor->mark, ectx_orig->mark_end)) {
+            break;
+        }
+        mark_join(ectx->mark_start, ectx->cursor->mark);
+        mark_join(ectx->mark_end, ectx->cursor->mark);
+        mark_move_by(ectx->mark_end, num_chars);
+        _lel_execute(node->child, ectx);
+        mark_join(ectx->cursor->mark, ectx->mark_end);
+    }
+    _lel_free_context(ectx);
 }
 
 static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
 static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
 static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
 static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ectx) {
-}
-
-static void _lel_func_move_char(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
 static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (!node->sparam) return;
+    if (strcmp(node->sparam, "rel") == 0) {
+        mark_move_by(ectx->cursor->mark, node->num);
+    } else if (strcmp(node->sparam, "abs") == 0) {
+        mark_move_col(ectx->cursor->mark, node->num);
+    }
 }
 
 static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (!node->sparam) return;
+    if (strcmp(node->sparam, "rel") == 0) {
+        mark_move_vert(ectx->cursor->mark, node->num);
+        mark_move_bol(ectx->cursor->mark);
+    } else if (strcmp(node->sparam, "abs") == 0) {
+        mark_move_to(ectx->cursor->mark, node->num, 0);
+    }
 }
 
 static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ectx) {
+    mark_t* mark;
+    mark = buffer_find_lettered_mark(ectx->cursor->mark->bline->buffer, *node->param1);
+    if (mark) mark_join(ectx->cursor->mark, mark);
 }
 
 static void _lel_func_move_orig(lel_pnode_t* node, lel_ectx_t* ectx) {
+    mark_join(ectx->cursor->mark, ectx->orig);
 }
 
 static void _lel_func_move_re(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (!_lel_ensure_compiled_regex(node->param1, &node->re1)) return;
+    if (strchr("/r", node->ch)) {
+        mark_move_next_cre(ectx->cursor->mark, node->re1);
+    } else if (strchr("?R", node->ch)) {
+        mark_move_prev_cre(ectx->cursor->mark, node->re1);
+    }
 }
 
 static void _lel_func_move_simple(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (node->ch == '^') {
+        mark_move_bol(ectx->cursor->mark);
+    } else if (node->ch == '$') {
+        mark_move_eol(ectx->cursor->mark);
+    } else if (node->ch == 'g') {
+        mark_move_beginning(ectx->cursor->mark);
+    } else if (node->ch == 'G') {
+        mark_move_end(ectx->cursor->mark);
+    } else if (node->ch == 'h') {
+        mark_join(ectx->cursor->mark, ectx->mark_start);
+    } else if (node->ch == 'H') {
+        mark_join(ectx->cursor->mark, ectx->mark_end);
+    }
 }
 
 static void _lel_func_move_str(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (strchr("'ft", node->ch)) {
+        mark_move_next_str(ectx->cursor->mark, node->param1, strlen(node->param1));
+    } else if (strchr("\"FT", node->ch)) {
+        mark_move_prev_str(ectx->cursor->mark, node->param1, strlen(node->param1));
+    }
 }
 
 static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (!node->re1) {
+        if (node->ch == 'w') {
+            _lel_ensure_compiled_regex("(?<=\\w)(\\W|$)", &node->re1);
+        } else if (node->ch == 'n') {
+            _lel_ensure_compiled_regex("(\\w|$)(?=(\\W|$))", &node->re1);
+        } else if (node->ch == 'W') {
+            _lel_ensure_compiled_regex("\\W(?=\\w|$)", &node->re1);
+        } else if (node->ch == 'N') {
+            _lel_ensure_compiled_regex("(?<=\\W|^)(\\w|^)", &node->re1);
+        }
+    }
+    if (!node->re1) return;
+    if (node->ch == 'w' || node->ch == 'n') {
+        mark_move_next_cre(ectx->cursor->mark, node->re1);
+    } else if (node->ch == 'W' || node->ch == 'N') {
+        mark_move_prev_cre(ectx->cursor->mark, node->re1);
+    }
 }
 
 static void _lel_func_register_append(lel_pnode_t* node, lel_ectx_t* ectx) {
@@ -435,12 +494,53 @@ static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ectx) {
 static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static int _lel_compile_regex(char* re, pcre** ret_pcre) {
-    return 0;
+static lel_ectx_t* _lel_clone_context(lel_ectx_t* ectx_orig) {
+    lel_ectx_t* ectx;
+    ectx = malloc(sizeof(lel_ectx_t));
+    *ectx = *ectx_orig;
+    mark_clone(ectx_orig->mark_start, &ectx->mark_start);
+    mark_clone(ectx_orig->mark_end, &ectx->mark_end);
+    return ectx;
+}
+
+static void _lel_free_context(lel_ectx_t* ectx) {
+    mark_destroy(ectx->mark_start);
+    mark_destroy(ectx->mark_end);
+    free(ectx);
+}
+
+static int _lel_ensure_compiled_regex(char* re, pcre** ret_pcre) {
+    pcre* cre;
+    const char *error;
+    int erroffset;
+    if (*ret_pcre) return 1;
+    cre = pcre_compile((const char*)re, PCRE_NO_AUTO_CAPTURE | PCRE_CASELESS, &error, &erroffset, NULL);
+    if (!cre) {
+        *ret_pcre = NULL;
+        return 0;
+    }
+    *ret_pcre = cre;
+    return 1;
 }
 
 static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx) {
-    return NULL;
+    char *sel;
+    bint_t sel_len;
+    mark_t* mark_a;
+    mark_t* mark_b;
+    if (ectx->cursor->is_anchored) {
+        mark_get_between_mark(ectx->cursor->mark, ectx->cursor->anchor, &sel, &sel_len);
+    } else {
+        mark_clone(ectx->cursor->mark, &mark_a);
+        mark_clone(ectx->cursor->mark, &mark_b);
+        mark_move_bol(mark_a);
+        mark_move_eol(mark_b);
+        mark_move_by(mark_b, 1);
+        mark_get_between_mark(mark_a, mark_b, &sel, &sel_len);
+        mark_destroy(mark_a);
+        mark_destroy(mark_b);
+    }
+    return sel;
 }
 
 static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx) {
@@ -506,7 +606,9 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
             }
         } else if ((ch = _lel_accept_any(s, "tTm:M><=_AI")) != NULL) {
             n.ch = *ch;
-            n.cparam = _lel_expect_one(s);
+            n.param1 = malloc(2);
+            n.param1[0] = _lel_expect_one(s);
+            n.param1[1] = '\0';
         } else if ((ch = _lel_accept_any(s, "sSeE")) != NULL) {
             n.ch = *ch;
             _lel_expect_set_delim(s);
