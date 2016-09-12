@@ -421,6 +421,7 @@ int bview_draw_cursor(bview_t* self, int set_real_cursor);
 int bview_rectify_viewport(bview_t* self);
 int bview_center_viewport_y(bview_t* self);
 int bview_zero_viewport_y(bview_t* self);
+int bview_max_viewport_y(bview_t* self);
 int bview_push_kmap(bview_t* bview, kmap_t* kmap);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
@@ -431,6 +432,12 @@ int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata)
 int bview_set_syntax(bview_t* self, char* opt_syntax);
 int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
 int bview_cursor_get_lo_hi(cursor_t* self, mark_t** ret_lo, mark_t** ret_hi);
+int bview_add_cursor_asleep(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
+int bview_wake_sleeping_cursors(bview_t* self);
+int bview_remove_cursors_except(bview_t* self, cursor_t* one);
+int bview_cursor_toggle_anchor(cursor_t* cursor, int use_srules);
+int bview_cursor_drop_anchor(cursor_t* cursor);
+int bview_cursor_lift_anchor(cursor_t* cursor);
 bview_t* bview_get_split_root(bview_t* self);
 
 // cmd functions
@@ -503,6 +510,9 @@ int cmd_noop(cmd_context_t* ctx);
 int cmd_push_kmap(cmd_context_t* ctx);
 int cmd_pop_kmap(cmd_context_t* ctx);
 int cmd_show_help(cmd_context_t* ctx);
+int cmd_viewport_top(cmd_context_t* ctx);
+int cmd_viewport_mid(cmd_context_t* ctx);
+int cmd_viewport_bot(cmd_context_t* ctx);
 
 // async functions
 async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, async_proc_cb_t callback);

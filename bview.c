@@ -266,6 +266,37 @@ int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optre
     return MLE_OK;
 }
 
+// Add sleeping cursor
+int bview_add_cursor_asleep(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor) {
+    cursor_t* cursor;
+    bview_add_cursor(self, bline, col, &cursor);
+    cursor->is_asleep = 1;
+    if (optret_cursor) *optret_cursor = cursor;
+    return MLE_OK;
+}
+
+// Wake all sleeping cursors
+int bview_wake_sleeping_cursors(bview_t* self) {
+    cursor_t* cursor;
+    DL_FOREACH(self->cursors, cursor) {
+        if (cursor->is_asleep) {
+            cursor->is_asleep = 0;
+        }
+    }
+    return MLE_OK;
+}
+
+// Remove all cursors except one
+int bview_remove_cursors_except(bview_t* self, cursor_t* one) {
+    cursor_t* cursor;
+    DL_FOREACH(self->cursors, cursor) {
+        if (cursor != one) {
+            bview_remove_cursor(self, cursor);
+        }
+    }
+    return MLE_OK;
+}
+
 // Remove a cursor from a bview
 int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     cursor_t* el;
@@ -287,6 +318,39 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     return MLE_ERR;
 }
 
+// Toggle cursor anchor
+int bview_cursor_toggle_anchor(cursor_t* cursor, int use_srules) {
+    if (!cursor->is_anchored) {
+        mark_clone(cursor->mark, &(cursor->anchor));
+        if (use_srules) {
+            cursor->sel_rule = srule_new_range(cursor->mark, cursor->anchor, 0, TB_REVERSE);
+            buffer_add_srule(cursor->bview->buffer, cursor->sel_rule);
+        }
+        cursor->is_anchored = 1;
+    } else {
+        if (use_srules) {
+            buffer_remove_srule(cursor->bview->buffer, cursor->sel_rule);
+            srule_destroy(cursor->sel_rule);
+            cursor->sel_rule = NULL;
+        }
+        mark_destroy(cursor->anchor);
+        cursor->is_anchored = 0;
+    }
+    return MLE_OK;
+}
+
+// Drop cursor anchor
+int bview_cursor_drop_anchor(cursor_t* cursor) {
+    if (cursor->is_anchored) return MLE_OK;
+    return bview_cursor_toggle_anchor(cursor, 1);
+}
+
+// Lift cursor anchor
+int bview_cursor_lift_anchor(cursor_t* cursor) {
+    if (!cursor->is_anchored) return MLE_OK;
+    return bview_cursor_toggle_anchor(cursor, 1);
+}
+
 // Get lo and hi marks in a is_anchored=1 cursor
 int bview_cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
     if (!cursor->is_anchored) {
@@ -306,9 +370,7 @@ int bview_cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
 int bview_center_viewport_y(bview_t* self) {
     bint_t center;
     center = self->active_cursor->mark->bline->line_index - self->rect_buffer.h/2;
-    if (center < 0) {
-        center = 0;
-    }
+    if (center < 0) center = 0;
     self->viewport_y = center;
     bview_rectify_viewport(self);
     buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
@@ -318,6 +380,17 @@ int bview_center_viewport_y(bview_t* self) {
 // Zero the viewport vertically
 int bview_zero_viewport_y(bview_t* self) {
     self->viewport_y = self->active_cursor->mark->bline->line_index;
+    bview_rectify_viewport(self);
+    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+    return MLE_OK;
+}
+
+// Maximize the viewport vertically
+int bview_max_viewport_y(bview_t* self) {
+    bint_t max;
+    max = self->active_cursor->mark->bline->line_index - self->rect_buffer.h;
+    if (max < 0) max = 0;
+    self->viewport_y = max;
     bview_rectify_viewport(self);
     buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
     return MLE_OK;

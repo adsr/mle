@@ -6,7 +6,7 @@
 typedef struct lel_pstate_s lel_pstate_t;
 typedef struct lel_pnode_s lel_pnode_t;
 typedef struct lel_ectx_s lel_ectx_t;
-typedef void (*lel_func_t)(lel_pnode_t* tree, lel_ectx_t* ctx);
+typedef void (*lel_func_t)(lel_pnode_t* tree, lel_ectx_t* ectx);
 
 struct lel_pstate_s {
     char* cmd;
@@ -24,62 +24,69 @@ struct lel_pnode_s {
     char* param2;
     int num;
     int repeat;
+    pcre* re1;
+    pcre* re2;
     lel_pnode_t* child;
     lel_pnode_t* next;
 };
 
 struct lel_ectx_s {
+    cmd_context_t* ctx;
+    bview_t* bview;
+    cursor_t* cursor;
     mark_t* orig;
-    mark_t* start;
-    mark_t* end;
+    mark_t* mark_start;
+    mark_t* mark_end;
 };
 
-static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_cursor_clone(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_cursor_drop_anchor(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_cursor_lift_anchor(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_cursor_wake(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_cursor_drop_mark(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_filter_condition(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_filter_condition_not(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_filter_regex_replace(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_char(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_orig(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_re(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_simple(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_str(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_register_append(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_register_clear(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_register_prepend(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_register_set(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_register_text_insert_after(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_register_text_insert_before(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_copy(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_copy_append(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_cut(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_delete(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ctx);
-static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ctx);
+static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_cursor_clone(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_cursor_drop_anchor(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_cursor_lift_anchor(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_cursor_wake(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_cursor_drop_mark(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_filter_regex_condition(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_filter_regex_condition_not(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_filter_regex_replace(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_char(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_orig(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_re(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_simple(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_str(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_append(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_clear(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_prepend(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_set(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_copy(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_copy_append(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_cut(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_delete(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx);
+static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx);
+static int _lel_compile_regex(char* re, pcre** ret_pcre);
+static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx);
 static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s);
 static lel_pnode_t* _lel_accept_cmds(lel_pstate_t* s);
 static char* _lel_accept_any(lel_pstate_t* s, char* any);
@@ -146,7 +153,7 @@ static lel_func_t func_table[] = {
     _lel_func_move_word,                     // N
     _lel_func_cursor_swap_anchor,            // O
     NULL,                                    // P
-    _lel_func_filter_condition_not,          // Q
+    _lel_func_filter_regex_condition_not,    // Q
     _lel_func_move_re,                       // R
     _lel_func_filter_regex_replace,          // S
     _lel_func_move_char,                     // T
@@ -178,7 +185,7 @@ static lel_func_t func_table[] = {
     _lel_func_move_word,                     // n
     NULL,                                    // o
     NULL,                                    // p
-    _lel_func_filter_condition,              // q
+    _lel_func_filter_regex_condition,        // q
     _lel_func_move_re,                       // r
     _lel_func_text_search_replace,           // s
     _lel_func_move_char,                     // t
@@ -194,52 +201,137 @@ static lel_func_t func_table[] = {
     _lel_func_move_orig,                     // ~
 };
 
+int cmd_lel(cmd_context_t* ctx) {
+    char* cmd;
+    lel_pstate_t lel_parse = {0};
+    lel_ectx_t lel_ctx = {0};
+    lel_pnode_t* lel_tree;
 
-static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ctx) {
+    if (ctx->static_param) {
+        cmd = strdup(ctx->static_param);
+    } else {
+        editor_prompt(ctx->editor, "lel: Cmd?", NULL, &cmd);
+        if (!cmd) return MLE_OK;
+    }
+
+    lel_parse.cmd = cmd;
+    lel_parse.cmd_stop = cmd + strlen(cmd);
+    lel_parse.cur = cmd;
+    lel_tree = _lel_accept_cmds(&lel_parse);
+    free(cmd);
+    if (!lel_tree) return MLE_ERR;
+
+    lel_ctx.ctx = ctx;
+    bview_add_cursor(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, &lel_ctx.cursor);
+    lel_ctx.bview = ctx->bview;
+    lel_ctx.mark_start = buffer_add_mark(ctx->buffer, ctx->buffer->first_line, 0);
+    lel_ctx.mark_end = buffer_add_mark(ctx->buffer, ctx->buffer->last_line, ctx->buffer->last_line->data_len);
+    _lel_execute(lel_tree, &lel_ctx);
+    _lel_free_node(lel_tree);
+    buffer_destroy_mark(ctx->buffer, lel_ctx.mark_start);
+    buffer_destroy_mark(ctx->buffer, lel_ctx.mark_end);
+    bview_remove_cursor(ctx->bview, lel_ctx.cursor);
+
+    return MLE_OK;
 }
 
-static void _lel_func_cursor_clone(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (ectx->cursor->is_anchored) {
+        mark_swap_with_mark(ectx->cursor->mark, ectx->cursor->anchor);
+    }
 }
 
-static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_cursor_clone(lel_pnode_t* node, lel_ectx_t* ectx) {
+    bview_add_cursor_asleep(ectx->bview, ectx->cursor->mark->bline, ectx->cursor->mark->col, NULL);
 }
 
-static void _lel_func_cursor_drop_anchor(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ectx) {
+    bview_remove_cursors_except(ectx->bview, ectx->cursor);
 }
 
-static void _lel_func_cursor_lift_anchor(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_cursor_drop_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
+    bview_cursor_drop_anchor(ectx->cursor);
 }
 
-static void _lel_func_cursor_wake(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_cursor_lift_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
+    bview_cursor_lift_anchor(ectx->cursor);
 }
 
-static void _lel_func_cursor_drop_mark(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_cursor_wake(lel_pnode_t* node, lel_ectx_t* ectx) {
+    bview_wake_sleeping_cursors(ectx->bview);
 }
 
-static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ctx) {
-    return _lel_execute(node->child, ctx);
+static void _lel_func_cursor_drop_mark(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO buffer_add_mark_with_letter
 }
 
-static void _lel_func_filter_condition(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ectx) {
+    _lel_execute(node->child, ectx);
 }
 
-static void _lel_func_filter_condition_not(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_filter_regex_condition_inner(lel_pnode_t* node, lel_ectx_t* ectx, int negated) {
+    char* sel;
+    int rc;
+    if (!_lel_compile_regex(node->param1, &node->re1)) return;
+    sel = _lel_get_sel(node, ectx);
+    rc = pcre_exec(node->re1, NULL, sel, strlen(sel), 0, 0, NULL, 0);
+    if ((!negated && rc > 0) || (negated && rc < 0)) {
+        _lel_execute(node->child, ectx);
+    }
+    free(sel);
 }
 
-static void _lel_func_filter_regex_replace(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_filter_regex_condition(lel_pnode_t* node, lel_ectx_t* ectx) {
+    _lel_func_filter_regex_condition_inner(node, ectx, 0);
+}
+
+static void _lel_func_filter_regex_condition_not(lel_pnode_t* node, lel_ectx_t* ectx) {
+    _lel_func_filter_regex_condition_inner(node, ectx, 1);
+}
+
+static void _lel_func_filter_regex_replace(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO filter func
     //ctx->filter = fdsafds
-    //rv = _lel_execute(tree->child, ctx);
+    //_lel_execute(tree->child, ctx);
     //ctx->filter = orig;
     //return rv;
 }
 
-static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
-static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx) {
+    bline_t* bline;
+    mark_t* orig_cur;
+    mark_t* orig_start;
+    mark_t* orig_end;
+    mark_clone(ectx->cursor->mark, &orig_cur);
+    mark_clone(ectx->mark_start, &orig_start);
+    mark_clone(ectx->mark_end, &orig_end);
+    for (bline = ectx->mark_start->bline; bline && bline != ectx->mark_end->bline->next; bline = bline->next) {
+        mark_move_to_w_bline(ectx->cursor->mark, bline, 0);
+        mark_move_to_w_bline(ectx->mark_start, bline, 0);
+        if (bline->next) {
+            mark_move_to_w_bline(ectx->mark_end, bline->next, 0);
+        } else {
+            mark_move_to_w_bline(ectx->mark_end, bline, bline->data_len);
+        }
+        _lel_execute(node->child, ectx);
+    }
+    mark_join(ectx->cursor->mark, orig_cur);
+    mark_join(ectx->mark_start, orig_start);
+    mark_join(ectx->mark_end, orig_end);
+    mark_destroy(orig_cur);
+    mark_destroy(orig_start);
+    mark_destroy(orig_end);
 }
 
-static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (!_lel_compile_regex(node->param1, &node->re1)) return;
+
+    //mark_move_next_cre
+
     // find regex matches from ctx->start to >end
     // foreach match {
     //   set ctx->start and >end
@@ -250,108 +342,115 @@ static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ctx) {
     // reset >start >end
 }
 
-static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_char(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_char(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_orig(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_orig(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_re(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_re(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_simple(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_simple(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_str(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_str(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_register_append(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_register_append(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_register_clear(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_register_clear(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_register_prepend(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_register_prepend(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_register_set(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_register_set(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_register_text_insert_after(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_register_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_register_text_insert_before(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_register_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_copy(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_copy(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_copy_append(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_copy_append(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_cut(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_cut(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_delete(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_delete(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ctx) {
+static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
-static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ctx) {
+static int _lel_compile_regex(char* re, pcre** ret_pcre) {
+    return 0;
+}
+
+static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx) {
+    return NULL;
+}
+
+static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx) {
     lel_pnode_t* node;
     lel_func_t func;
     for (node = tree; node; node = node->next) {
         func = node->ch <= '~' ? func_table[node->ch - '!'] : NULL;
-        if (func) func(node, ctx);
+        if (func) func(node, ectx);
     }
 }
-
 
 static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
     lel_pnode_t n = {0};

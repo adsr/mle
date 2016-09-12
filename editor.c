@@ -1286,6 +1286,9 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
     _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
     _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
+    _editor_register_cmd_fn(editor, "cmd_viewport_top", cmd_viewport_top);
+    _editor_register_cmd_fn(editor, "cmd_viewport_mid", cmd_viewport_mid);
+    _editor_register_cmd_fn(editor, "cmd_viewport_bot", cmd_viewport_bot);
     _editor_register_cmd_fn(editor, "cmd_wake_sleeping_cursors", cmd_wake_sleeping_cursors);
     _editor_register_cmd_fn(editor, "_editor_menu_cancel", _editor_menu_cancel);
     _editor_register_cmd_fn(editor, "_editor_menu_submit", _editor_menu_submit);
@@ -1344,7 +1347,11 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_cut", "C-k"),
         MLE_KBINDING_DEF("cmd_copy", "M-k"),
         MLE_KBINDING_DEF("cmd_uncut", "C-u"),
-        MLE_KBINDING_DEF("cmd_redraw", "C-l"),
+        MLE_KBINDING_DEF("cmd_redraw", "M-x l"),
+        MLE_KBINDING_DEF("cmd_viewport_top", "M--"),
+        MLE_KBINDING_DEF("cmd_viewport_mid", "C-l"),
+        MLE_KBINDING_DEF("cmd_viewport_mid", "M-l"),
+        MLE_KBINDING_DEF("cmd_viewport_bot", "M-="),
         MLE_KBINDING_DEF("cmd_push_kmap", "M-x p"),
         MLE_KBINDING_DEF("cmd_pop_kmap", "M-x P"),
         MLE_KBINDING_DEF_EX("cmd_copy_by", "C-c d", "bracket"),
@@ -1374,8 +1381,6 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_prev", "M-p"),
         MLE_KBINDING_DEF("cmd_split_vertical", "M-v"),
         MLE_KBINDING_DEF("cmd_split_horizontal", "M-h"),
-        MLE_KBINDING_DEF("cmd_split_vertical", "M-="),
-        MLE_KBINDING_DEF("cmd_split_horizontal", "M--"),
         MLE_KBINDING_DEF("cmd_grep", "M-q"),
         MLE_KBINDING_DEF("cmd_fsearch", "C-p"),
         MLE_KBINDING_DEF("cmd_browse", "C-b"),

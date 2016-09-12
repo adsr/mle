@@ -25,7 +25,6 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview, int save_as);
 static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
-static void _cmd_toggle_anchor(cursor_t* cursor, int use_srules);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
 static void _cmd_aproc_bview_passthru_cb(async_proc_t* self, char* buf, size_t buf_len);
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
@@ -298,39 +297,24 @@ int cmd_delete_word_after(cmd_context_t* ctx) {
 // Toggle sel bound on cursors
 int cmd_toggle_anchor(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_toggle_anchor(cursor, 1);
+        bview_cursor_toggle_anchor(cursor, 1);
     );
     return MLE_OK;
 }
 
 // Drop an is_asleep=1 cursor
 int cmd_drop_sleeping_cursor(cmd_context_t* ctx) {
-    cursor_t* cursor;
-    bview_add_cursor(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, &cursor);
-    cursor->is_asleep = 1;
-    return MLE_OK;
+    return bview_add_cursor_asleep(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, NULL);
 }
 
 // Awake all is_asleep=1 cursors
 int cmd_wake_sleeping_cursors(cmd_context_t* ctx) {
-    cursor_t* cursor;
-    DL_FOREACH(ctx->bview->cursors, cursor) {
-        if (cursor->is_asleep) {
-            cursor->is_asleep = 0;
-        }
-    }
-    return MLE_OK;
+    return bview_wake_sleeping_cursors(ctx->bview);
 }
 
 // Remove all cursors except the active one
 int cmd_remove_extra_cursors(cmd_context_t* ctx) {
-    cursor_t* cursor;
-    DL_FOREACH(ctx->bview->cursors, cursor) {
-        if (cursor != ctx->cursor) {
-            bview_remove_cursor(ctx->bview, cursor);
-        }
-    }
-    return MLE_OK;
+    return bview_remove_cursors_except(ctx->bview, ctx->cursor);
 }
 
 // Drop column of cursors in selection
@@ -355,7 +339,7 @@ int cmd_drop_cursor_column(cmd_context_t* ctx) {
                 bview_add_cursor(ctx->bview, bline, col, NULL);
             }
         }
-        _cmd_toggle_anchor(cursor, 1);
+        bview_cursor_toggle_anchor(cursor, 1);
     );
     return MLE_OK;
 }
@@ -525,6 +509,27 @@ int cmd_redraw(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Zero viewport y
+int cmd_viewport_top(cmd_context_t* ctx) {
+    bview_zero_viewport_y(ctx->bview);
+    //bview_draw(ctx->bview);
+    return MLE_OK;
+}
+
+// Center viewport y
+int cmd_viewport_mid(cmd_context_t* ctx) {
+    bview_center_viewport_y(ctx->bview);
+    //bview_draw(ctx->bview);
+    return MLE_OK;
+}
+
+// Center viewport y
+int cmd_viewport_bot(cmd_context_t* ctx) {
+    bview_max_viewport_y(ctx->bview);
+    //bview_draw(ctx->bview);
+    return MLE_OK;
+}
+
 // Find next occurence of word under cursor
 int cmd_find_word(cmd_context_t* ctx) {
     char* re;
@@ -536,7 +541,7 @@ int cmd_find_word(cmd_context_t* ctx) {
             mark_get_between_mark(cursor->mark, cursor->anchor, &word, &word_len);
             re_len = asprintf(&re, "\\b%s\\b", word);
             free(word);
-            _cmd_toggle_anchor(cursor, 0);
+            bview_cursor_toggle_anchor(cursor, 0);
             if (mark_move_next_re(cursor->mark, re, re_len) == MLBUF_ERR) {
                 mark_move_beginning(cursor->mark);
                 mark_move_next_re(cursor->mark, re, re_len);
@@ -1156,10 +1161,10 @@ static int _cmd_select_by(cursor_t* cursor, char* strat) {
     } else if (strcmp(strat, "word_forward") == 0) {
         return _cmd_select_by_word_forward(cursor);
     } else if (strcmp(strat, "eol") == 0 && !mark_is_at_eol(cursor->mark)) {
-        _cmd_toggle_anchor(cursor, 0);
+        bview_cursor_toggle_anchor(cursor, 0);
         mark_move_eol(cursor->anchor);
     } else if (strcmp(strat, "bol") == 0 && !mark_is_at_bol(cursor->mark)) {
-        _cmd_toggle_anchor(cursor, 0);
+        bview_cursor_toggle_anchor(cursor, 0);
         mark_move_bol(cursor->anchor);
     } else if (strcmp(strat, "string") == 0) {
         return _cmd_select_by_string(cursor);
@@ -1177,9 +1182,9 @@ static int _cmd_select_by_bracket(cursor_t* cursor) {
         mark_destroy(orig);
         return MLE_ERR;
     }
-    _cmd_toggle_anchor(cursor, 0);
+    bview_cursor_toggle_anchor(cursor, 0);
     if (mark_move_bracket_pair(cursor->anchor, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
-        _cmd_toggle_anchor(cursor, 0);
+        bview_cursor_toggle_anchor(cursor, 0);
         mark_join(cursor->mark, orig);
         mark_destroy(orig);
         return MLE_ERR;
@@ -1192,7 +1197,7 @@ static int _cmd_select_by_bracket(cursor_t* cursor) {
 // Select by word-back
 static int _cmd_select_by_word_back(cursor_t* cursor) {
     if (mark_is_at_word_bound(cursor->mark, -1)) return MLE_ERR;
-    _cmd_toggle_anchor(cursor, 0);
+    bview_cursor_toggle_anchor(cursor, 0);
     mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     return MLE_OK;
 }
@@ -1200,7 +1205,7 @@ static int _cmd_select_by_word_back(cursor_t* cursor) {
 // Select by word-forward
 static int _cmd_select_by_word_forward(cursor_t* cursor) {
     if (mark_is_at_word_bound(cursor->mark, 1)) return MLE_ERR;
-    _cmd_toggle_anchor(cursor, 0);
+    bview_cursor_toggle_anchor(cursor, 0);
     mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     return MLE_OK;
 }
@@ -1215,7 +1220,7 @@ static int _cmd_select_by_string(cursor_t* cursor) {
         mark_destroy(orig);
         return MLE_ERR;
     }
-    _cmd_toggle_anchor(cursor, 0);
+    bview_cursor_toggle_anchor(cursor, 0);
     mark_get_char_after(cursor->mark, &qchar);
     mark_move_by(cursor->mark, 1);
     if (qchar == '"') {
@@ -1226,7 +1231,7 @@ static int _cmd_select_by_string(cursor_t* cursor) {
         qre = "(?<!\\\\)`";
     }
     if (mark_move_next_re(cursor->anchor, qre, strlen(qre)) != MLBUF_OK) {
-        _cmd_toggle_anchor(cursor, 0);
+        bview_cursor_toggle_anchor(cursor, 0);
         mark_join(cursor->mark, orig);
         mark_destroy(orig);
         return MLE_ERR;
@@ -1244,7 +1249,7 @@ static int _cmd_select_by_word(cursor_t* cursor) {
     if (!mark_is_at_word_bound(cursor->mark, -1)) {
         mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     }
-    _cmd_toggle_anchor(cursor, 0);
+    bview_cursor_toggle_anchor(cursor, 0);
     mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     return MLE_OK;
 }
@@ -1361,7 +1366,7 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int appe
     }
     if (!cursor->is_anchored) {
         use_srules = 0;
-        _cmd_toggle_anchor(cursor, use_srules);
+        bview_cursor_toggle_anchor(cursor, use_srules);
         mark_move_bol(cursor->mark);
         mark_move_eol(cursor->anchor);
         mark_move_by(cursor->anchor, 1);
@@ -1378,27 +1383,7 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int appe
     if (is_cut) {
         mark_delete_between_mark(cursor->mark, cursor->anchor);
     }
-    _cmd_toggle_anchor(cursor, use_srules);
-}
-
-// Anchor/unanchor cursor selection bound
-static void _cmd_toggle_anchor(cursor_t* cursor, int use_srules) {
-    if (!cursor->is_anchored) {
-        mark_clone(cursor->mark, &(cursor->anchor));
-        if (use_srules) {
-            cursor->sel_rule = srule_new_range(cursor->mark, cursor->anchor, 0, TB_REVERSE);
-            buffer_add_srule(cursor->bview->buffer, cursor->sel_rule);
-        }
-        cursor->is_anchored = 1;
-    } else {
-        if (use_srules) {
-            buffer_remove_srule(cursor->bview->buffer, cursor->sel_rule);
-            srule_destroy(cursor->sel_rule);
-            cursor->sel_rule = NULL;
-        }
-        mark_destroy(cursor->anchor);
-        cursor->is_anchored = 0;
-    }
+    bview_cursor_toggle_anchor(cursor, use_srules);
 }
 
 // Move cursor to next occurrence of term, wrap if necessary. Return MLE_OK if
