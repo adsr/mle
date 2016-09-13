@@ -65,12 +65,8 @@ static void _lel_func_move_re(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_simple(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_str(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_register_append(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_register_clear(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_register_prepend(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_register_set(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_register_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_register_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_mutate(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_register_write(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ectx);
@@ -133,12 +129,12 @@ static lel_func_t func_table[] = {
     NULL,                                    // 9
     _lel_func_select,                        // :
     NULL,                                    // ;
-    _lel_func_register_prepend,              // <
-    _lel_func_register_set,                  // =
-    _lel_func_register_append,               // >
+    _lel_func_register_mutate,               // <
+    _lel_func_register_mutate,               // =
+    _lel_func_register_mutate,               // >
     _lel_func_move_re,                       // ?
     NULL,                                    // @
-    _lel_func_register_text_insert_before,   // A
+    _lel_func_register_write,                // A
     _lel_func_foreach_buffer,                // B
     NULL,                                    // C
     _lel_func_cursor_drop_anchor,            // D
@@ -146,7 +142,7 @@ static lel_func_t func_table[] = {
     _lel_func_move_str,                      // F
     _lel_func_move_simple,                   // G
     _lel_func_move_simple,                   // H
-    _lel_func_register_text_insert_after,    // I
+    _lel_func_register_write,                // I
     NULL,                                    // J
     NULL,                                    // K
     _lel_func_foreach_line,                  // L
@@ -168,7 +164,7 @@ static lel_func_t func_table[] = {
     NULL,                                    // backslash
     NULL,                                    // ]
     _lel_func_move_simple,                   // ^
-    _lel_func_register_clear,                // _
+    _lel_func_register_mutate,               // _
     _lel_func_shell,                         // `
     _lel_func_text_insert_before,            // a
     _lel_func_move_bracket,                  // b
@@ -379,7 +375,8 @@ static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ectx) {
 
 static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ectx) {
     mark_t* mark;
-    mark = buffer_find_lettered_mark(ectx->cursor->mark->bline->buffer, *node->param1);
+    mark = NULL;
+    buffer_get_lettered_mark(ectx->cursor->mark->bline->buffer, *node->param1, &mark);
     if (mark) mark_join(ectx->cursor->mark, mark);
 }
 
@@ -440,22 +437,40 @@ static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ectx) {
     }
 }
 
-static void _lel_func_register_append(lel_pnode_t* node, lel_ectx_t* ectx) {
+static void _lel_func_register_mutate(lel_pnode_t* node, lel_ectx_t* ectx) {
+    char* sel;
+    int (*regfunc)(buffer_t*, char, char*, size_t);
+    if (node->ch == '>') {
+        regfunc = buffer_register_append;
+    } else if (node->ch == '<') {
+        regfunc = buffer_register_prepend;
+    } else if (node->ch == '=') {
+        regfunc = buffer_register_set;
+    } else if (node->ch == '_') {
+        buffer_register_clear(ectx->cursor->mark->bline->buffer, *node->param1);
+        return;
+    } else {
+        return;
+    }
+    sel = _lel_get_sel(node, ectx);
+    regfunc(ectx->cursor->mark->bline->buffer, *node->param1, sel, strlen(sel));
 }
 
-static void _lel_func_register_clear(lel_pnode_t* node, lel_ectx_t* ectx) {
-}
-
-static void _lel_func_register_prepend(lel_pnode_t* node, lel_ectx_t* ectx) {
-}
-
-static void _lel_func_register_set(lel_pnode_t* node, lel_ectx_t* ectx) {
-}
-
-static void _lel_func_register_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx) {
-}
-
-static void _lel_func_register_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx) {
+static void _lel_func_register_write(lel_pnode_t* node, lel_ectx_t* ectx) {
+    char* data;
+    size_t data_len;
+    int (*markfn)(mark_t*, char*, bint_t);
+    if (buffer_register_get(ectx->cursor->mark->bline->buffer, *node->param1, 0, &data, &data_len) != MLBUF_OK) {
+        return;
+    }
+    if (node->ch == 'A') {
+        markfn = mark_insert_before;
+    } else if (node->ch == 'I') {
+        markfn = mark_insert_after;
+    } else {
+        return;
+    }
+    markfn(ectx->cursor->mark, data, (bint_t)data_len);
 }
 
 static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ectx) {
