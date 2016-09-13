@@ -33,7 +33,6 @@ typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
 typedef struct prompt_hnode_s prompt_hnode_t; // A node in a linked list of prompt history
 typedef int (*cmd_func_t)(cmd_context_t* ctx); // A command function
-typedef struct str_s str_t; // A dynamic string
 typedef struct uscript_s uscript_t; // A userscript
 typedef struct uscript_msg_s uscript_msg_t; // A message between the editor and a userscript
 
@@ -361,13 +360,6 @@ struct prompt_hnode_s {
     bint_t data_len;
     prompt_hnode_t* prev;
     prompt_hnode_t* next;
-};
-
-// str_t
-struct str_s {
-    char* data;
-    size_t len;
-    size_t cap;
 };
 
 // uscript_t
