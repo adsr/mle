@@ -618,17 +618,14 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] stdin, startup keys
-[ ] uscripts
+[ ] guard against mixed api use, refcounting
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
     [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
     [ ] get rid of bol_rule
     [ ] test at tests/test_buffer_srule_overlap.c
     [ ] bugfix: insert lines, drop anchor at eof, delete up, type on 1st line, leftover styling?
-[ ] better control of viewport
 [ ] segfault hunt: splits
 [ ] review default key bindings
-[ ] sam command lang and/or vim-normal emulation
 [ ] crash when M-e cat'ing huge files?
 --- LOW
 [ ] undo/redo should center viewport?
@@ -640,7 +637,6 @@ TODO
 [ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok
 [ ] refactor aproc and menu code
 [ ] ensure multi_cursor_code impl for all appropriate
-[ ] makefile params, config.mk
 [ ] segfault hunt: async proc broken pipe
 [ ] use MLE_RETURN_ERR more
 [ ] pgup/down in isearch to control viewport
