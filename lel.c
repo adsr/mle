@@ -600,9 +600,10 @@ static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx) {
 static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx) {
     lel_pnode_t* node;
     lel_func_t func;
+    int i;
     for (node = tree; node; node = node->next) {
         func = node->ch <= '~' ? func_table[node->ch - '!'] : NULL;
-        if (func) func(node, ectx);
+        if (func) for (i = 0; i < node->repeat; i++) func(node, ectx);
     }
 }
 
@@ -734,7 +735,7 @@ static int _lel_accept_num_inner(lel_pstate_t* s, int expect) {
     digit = _lel_accept_any(s, "0123456789");
     if (!digit) {
         if (expect) longjmp(*s->jmpbuf, 1);
-        return 1;
+        return 1; // 1 is the default number
     }
     num = (int)(*digit - '0');
     while ((digit = _lel_accept_any(s, "0123456789")) != NULL) {
