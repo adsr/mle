@@ -12,7 +12,7 @@ static int _uscript_destroy_msg(uscript_t* uscript, uscript_msg_t* msg);
 static int _uscript_read_until_msg(uscript_t* uscript);
 static int _uscript_run_cmd_and_send_response(uscript_t* uscript, uscript_msg_t* msg);
 static int _uscript_write_request(uscript_t* uscript, cmd_context_t* ctx, char** ret_id);
-static int _uscript_write_response(uscript_t* uscript, uscript_msg_t* msg, int rc, char** retvar, char** retvar_name, int* retvar_is_num, int retvar_count);
+static int _uscript_write_response(uscript_t* uscript, uscript_msg_t* msg, int rc, char** retvar, char** retvar_name, int retvar_count);
 static int _uscript_write_to_wpipe(uscript_t* uscript, str_t* str);
 static void _uscript_url_encode(char* val, str_t* str);
 static void _uscript_url_decode(char* val);
@@ -103,7 +103,7 @@ static void _uscript_register_cmds(uscript_t* uscript) {
         cmd.func = _uscript_cmd_handler;
         cmd.udata = uscript;
         editor_register_cmd(uscript->editor, &cmd);
-        _uscript_write_response(uscript, msg, 0, NULL, NULL, NULL, 0);
+        _uscript_write_response(uscript, msg, 0, NULL, NULL, 0);
         _uscript_destroy_msg(uscript, msg);
     }
 }
@@ -345,7 +345,7 @@ static int _uscript_write_request(uscript_t* uscript, cmd_context_t* ctx, char**
 // Write response to uscript
 //   Response format: result[rv]=0&result[foo]=bar&result[baz]=quux&error=&id=42
 //                    error=Some+error+msg&id=42
-static int _uscript_write_response(uscript_t* uscript, uscript_msg_t* msg, int rc, char** retvar, char** retvar_name, int* retvar_is_num, int retvar_count) {
+static int _uscript_write_response(uscript_t* uscript, uscript_msg_t* msg, int rc, char** retvar, char** retvar_name, int retvar_count) {
     str_t tmp = {0};
     str_t res = {0};
     int rv;

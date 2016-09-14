@@ -80,7 +80,7 @@ class UscriptCodeGen {
             $code .= $this->generateCallCodeForProto($proto);
         }
         $code .= "} } while(0);\n";
-        $code .= "rf = _uscript_write_response(uscript, msg, rc, retvar, retvar_name, retvar_is_num, retvar_count);\n";
+        $code .= "rf = _uscript_write_response(uscript, msg, rc, retvar, retvar_name, retvar_count);\n";
         $code .= "for (i = 0; i < retvar_count; i++) free(retvar[i]);\n";
         $code .= "return rf;\n";
         return $code;
@@ -105,7 +105,7 @@ class UscriptCodeGen {
                     $fmt = "%s = MLE_USCRIPT_STR_TO_PTR({$type}, msg->params[%d]);";
                 } else if (strpos($type, 'uint') !== false || $type == 'size_t') {
                     $fmt = "%s = ($type)strtoull(msg->params[%d], NULL, 10);";
-                } else if (strpos($type, 'int') !== false) {
+                } else if (strpos($type, 'int') !== false || $type == 'char') {
                     $fmt = "%s = ($type)strtoll(msg->params[%d], NULL, 10);";
                 } else {
                     throw new RuntimeException("Unrecognized param type: {$type}");
@@ -113,22 +113,18 @@ class UscriptCodeGen {
                 $code .= '    ' . sprintf($fmt, $arg_var, $param_num) . "\n";
             } else {
                 // Convert retvars to string
-                $ret_is_num = false;
                 if ($type == 'char*') {
                     $fmt = '%s = strdup(%s);';
                 } else if (strpos($type, '*') !== false) {
                     $fmt = 'MLE_USCRIPT_PTR_TO_STR(ptrbuf, %2$s); %1$s = strdup(ptrbuf);';
                 } else if (strpos($type, 'uint') !== false || $type == 'size_t') {
                     $fmt = 'asprintf(&%s, "%%llu", (unsigned long long)%s);';
-                    $ret_is_num = true;
                 } else if (strpos($type, 'int') !== false) {
                     $fmt = 'asprintf(&%s, "%%lld", (long long)%s);';
-                    $ret_is_num = true;
                 } else {
                     throw new RuntimeException("Unrecognized ret type: {$type}");
                 }
                 $ret_code .= '    ' . sprintf('retvar_name[%d] = "%s";', $ret_num, $param['ret_name']) . "\n";
-                $ret_code .= '    ' . sprintf('retvar_is_num[%d] = %d;', $ret_num, $ret_is_num ? 1 : 0) . "\n";
                 $ret_code .= '    ' . sprintf($fmt, $this->getRetVar($proto, $ret_num), $arg_var) . "\n";
                 $ret_num += 1;
             }
