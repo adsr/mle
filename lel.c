@@ -74,7 +74,6 @@ static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_copy(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_copy_append(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_cut(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_text_delete(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ectx);
@@ -82,6 +81,7 @@ static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx);
 static lel_ectx_t* _lel_clone_context(lel_ectx_t* ectx_orig);
 static void _lel_free_context(lel_ectx_t* ectx);
 static int _lel_ensure_compiled_regex(char* re, pcre** ret_pcre);
+static void _lel_get_sel_marks(lel_pnode_t* node, lel_ectx_t* ectx, mark_t** ret_a, mark_t** ret_b);
 static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx);
 static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s);
@@ -169,7 +169,7 @@ static lel_func_t func_table[] = {
     _lel_func_text_insert_before,            // a
     _lel_func_move_bracket,                  // b
     _lel_func_text_change,                   // c
-    _lel_func_text_delete,                   // d
+    _lel_func_text_change,                   // d
     _lel_func_foreach_regex2,                // e
     _lel_func_move_str,                      // f
     _lel_func_move_simple,                   // g
@@ -261,7 +261,7 @@ static void _lel_func_cursor_wake(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
 static void _lel_func_cursor_drop_mark(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO buffer_add_mark_with_letter
+    buffer_add_lettered_mark(ectx->cursor->mark->bline->buffer, *node->param1, ectx->cursor->mark->bline, ectx->cursor->mark->col);
 }
 
 static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ectx) {
@@ -474,39 +474,68 @@ static void _lel_func_register_write(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
 static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
 static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
 static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ectx) {
+    // TODO
 }
 
 static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ectx) {
+    mark_t* mark_a;
+    mark_t* mark_b;
+    _lel_get_sel_marks(node, ectx, &mark_a, &mark_b);
+    mark_delete_between_mark(mark_a, mark_b);
+    if (node->param1) {
+        mark_insert_before(mark_a, node->param1, (bint_t)strlen(node->param1));
+    }
+    mark_destroy(mark_a);
+    mark_destroy(mark_b);
 }
 
 static void _lel_func_text_copy(lel_pnode_t* node, lel_ectx_t* ectx) {
+    cursor_cut_copy(ectx->cursor, 0, 0, 0);
 }
 
 static void _lel_func_text_copy_append(lel_pnode_t* node, lel_ectx_t* ectx) {
+    cursor_cut_copy(ectx->cursor, 0, 0, 1);
 }
 
 static void _lel_func_text_cut(lel_pnode_t* node, lel_ectx_t* ectx) {
-}
-
-static void _lel_func_text_delete(lel_pnode_t* node, lel_ectx_t* ectx) {
+    cursor_cut_copy(ectx->cursor, 1, 0, 0);
 }
 
 static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx) {
+    mark_insert_after(ectx->cursor->mark, node->param1, (bint_t)strlen(node->param1));
 }
 
 static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx) {
+    mark_insert_before(ectx->cursor->mark, node->param1, (bint_t)strlen(node->param1));
 }
 
 static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ectx) {
+    cursor_uncut(ectx->cursor);
 }
 
 static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx) {
+    mark_t* orig;
+    orig = NULL;
+    if (!ectx->cursor->is_anchored) {
+        mark_clone(ectx->cursor->mark, &orig);
+        cursor_drop_anchor(ectx->cursor);
+        mark_join(ectx->cursor->mark, ectx->mark_start);
+        mark_join(ectx->cursor->anchor, ectx->mark_end);
+    }
+    cursor_replace(ectx->cursor, 0, node->param1, node->param2);
+    if (orig) {
+        cursor_lift_anchor(ectx->cursor);
+        mark_join(ectx->cursor->mark, orig);
+        mark_destroy(orig);
+    }
 }
 
 static lel_ectx_t* _lel_clone_context(lel_ectx_t* ectx_orig) {
@@ -538,23 +567,33 @@ static int _lel_ensure_compiled_regex(char* re, pcre** ret_pcre) {
     return 1;
 }
 
+static void _lel_get_sel_marks(lel_pnode_t* node, lel_ectx_t* ectx, mark_t** ret_a, mark_t** ret_b) {
+    if (ectx->cursor->is_anchored) {
+        if (mark_is_lt(ectx->cursor->mark, ectx->cursor->anchor)) {
+            mark_clone(ectx->cursor->mark, ret_a);
+            mark_clone(ectx->cursor->anchor, ret_b);
+        } else {
+            mark_clone(ectx->cursor->mark, ret_b);
+            mark_clone(ectx->cursor->anchor, ret_a);
+        }
+    } else {
+        mark_clone(ectx->cursor->mark, ret_a);
+        mark_clone(ectx->cursor->mark, ret_b);
+        mark_move_bol(*ret_a);
+        mark_move_eol(*ret_b);
+        mark_move_by(*ret_b, 1);
+    }
+}
+
 static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx) {
     char *sel;
     bint_t sel_len;
     mark_t* mark_a;
     mark_t* mark_b;
-    if (ectx->cursor->is_anchored) {
-        mark_get_between_mark(ectx->cursor->mark, ectx->cursor->anchor, &sel, &sel_len);
-    } else {
-        mark_clone(ectx->cursor->mark, &mark_a);
-        mark_clone(ectx->cursor->mark, &mark_b);
-        mark_move_bol(mark_a);
-        mark_move_eol(mark_b);
-        mark_move_by(mark_b, 1);
-        mark_get_between_mark(mark_a, mark_b, &sel, &sel_len);
-        mark_destroy(mark_a);
-        mark_destroy(mark_b);
-    }
+    _lel_get_sel_marks(node, ectx, &mark_a, &mark_b);
+    mark_get_between_mark(mark_a, mark_b, &sel, &sel_len);
+    mark_destroy(mark_a);
+    mark_destroy(mark_b);
     return sel;
 }
 

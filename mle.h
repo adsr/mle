@@ -439,6 +439,9 @@ int cursor_select_by_word_back(cursor_t* cursor);
 int cursor_select_by_word_forward(cursor_t* cursor);
 int cursor_select_by_string(cursor_t* cursor);
 int cursor_select_by_word(cursor_t* cursor);
+int cursor_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
+int cursor_uncut(cursor_t* cursor);
+int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt_replacement);
 
 // cmd functions
 int cmd_insert_data(cmd_context_t* ctx);
