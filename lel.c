@@ -85,7 +85,7 @@ static void _lel_get_sel_marks(lel_pnode_t* node, lel_ectx_t* ectx, mark_t** ret
 static char* _lel_get_sel(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx);
 static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s);
-static void _lel_free_node(lel_pnode_t* node);
+static void _lel_free_node(lel_pnode_t* node, int and_self);
 static lel_pnode_t* _lel_accept_cmds(lel_pstate_t* s);
 static char* _lel_accept_any(lel_pstate_t* s, char* any);
 static int _lel_accept_num_inner(lel_pstate_t* s, int expect);
@@ -225,7 +225,7 @@ int cmd_lel(cmd_context_t* ctx) {
     lel_ctx.mark_start = buffer_add_mark(ctx->buffer, ctx->buffer->first_line, 0);
     lel_ctx.mark_end = buffer_add_mark(ctx->buffer, ctx->buffer->last_line, ctx->buffer->last_line->data_len);
     _lel_execute(lel_tree, &lel_ctx);
-    _lel_free_node(lel_tree);
+    _lel_free_node(lel_tree, 1);
     mark_destroy(lel_ctx.mark_start);
     mark_destroy(lel_ctx.mark_end);
     mark_destroy(lel_ctx.orig);
@@ -683,7 +683,7 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
     s->jmpbuf = jmpbuf_orig;
 
     if (error) {
-        _lel_free_node(np);
+        _lel_free_node(np, 0);
         np = NULL;
         if (s->jmpbuf) longjmp(*s->jmpbuf, 1);
     } else if (!has_node) {
@@ -696,11 +696,14 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
     return np;
 }
 
-static void _lel_free_node(lel_pnode_t* node) {
+static void _lel_free_node(lel_pnode_t* node, int and_self) {
     if (node->param1) free(node->param1);
     if (node->param2) free(node->param2);
-    if (node->child) _lel_free_node(node->child);
-    if (node->next) _lel_free_node(node->next);
+    if (node->re1) pcre_free(node->re1);
+    if (node->re2) pcre_free(node->re2);
+    if (node->child) _lel_free_node(node->child, 1);
+    if (node->next) _lel_free_node(node->next, 1);
+    if (and_self) free(node);
 }
 
 static lel_pnode_t* _lel_accept_cmds(lel_pstate_t* s) {

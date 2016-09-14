@@ -1242,6 +1242,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_insert_data", cmd_insert_data);
     _editor_register_cmd_fn(editor, "cmd_insert_newline_above", cmd_insert_newline_above);
     _editor_register_cmd_fn(editor, "cmd_isearch", cmd_isearch);
+    _editor_register_cmd_fn(editor, "cmd_lel", cmd_lel);
     _editor_register_cmd_fn(editor, "cmd_move_beginning", cmd_move_beginning);
     _editor_register_cmd_fn(editor, "cmd_move_bol", cmd_move_bol);
     _editor_register_cmd_fn(editor, "cmd_move_bracket_back", cmd_move_bracket_back);
@@ -1348,6 +1349,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_copy", "M-k"),
         MLE_KBINDING_DEF("cmd_uncut", "C-u"),
         MLE_KBINDING_DEF("cmd_redraw", "M-x l"),
+        MLE_KBINDING_DEF("cmd_lel", "M-x e"),
         MLE_KBINDING_DEF("cmd_viewport_top", "M--"),
         MLE_KBINDING_DEF("cmd_viewport_mid", "C-l"),
         MLE_KBINDING_DEF("cmd_viewport_mid", "M-l"),
