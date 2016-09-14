@@ -630,6 +630,8 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
+[ ] lel: finish/remove unfinished features, write docs
+[ ] review default key bindings
 [ ] guard against mixed api use, refcounting
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
     [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
@@ -637,7 +639,6 @@ TODO
     [ ] test at tests/test_buffer_srule_overlap.c
     [ ] bugfix: insert lines, drop anchor at eof, delete up, type on 1st line, leftover styling?
 [ ] segfault hunt: splits
-[ ] review default key bindings
 [ ] crash when M-e cat'ing huge files?
 --- LOW
 [ ] undo/redo should center viewport?
