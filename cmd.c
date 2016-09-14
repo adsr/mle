@@ -30,12 +30,6 @@ static void _cmd_aproc_bview_passthru_cb(async_proc_t* self, char* buf, size_t b
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_menu_browse_cb(cmd_context_t* ctx);
 static int _cmd_menu_grep_cb(cmd_context_t* ctx);
-static int _cmd_select_by(cursor_t* cursor, char* strat);
-static int _cmd_select_by_bracket(cursor_t* cursor);
-static int _cmd_select_by_word(cursor_t* cursor);
-static int _cmd_select_by_word_back(cursor_t* cursor);
-static int _cmd_select_by_word_forward(cursor_t* cursor);
-static int _cmd_select_by_string(cursor_t* cursor);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
@@ -297,7 +291,7 @@ int cmd_delete_word_after(cmd_context_t* ctx) {
 // Toggle sel bound on cursors
 int cmd_toggle_anchor(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        bview_cursor_toggle_anchor(cursor, 1);
+        cursor_toggle_anchor(cursor, 1);
     );
     return MLE_OK;
 }
@@ -326,7 +320,7 @@ int cmd_drop_cursor_column(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (!cursor->is_anchored) continue;
         col = cursor->mark->col;
-        bview_cursor_get_lo_hi(cursor, &lo, &hi);
+        cursor_get_lo_hi(cursor, &lo, &hi);
         for (bline = lo->bline; bline != hi->bline->next; bline = bline->next) {
             MLBUF_BLINE_ENSURE_CHARS(bline);
             if ((bline == lo->bline && col < lo->col)
@@ -339,7 +333,7 @@ int cmd_drop_cursor_column(cmd_context_t* ctx) {
                 bview_add_cursor(ctx->bview, bline, col, NULL);
             }
         }
-        bview_cursor_toggle_anchor(cursor, 1);
+        cursor_toggle_anchor(cursor, 1);
     );
     return MLE_OK;
 }
@@ -537,11 +531,11 @@ int cmd_find_word(cmd_context_t* ctx) {
     bint_t re_len;
     bint_t word_len;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (_cmd_select_by(cursor, "word") == MLE_OK) {
+        if (cursor_select_by(cursor, "word") == MLE_OK) {
             mark_get_between_mark(cursor->mark, cursor->anchor, &word, &word_len);
             re_len = asprintf(&re, "\\b%s\\b", word);
             free(word);
-            bview_cursor_toggle_anchor(cursor, 0);
+            cursor_toggle_anchor(cursor, 0);
             if (mark_move_next_re(cursor->mark, re, re_len) == MLBUF_ERR) {
                 mark_move_beginning(cursor->mark);
                 mark_move_next_re(cursor->mark, re, re_len);
@@ -597,7 +591,7 @@ int cmd_uncut(cmd_context_t* ctx) {
 // Copy in between chars
 int cmd_copy_by(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (_cmd_select_by(cursor, ctx->static_param) == MLE_OK) {
+        if (cursor_select_by(cursor, ctx->static_param) == MLE_OK) {
             _cmd_cut_copy(cursor, 0, 0, 0);
         }
     );
@@ -607,7 +601,7 @@ int cmd_copy_by(cmd_context_t* ctx) {
 // Cut in between chars
 int cmd_cut_by(cmd_context_t* ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (_cmd_select_by(cursor, ctx->static_param) == MLE_OK) {
+        if (cursor_select_by(cursor, ctx->static_param) == MLE_OK) {
             _cmd_cut_copy(cursor, 1, 0, 0);
         }
     );
@@ -1147,112 +1141,6 @@ static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {
     return MLE_OK;
 }
 
-// Place marks for cmd_(cut|copy)_by
-static int _cmd_select_by(cursor_t* cursor, char* strat) {
-    if (cursor->is_anchored) {
-        return MLE_ERR;
-    }
-    if (strcmp(strat, "bracket") == 0) {
-        return _cmd_select_by_bracket(cursor);
-    } else if (strcmp(strat, "word") == 0) {
-        return _cmd_select_by_word(cursor);
-    } else if (strcmp(strat, "word_back") == 0) {
-        return _cmd_select_by_word_back(cursor);
-    } else if (strcmp(strat, "word_forward") == 0) {
-        return _cmd_select_by_word_forward(cursor);
-    } else if (strcmp(strat, "eol") == 0 && !mark_is_at_eol(cursor->mark)) {
-        bview_cursor_toggle_anchor(cursor, 0);
-        mark_move_eol(cursor->anchor);
-    } else if (strcmp(strat, "bol") == 0 && !mark_is_at_bol(cursor->mark)) {
-        bview_cursor_toggle_anchor(cursor, 0);
-        mark_move_bol(cursor->anchor);
-    } else if (strcmp(strat, "string") == 0) {
-        return _cmd_select_by_string(cursor);
-    } else {
-        MLE_RETURN_ERR(cursor->bview->editor, "Unrecognized _cmd_select_by strat '%s'", strat);
-    }
-    return MLE_OK;
-}
-
-// Select by bracket
-static int _cmd_select_by_bracket(cursor_t* cursor) {
-    mark_t* orig;
-    mark_clone(cursor->mark, &orig);
-    if (mark_move_bracket_top(cursor->mark, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
-        mark_destroy(orig);
-        return MLE_ERR;
-    }
-    bview_cursor_toggle_anchor(cursor, 0);
-    if (mark_move_bracket_pair(cursor->anchor, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
-        bview_cursor_toggle_anchor(cursor, 0);
-        mark_join(cursor->mark, orig);
-        mark_destroy(orig);
-        return MLE_ERR;
-    }
-    mark_move_by(cursor->mark, 1);
-    mark_destroy(orig);
-    return MLE_OK;
-}
-
-// Select by word-back
-static int _cmd_select_by_word_back(cursor_t* cursor) {
-    if (mark_is_at_word_bound(cursor->mark, -1)) return MLE_ERR;
-    bview_cursor_toggle_anchor(cursor, 0);
-    mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
-    return MLE_OK;
-}
-
-// Select by word-forward
-static int _cmd_select_by_word_forward(cursor_t* cursor) {
-    if (mark_is_at_word_bound(cursor->mark, 1)) return MLE_ERR;
-    bview_cursor_toggle_anchor(cursor, 0);
-    mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
-    return MLE_OK;
-}
-
-// Select by string
-static int _cmd_select_by_string(cursor_t* cursor) {
-    mark_t* orig;
-    uint32_t qchar;
-    char* qre;
-    mark_clone(cursor->mark, &orig);
-    if (mark_move_prev_re(cursor->mark, "(?<!\\\\)[`'\"]", strlen("(?<!\\\\)[`'\"]")) != MLBUF_OK) {
-        mark_destroy(orig);
-        return MLE_ERR;
-    }
-    bview_cursor_toggle_anchor(cursor, 0);
-    mark_get_char_after(cursor->mark, &qchar);
-    mark_move_by(cursor->mark, 1);
-    if (qchar == '"') {
-        qre = "(?<!\\\\)\"";
-    } else if (qchar == '\'') {
-        qre = "(?<!\\\\)'";
-    } else {
-        qre = "(?<!\\\\)`";
-    }
-    if (mark_move_next_re(cursor->anchor, qre, strlen(qre)) != MLBUF_OK) {
-        bview_cursor_toggle_anchor(cursor, 0);
-        mark_join(cursor->mark, orig);
-        mark_destroy(orig);
-        return MLE_ERR;
-    }
-    mark_destroy(orig);
-    return MLE_OK;
-}
-
-// Select by word
-static int _cmd_select_by_word(cursor_t* cursor) {
-    uint32_t after;
-    if (mark_is_at_eol(cursor->mark)) return MLE_ERR;
-    mark_get_char_after(cursor->mark, &after);
-    if (!isalnum((char)after) && (char)after != '_') return MLE_ERR;
-    if (!mark_is_at_word_bound(cursor->mark, -1)) {
-        mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
-    }
-    bview_cursor_toggle_anchor(cursor, 0);
-    mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
-    return MLE_OK;
-}
 
 // Recursively close bviews, prompting to save unsaved changes. Return MLE_OK if
 // it's OK to continue closing, or MLE_ERR if the action was cancelled.
@@ -1366,7 +1254,7 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int appe
     }
     if (!cursor->is_anchored) {
         use_srules = 0;
-        bview_cursor_toggle_anchor(cursor, use_srules);
+        cursor_toggle_anchor(cursor, use_srules);
         mark_move_bol(cursor->mark);
         mark_move_eol(cursor->anchor);
         mark_move_by(cursor->anchor, 1);
@@ -1383,7 +1271,7 @@ static void _cmd_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int appe
     if (is_cut) {
         mark_delete_between_mark(cursor->mark, cursor->anchor);
     }
-    bview_cursor_toggle_anchor(cursor, use_srules);
+    cursor_toggle_anchor(cursor, use_srules);
 }
 
 // Move cursor to next occurrence of term, wrap if necessary. Return MLE_OK if

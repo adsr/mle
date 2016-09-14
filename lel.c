@@ -249,11 +249,11 @@ static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
 static void _lel_func_cursor_drop_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
-    bview_cursor_drop_anchor(ectx->cursor);
+    cursor_drop_anchor(ectx->cursor);
 }
 
 static void _lel_func_cursor_lift_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
-    bview_cursor_lift_anchor(ectx->cursor);
+    cursor_lift_anchor(ectx->cursor);
 }
 
 static void _lel_func_cursor_wake(lel_pnode_t* node, lel_ectx_t* ectx) {

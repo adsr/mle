@@ -318,54 +318,6 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     return MLE_ERR;
 }
 
-// Toggle cursor anchor
-int bview_cursor_toggle_anchor(cursor_t* cursor, int use_srules) {
-    if (!cursor->is_anchored) {
-        mark_clone(cursor->mark, &(cursor->anchor));
-        if (use_srules) {
-            cursor->sel_rule = srule_new_range(cursor->mark, cursor->anchor, 0, TB_REVERSE);
-            buffer_add_srule(cursor->bview->buffer, cursor->sel_rule);
-        }
-        cursor->is_anchored = 1;
-    } else {
-        if (use_srules) {
-            buffer_remove_srule(cursor->bview->buffer, cursor->sel_rule);
-            srule_destroy(cursor->sel_rule);
-            cursor->sel_rule = NULL;
-        }
-        mark_destroy(cursor->anchor);
-        cursor->is_anchored = 0;
-    }
-    return MLE_OK;
-}
-
-// Drop cursor anchor
-int bview_cursor_drop_anchor(cursor_t* cursor) {
-    if (cursor->is_anchored) return MLE_OK;
-    return bview_cursor_toggle_anchor(cursor, 1);
-}
-
-// Lift cursor anchor
-int bview_cursor_lift_anchor(cursor_t* cursor) {
-    if (!cursor->is_anchored) return MLE_OK;
-    return bview_cursor_toggle_anchor(cursor, 1);
-}
-
-// Get lo and hi marks in a is_anchored=1 cursor
-int bview_cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
-    if (!cursor->is_anchored) {
-        return MLE_ERR;
-    }
-    if (mark_is_gt(cursor->anchor, cursor->mark)) {
-        *ret_lo = cursor->mark;
-        *ret_hi = cursor->anchor;
-    } else {
-        *ret_lo = cursor->anchor;
-        *ret_hi = cursor->mark;
-    }
-    return MLE_OK;
-}
-
 // Center the viewport vertically
 int bview_center_viewport_y(bview_t* self) {
     bint_t center;

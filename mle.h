@@ -423,14 +423,22 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor);
 int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata);
 int bview_set_syntax(bview_t* self, char* opt_syntax);
 int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
-int bview_cursor_get_lo_hi(cursor_t* self, mark_t** ret_lo, mark_t** ret_hi);
 int bview_add_cursor_asleep(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
 int bview_wake_sleeping_cursors(bview_t* self);
 int bview_remove_cursors_except(bview_t* self, cursor_t* one);
-int bview_cursor_toggle_anchor(cursor_t* cursor, int use_srules);
-int bview_cursor_drop_anchor(cursor_t* cursor);
-int bview_cursor_lift_anchor(cursor_t* cursor);
 bview_t* bview_get_split_root(bview_t* self);
+
+// cursor functions
+int cursor_toggle_anchor(cursor_t* cursor, int use_srules);
+int cursor_drop_anchor(cursor_t* cursor);
+int cursor_lift_anchor(cursor_t* cursor);
+int cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi);
+int cursor_select_by(cursor_t* cursor, const char* strat);
+int cursor_select_by_bracket(cursor_t* cursor);
+int cursor_select_by_word_back(cursor_t* cursor);
+int cursor_select_by_word_forward(cursor_t* cursor);
+int cursor_select_by_string(cursor_t* cursor);
+int cursor_select_by_word(cursor_t* cursor);
 
 // cmd functions
 int cmd_insert_data(cmd_context_t* ctx);
