@@ -49,14 +49,8 @@ static void _lel_func_execute_group(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_filter_regex_condition_inner(lel_pnode_t* node, lel_ectx_t* ectx, int negated);
 static void _lel_func_filter_regex_condition(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_filter_regex_condition_not(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_filter_regex_replace(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx_orig);
 static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx_orig);
-static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_line(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_mark(lel_pnode_t* node, lel_ectx_t* ectx);
@@ -67,10 +61,9 @@ static void _lel_func_move_str(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_move_word(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_register_mutate(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_register_write(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ectx);
-static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ectx);
+static void _lel_func_text_change_inner(lel_pnode_t* node, lel_ectx_t* ectx, int shell);
 static void _lel_func_text_copy(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_copy_append(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_text_cut(lel_pnode_t* node, lel_ectx_t* ectx);
@@ -127,7 +120,7 @@ static lel_func_t func_table[] = {
     NULL,                                    // 7
     NULL,                                    // 8
     NULL,                                    // 9
-    _lel_func_select,                        // :
+    NULL,                                    // :
     NULL,                                    // ;
     _lel_func_register_mutate,               // <
     _lel_func_register_mutate,               // =
@@ -135,10 +128,10 @@ static lel_func_t func_table[] = {
     _lel_func_move_re,                       // ?
     NULL,                                    // @
     _lel_func_register_write,                // A
-    _lel_func_foreach_buffer,                // B
+    NULL,                                    // B
     NULL,                                    // C
     _lel_func_cursor_drop_anchor,            // D
-    _lel_func_foreach_regex2_inverted,       // E
+    NULL,                                    // E
     _lel_func_move_str,                      // F
     _lel_func_move_simple,                   // G
     _lel_func_move_simple,                   // H
@@ -152,12 +145,12 @@ static lel_func_t func_table[] = {
     NULL,                                    // P
     _lel_func_filter_regex_condition_not,    // Q
     _lel_func_move_re,                       // R
-    _lel_func_filter_regex_replace,          // S
+    NULL,                                    // S
     _lel_func_move_str,                      // T
     _lel_func_cursor_lift_anchor,            // U
     NULL,                                    // V
     _lel_func_move_word,                     // W
-    _lel_func_foreach_regex_inverted,        // X
+    NULL,                                    // X
     _lel_func_text_copy_append,              // Y
     _lel_func_cursor_wake,                   // Z
     NULL,                                    // [
@@ -165,12 +158,12 @@ static lel_func_t func_table[] = {
     NULL,                                    // ]
     _lel_func_move_simple,                   // ^
     _lel_func_register_mutate,               // _
-    _lel_func_shell,                         // `
+    NULL,                                    // `
     _lel_func_text_insert_before,            // a
-    _lel_func_move_bracket,                  // b
+    NULL,                                    // b
     _lel_func_text_change,                   // c
     _lel_func_text_change,                   // d
-    _lel_func_foreach_regex2,                // e
+    NULL,                                    // e
     _lel_func_move_str,                      // f
     _lel_func_move_simple,                   // g
     _lel_func_move_simple,                   // h
@@ -288,23 +281,15 @@ static void _lel_func_filter_regex_condition_not(lel_pnode_t* node, lel_ectx_t* 
     _lel_func_filter_regex_condition_inner(node, ectx, 1);
 }
 
-static void _lel_func_filter_regex_replace(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO filter func
-    //ctx->filter = fdsafds
-    //_lel_execute(tree->child, ctx);
-    //ctx->filter = orig;
-    //return rv;
-}
-
-static void _lel_func_foreach_buffer(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
-}
-
 static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
     lel_ectx_t* ectx;
     bline_t* bline;
+    bint_t num_lines;
+
     ectx = _lel_clone_context(ectx_orig);
-    for (bline = ectx->mark_start->bline; bline && bline != ectx->mark_end->bline->next; bline = bline->next) {
+    num_lines = ectx->mark_end->bline->line_index - ectx->mark_start->bline->line_index + 1;
+    bline = ectx->mark_start->bline;
+    while (bline && num_lines > 0) {
         mark_move_to_w_bline(ectx->cursor->mark, bline, 0);
         mark_move_to_w_bline(ectx->mark_start, bline, 0);
         if (bline->next) {
@@ -313,6 +298,8 @@ static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
             mark_move_to_w_bline(ectx->mark_end, bline, bline->data_len);
         }
         _lel_execute(node->child, ectx);
+        num_lines -= 1;
+        bline = ectx->mark_start->bline->next;
     }
     _lel_free_context(ectx);
 }
@@ -336,22 +323,6 @@ static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
         mark_join(ectx->cursor->mark, ectx->mark_end);
     }
     _lel_free_context(ectx);
-}
-
-static void _lel_func_foreach_regex_inverted(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
-}
-
-static void _lel_func_foreach_regex2(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
-}
-
-static void _lel_func_foreach_regex2_inverted(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
-}
-
-static void _lel_func_move_bracket(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
 }
 
 static void _lel_func_move_col(lel_pnode_t* node, lel_ectx_t* ectx) {
@@ -473,26 +444,45 @@ static void _lel_func_register_write(lel_pnode_t* node, lel_ectx_t* ectx) {
     markfn(ectx->cursor->mark, data, (bint_t)data_len);
 }
 
-static void _lel_func_select(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
-}
-
-static void _lel_func_shell(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
-}
-
 static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ectx) {
-    // TODO
+    _lel_func_text_change_inner(node, ectx, 1);
 }
 
 static void _lel_func_text_change(lel_pnode_t* node, lel_ectx_t* ectx) {
+    _lel_func_text_change_inner(node, ectx, 0);
+}
+
+static void _lel_func_text_change_inner(lel_pnode_t* node, lel_ectx_t* ectx, int shell) {
     mark_t* mark_a;
     mark_t* mark_b;
+    char* shell_in;
+    char* shell_out;
+    bint_t shell_in_len;
+    size_t shell_out_len;
+    char* repl;
+
+    repl = NULL;
+    shell_in = NULL;
+    shell_out = NULL;
     _lel_get_sel_marks(node, ectx, &mark_a, &mark_b);
-    mark_delete_between_mark(mark_a, mark_b);
-    if (node->param1) {
-        mark_insert_before(mark_a, node->param1, (bint_t)strlen(node->param1));
+
+    if (shell) {
+        mark_get_between_mark(mark_a, mark_b, &shell_in, &shell_in_len);
+        if (shell_in_len > 0
+            && util_shell_exec(ectx->ctx->editor, node->param1, 1, shell_in, (size_t)shell_in_len, NULL, &shell_out, &shell_out_len) == MLE_OK
+            && shell_out_len > 0
+        ) {
+            repl = shell_out;
+        }
+    } else if (node->param1) {
+        repl = node->param1;
     }
+
+    mark_delete_between_mark(mark_a, mark_b);
+    if (repl) mark_insert_before(mark_a, repl, (bint_t)strlen(repl));
+
+    if (shell_out) free(shell_in);
+    if (shell_out) free(shell_out);
     mark_destroy(mark_a);
     mark_destroy(mark_b);
 }
@@ -602,7 +592,7 @@ static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx) {
     lel_func_t func;
     int i;
     for (node = tree; node; node = node->next) {
-        func = node->ch <= '~' ? func_table[node->ch - '!'] : NULL;
+        func = node->ch >= '!' && node->ch <= '~' ? func_table[node->ch - '!'] : NULL;
         if (func) for (i = 0; i < node->repeat; i++) func(node, ectx);
     }
 }
@@ -632,9 +622,9 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
             n.ch = '{';
             n.child = _lel_accept_cmds(s);
             _lel_expect(s, '}');
-        } else if ((ch = _lel_accept_any(s, "^$wWnNb~hHgGdkyYvDUOzZ.LB")) != NULL) {
+        } else if ((ch = _lel_accept_any(s, "^$wWnN~hHgGdkyYvDUOzZ.L")) != NULL) {
             n.ch = *ch;
-            if (n.ch == 'L' || n.ch == 'B') {
+            if (n.ch == 'L') {
                 n.child = _lel_accept_cmd(s);
             }
         } else if ((ch = _lel_accept_any_set_delim(s, "/?\"'")) != NULL) {
@@ -651,20 +641,20 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
                 n.sparam = "abs";
             }
             n.num = num * _lel_expect_num(s);
-        } else if ((ch = _lel_accept_any(s, "rRfFaci|`xXqQ")) != NULL) {
+        } else if ((ch = _lel_accept_any(s, "rRfFaci|xqQ")) != NULL) {
             n.ch = *ch;
             _lel_expect_set_delim(s);
             n.param1 = _lel_expect_delim_str(s);
             _lel_expect_delim(s);
-            if (n.ch == 'x' || n.ch == 'X' || n.ch == 'q' || n.ch == 'Q') {
+            if (n.ch == 'x' || n.ch == 'q' || n.ch == 'Q') {
                 n.child = _lel_accept_cmd(s);
             }
-        } else if ((ch = _lel_accept_any(s, "tTm:M><=_AI")) != NULL) {
+        } else if ((ch = _lel_accept_any(s, "tTmM><=_AI")) != NULL) {
             n.ch = *ch;
             n.param1 = malloc(2);
             n.param1[0] = _lel_expect_one(s);
             n.param1[1] = '\0';
-        } else if ((ch = _lel_accept_any(s, "sSeE")) != NULL) {
+        } else if ((ch = _lel_accept_any(s, "s")) != NULL) {
             n.ch = *ch;
             _lel_expect_set_delim(s);
             n.param1 = _lel_expect_delim_str(s);
