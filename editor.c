@@ -1642,7 +1642,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua)$", -1, -1, (srule_def_t[]){
+    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cc|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua)$", -1, -1, (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
