@@ -217,6 +217,15 @@ int cmd_lel(cmd_context_t* ctx) {
     mark_clone(ctx->cursor->mark, &lel_ctx.orig);
     lel_ctx.mark_start = buffer_add_mark(ctx->buffer, ctx->buffer->first_line, 0);
     lel_ctx.mark_end = buffer_add_mark(ctx->buffer, ctx->buffer->last_line, ctx->buffer->last_line->data_len);
+    if (ctx->cursor->is_anchored) {
+        if (mark_is_lt(ctx->cursor->mark, ctx->cursor->anchor)) {
+            mark_join(lel_ctx.mark_start, ctx->cursor->mark);
+            mark_join(lel_ctx.mark_end, ctx->cursor->anchor);
+        } else {
+            mark_join(lel_ctx.mark_start, ctx->cursor->anchor);
+            mark_join(lel_ctx.mark_end, ctx->cursor->mark);
+        }
+    }
     _lel_execute(lel_tree, &lel_ctx);
     _lel_free_node(lel_tree, 1);
     mark_destroy(lel_ctx.mark_start);
@@ -307,15 +316,18 @@ static void _lel_func_foreach_line(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
 static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
     lel_ectx_t* ectx;
     bint_t num_chars;
+    int orig_budge;
     if (!_lel_ensure_compiled_regex(node->param1, &node->re1)) return;
     ectx = _lel_clone_context(ectx_orig);
     mark_join(ectx->cursor->mark, ectx->mark_start);
     while (mark_is_lte(ectx->cursor->mark, ectx_orig->mark_end)) {
+        mark_set_find_budge(0, &orig_budge);
         if (mark_move_next_cre_ex(ectx->cursor->mark, node->re1, NULL, NULL, &num_chars) != MLBUF_OK) {
             break;
         } else if (mark_is_gt(ectx->cursor->mark, ectx_orig->mark_end)) {
             break;
         }
+        mark_set_find_budge(orig_budge, NULL);
         mark_join(ectx->mark_start, ectx->cursor->mark);
         mark_join(ectx->mark_end, ectx->cursor->mark);
         mark_move_by(ectx->mark_end, num_chars);
@@ -460,8 +472,10 @@ static void _lel_func_text_change_inner(lel_pnode_t* node, lel_ectx_t* ectx, int
     bint_t shell_in_len;
     size_t shell_out_len;
     char* repl;
+    bint_t repl_len;
 
     repl = NULL;
+    repl_len = 0;
     shell_in = NULL;
     shell_out = NULL;
     _lel_get_sel_marks(node, ectx, &mark_a, &mark_b);
@@ -473,16 +487,21 @@ static void _lel_func_text_change_inner(lel_pnode_t* node, lel_ectx_t* ectx, int
             && shell_out_len > 0
         ) {
             repl = shell_out;
+            repl_len = shell_out_len;
         }
     } else if (node->param1) {
-        repl = node->param1;
+        if (ectx->cursor->is_anchored) {
+            repl = strdup(node->param1);
+        } else {
+            asprintf(&repl, "%s\n", node->param1);
+        }
+        repl_len = strlen(repl);
     }
 
-    mark_delete_between_mark(mark_a, mark_b);
-    if (repl) mark_insert_before(mark_a, repl, (bint_t)strlen(repl));
+    mark_replace_between_mark(mark_a, mark_b, repl, repl_len);
 
-    if (shell_out) free(shell_in);
-    if (shell_out) free(shell_out);
+    if (shell_in) free(shell_in);
+    if (repl) free(repl);
     mark_destroy(mark_a);
     mark_destroy(mark_b);
 }
@@ -512,20 +531,18 @@ static void _lel_func_text_paste(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
 static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx) {
-    mark_t* orig;
-    orig = NULL;
-    if (!ectx->cursor->is_anchored) {
-        mark_clone(ectx->cursor->mark, &orig);
-        cursor_drop_anchor(ectx->cursor);
-        mark_join(ectx->cursor->mark, ectx->mark_start);
-        mark_join(ectx->cursor->anchor, ectx->mark_end);
-    }
-    cursor_replace(ectx->cursor, 0, node->param1, node->param2);
-    if (orig) {
-        cursor_lift_anchor(ectx->cursor);
-        mark_join(ectx->cursor->mark, orig);
-        mark_destroy(orig);
-    }
+    cursor_t* cursor;
+    mark_t* mark_a;
+    mark_t* mark_b;
+    cursor_clone(ectx->cursor, &cursor);
+    _lel_get_sel_marks(node, ectx, &mark_a, &mark_b);
+    cursor_drop_anchor(cursor);
+    mark_join(cursor->mark, mark_a);
+    mark_join(cursor->anchor, mark_b);
+    cursor_replace(cursor, 0, node->param1, node->param2);
+    mark_destroy(mark_a);
+    mark_destroy(mark_b);
+    cursor_destroy(cursor);
 }
 
 static lel_ectx_t* _lel_clone_context(lel_ectx_t* ectx_orig) {

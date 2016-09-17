@@ -2,6 +2,23 @@
 #include <ctype.h>
 #include "mle.h"
 
+// Clone cursor
+int cursor_clone(cursor_t* cursor, cursor_t** ret_clone) {
+    cursor_t* clone;
+    bview_add_cursor(cursor->bview, cursor->mark->bline, cursor->mark->col, &clone);
+    if (cursor->is_anchored) {
+        cursor_toggle_anchor(clone, cursor->sel_rule ? 1 : 0);
+        mark_join(clone->anchor, cursor->anchor);
+    }
+    *ret_clone = clone;
+    return MLE_OK;
+}
+
+// Remove cursor
+int cursor_destroy(cursor_t* cursor) {
+    return bview_remove_cursor(cursor->bview, cursor);
+}
+
 // Toggle cursor anchor
 int cursor_toggle_anchor(cursor_t* cursor, int use_srules) {
     if (!cursor->is_anchored) {
@@ -289,10 +306,7 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
                     break;
                 } else if (0 == strcmp(yn, MLE_PROMPT_YES) || 0 == strcmp(yn, MLE_PROMPT_ALL)) {
                     str_append_replace_with_backrefs(&repl_backref, search_mark->bline->data, replacement, pcre_rc, pcre_ovector, 30);
-                    mark_delete_between_mark(search_mark, search_mark_end);
-                    if (repl_backref.len > 0) {
-                        mark_insert_before(search_mark, repl_backref.data, repl_backref.len);
-                    }
+                    mark_replace_between_mark(search_mark, search_mark_end, repl_backref.data, repl_backref.len);
                     str_free(&repl_backref);
                     num_replacements += 1;
                     if (0 == strcmp(yn, MLE_PROMPT_ALL)) all = 1;

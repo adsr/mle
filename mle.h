@@ -429,19 +429,21 @@ int bview_remove_cursors_except(bview_t* self, cursor_t* one);
 bview_t* bview_get_split_root(bview_t* self);
 
 // cursor functions
-int cursor_toggle_anchor(cursor_t* cursor, int use_srules);
-int cursor_drop_anchor(cursor_t* cursor);
-int cursor_lift_anchor(cursor_t* cursor);
-int cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi);
-int cursor_select_by(cursor_t* cursor, const char* strat);
-int cursor_select_by_bracket(cursor_t* cursor);
-int cursor_select_by_word_back(cursor_t* cursor);
-int cursor_select_by_word_forward(cursor_t* cursor);
-int cursor_select_by_string(cursor_t* cursor);
-int cursor_select_by_word(cursor_t* cursor);
+int cursor_clone(cursor_t* cursor, cursor_t** ret_clone);
 int cursor_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
-int cursor_uncut(cursor_t* cursor);
+int cursor_destroy(cursor_t* cursor);
+int cursor_drop_anchor(cursor_t* cursor);
+int cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi);
+int cursor_lift_anchor(cursor_t* cursor);
 int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt_replacement);
+int cursor_select_by_bracket(cursor_t* cursor);
+int cursor_select_by(cursor_t* cursor, const char* strat);
+int cursor_select_by_string(cursor_t* cursor);
+int cursor_select_by_word_back(cursor_t* cursor);
+int cursor_select_by_word(cursor_t* cursor);
+int cursor_select_by_word_forward(cursor_t* cursor);
+int cursor_toggle_anchor(cursor_t* cursor, int use_srules);
+int cursor_uncut(cursor_t* cursor);
 
 // cmd functions
 int cmd_apply_macro_by(cmd_context_t* ctx);

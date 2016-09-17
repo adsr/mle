@@ -24,8 +24,7 @@ $(mle_objects): %.o: %.c
 	pushd termbox && ./waf configure &>/dev/null && ./waf &>/dev/null && popd
 
 test: mle
-	$(MAKE) -C mlbuf test
-	./mle -v
+	$(MAKE) -C tests && $(MAKE) -C mlbuf test && ./mle -v
 
 install: mle
 	install -v -m 755 mle $(DESTDIR)
