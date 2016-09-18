@@ -26,6 +26,9 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
 
     *ret_output = NULL;
     *ret_output_len = 0;
+    readfd = -1;
+    writefd = -1;
+    pid = -1;
 
     // Open cmd
     rw = input && input_len > 0 ? 1 : 0;

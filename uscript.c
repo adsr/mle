@@ -116,6 +116,7 @@ static int _uscript_parse_msgs(uscript_t* uscript) {
     int num_parsed;
 
     readbuf = &uscript->readbuf;
+    num_parsed = 0;
     while ((newline = memmem(readbuf->data, readbuf->len, "\n", 1)) != NULL) {
         linelen = newline - readbuf->data;
         num_parsed += _uscript_parse_msg(uscript, readbuf->data, linelen);

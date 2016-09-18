@@ -254,6 +254,7 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
 int bview_get_active_cursor_count(bview_t* self) {
     int count;
     cursor_t* cursor;
+    count = 0;
     DL_FOREACH(self->cursors, cursor) {
         if (!cursor->is_asleep) {
             count += 1;
@@ -301,7 +302,8 @@ int bview_wake_sleeping_cursors(bview_t* self) {
 // Remove all cursors except one
 int bview_remove_cursors_except(bview_t* self, cursor_t* one) {
     cursor_t* cursor;
-    DL_FOREACH(self->cursors, cursor) {
+    cursor_t* cursor_tmp;
+    DL_FOREACH_SAFE(self->cursors, cursor, cursor_tmp) {
         if (cursor != one) {
             bview_remove_cursor(self, cursor);
         }
@@ -1009,10 +1011,10 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t
         ) {
             tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->abs_linenum_width, (int)(bline->line_index + 1) % (int)pow(10, self->linenum_width));
             if (self->editor->linenum_type == MLE_LINENUM_TYPE_BOTH) {
-                tb_printf(self->rect_lines, self->abs_linenum_width, rect_y, linenum_fg, 0, " %*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
+                tb_printf(self->rect_lines, self->abs_linenum_width, rect_y, linenum_fg, 0, " %*d", self->rel_linenum_width, (int)labs(bline->line_index - self->active_cursor->mark->bline->line_index));
             }
         } else if (self->editor->linenum_type == MLE_LINENUM_TYPE_REL) {
-            tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)abs(bline->line_index - self->active_cursor->mark->bline->line_index));
+            tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)labs(bline->line_index - self->active_cursor->mark->bline->line_index));
         }
         tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
         if (!is_soft_wrap && bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w) {

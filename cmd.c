@@ -1257,6 +1257,7 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     }
 
     // Open file or browse dir
+    new_bview = NULL;
     if (util_is_dir(corrected_path)) {
         chdir(corrected_path);
         ctx->bview = ctx->editor->active_edit;
@@ -1269,9 +1270,10 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     editor_close_bview(ctx->editor, ctx->bview, NULL);
 
     // Set new_bview to active
-    editor_set_active(ctx->editor, new_bview);
+    if (new_bview) editor_set_active(ctx->editor, new_bview);
 
-    free(corrected_path);
     free(line);
+    free(corrected_path);
+
     return MLE_OK;
 }
