@@ -645,6 +645,8 @@ TODO
 [ ] segfault hunt: splits
 [ ] crash when M-e cat'ing huge files?
 --- LOW
+[ ] after bad cmd, EBADF on stdin/stdout ?
+[ ] consider find_budge=0 by default, emulate find_budge=1 in calling code
 [ ] use_srules sucks
 [ ] undo/redo should center viewport?
 [ ] smart indent

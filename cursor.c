@@ -247,6 +247,7 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
     int pcre_ovector[30];
     str_t repl_backref = {0};
     int num_replacements;
+    int orig_find_budge;
 
     if (!interactive && (!opt_regex || !opt_replacement)) {
         return MLE_ERR;
@@ -264,6 +265,7 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
     all = interactive ? 0 : 1;
     num_replacements = 0;
     mark_set_pcre_capture(&pcre_rc, pcre_ovector, 30);
+    mark_set_find_budge(0, &orig_find_budge);
 
     do {
         if (!interactive) {
@@ -341,6 +343,7 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
         mark_join(cursor->anchor, anchored_before ? lo_mark : hi_mark);
     }
 
+    mark_set_find_budge(orig_find_budge, NULL);
     mark_set_pcre_capture(NULL, NULL, 0);
     if (regex) free(regex);
     if (replacement) free(replacement);

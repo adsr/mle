@@ -21,6 +21,7 @@ struct lel_pnode_s {
     char* sparam;
     char* param1;
     char* param2;
+    char* param3;
     int num;
     int repeat;
     pcre* re1;
@@ -146,7 +147,7 @@ static lel_func_t func_table[] = {
     NULL,                                    // P
     _lel_func_filter_regex_condition_not,    // Q
     _lel_func_move_re,                       // R
-    NULL,                                    // S
+    _lel_func_register_write,                // S
     _lel_func_move_str,                      // T
     _lel_func_cursor_lift_anchor,            // U
     NULL,                                    // V
@@ -338,9 +339,16 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
             _lel_expect_delim(s);
             n.param2 = _lel_expect_delim_str(s);
             _lel_expect_delim(s);
-            if (n.ch != 's') {
-                n.child = _lel_accept_cmd(s);
-            }
+        } else if ((ch = _lel_accept_any(s, "S")) != NULL) {
+            n.ch = *ch;
+            n.param1 = malloc(2);
+            n.param1[0] = _lel_expect_one(s);
+            n.param1[1] = '\0';
+            _lel_expect_set_delim(s);
+            n.param2 = _lel_expect_delim_str(s);
+            _lel_expect_delim(s);
+            n.param3 = _lel_expect_delim_str(s);
+            _lel_expect_delim(s);
         } else {
             has_node = 0;
         }
@@ -411,7 +419,7 @@ static void _lel_func_filter_regex_condition_inner(lel_pnode_t* node, lel_ectx_t
     if (!_lel_ensure_compiled_regex(node->param1, &node->re1)) return;
     sel = _lel_get_sel(node, ectx);
     rc = pcre_exec(node->re1, NULL, sel, strlen(sel), 0, 0, NULL, 0);
-    if ((!negated && rc > 0) || (negated && rc < 0)) {
+    if ((!negated && rc >= 0) || (negated && rc < 0)) {
         _lel_execute(node->child, ectx);
     }
     free(sel);
@@ -579,19 +587,28 @@ static void _lel_func_register_mutate(lel_pnode_t* node, lel_ectx_t* ectx) {
 
 static void _lel_func_register_write(lel_pnode_t* node, lel_ectx_t* ectx) {
     char* data;
+    char* data_repl;
+    int data_repl_len;
     size_t data_len;
     int (*markfn)(mark_t*, char*, bint_t);
     if (buffer_register_get(ectx->cursor->mark->bline->buffer, *node->param1, 0, &data, &data_len) != MLBUF_OK) {
         return;
     }
+    data_repl = NULL;
     if (node->ch == 'A') {
         markfn = mark_insert_before;
     } else if (node->ch == 'I') {
         markfn = mark_insert_after;
+    } else if (node->ch == 'S') {
+        markfn = mark_insert_before;
+        util_pcre_replace(node->param2, data, node->param3, &data_repl, &data_repl_len);
+        data = data_repl;
+        data_len = data_repl_len;
     } else {
         return;
     }
     markfn(ectx->cursor->mark, data, (bint_t)data_len);
+    if (data_repl) free(data_repl);
 }
 
 static void _lel_func_shell_pipe(lel_pnode_t* node, lel_ectx_t* ectx) {
@@ -755,6 +772,7 @@ static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx) {
 static void _lel_free_node(lel_pnode_t* node, int and_self) {
     if (node->param1) free(node->param1);
     if (node->param2) free(node->param2);
+    if (node->param3) free(node->param3);
     if (node->re1) pcre_free(node->re1);
     if (node->re2) pcre_free(node->re2);
     if (node->child) _lel_free_node(node->child, 1);
