@@ -29,6 +29,12 @@ test: mle test_mle
 test_mle: mle
 	$(MAKE) -C tests && ./mle -v
 
+sloc:
+	find . -name '*.c' -or -name '*.h' | \
+		grep -Pv '(termbox|test|ut)' | \
+		xargs -rn1 cat | \
+		wc -l
+
 install: mle
 	install -v -m 755 mle $(DESTDIR)
 
@@ -37,4 +43,4 @@ clean:
 	$(MAKE) -C mlbuf clean
 	pushd termbox && ./waf clean &>/dev/null && popd
 
-.PHONY: all mle_static test test_mle install clean
+.PHONY: all mle_static test test_mle sloc install clean
