@@ -250,6 +250,18 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     return MLE_OK;
 }
 
+// Return number of active cursors
+int bview_get_active_cursor_count(bview_t* self) {
+    int count;
+    cursor_t* cursor;
+    DL_FOREACH(self->cursors, cursor) {
+        if (!cursor->is_asleep) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
 // Add a cursor to a bview
 int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor) {
     cursor_t* cursor;

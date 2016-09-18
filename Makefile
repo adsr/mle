@@ -23,8 +23,11 @@ $(mle_objects): %.o: %.c
 ./termbox/build/src/libtermbox.a:
 	pushd termbox && ./waf configure &>/dev/null && ./waf &>/dev/null && popd
 
-test: mle
-	$(MAKE) -C tests && $(MAKE) -C mlbuf test && ./mle -v
+test: mle test_mle
+	$(MAKE) -C mlbuf test
+
+test_mle: mle
+	$(MAKE) -C tests && ./mle -v
 
 install: mle
 	install -v -m 755 mle $(DESTDIR)
@@ -34,4 +37,4 @@ clean:
 	$(MAKE) -C mlbuf clean
 	pushd termbox && ./waf clean &>/dev/null && popd
 
-.PHONY: all mle_static test install clean
+.PHONY: all mle_static test test_mle install clean

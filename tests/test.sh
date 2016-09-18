@@ -18,10 +18,10 @@ echo -n "$mle_stdin" >test.data
 mle_stdout=$($mle -N -Ktest,0,0 -k"$mle_kbind" -ntest -M't t' -pt <test.data)
 
 if [ "$mle_stdout" == "$mle_expect" ]; then
-    echo "  $(tput setaf 2)OK$(tput sgr0)   $mle_tname"
+    echo "  $(tput setaf 2)OK$(tput sgr0)  $mle_tname"
 else
     echo "  $mle -N -Ktest,0,0 -k$(printf "%q" "$mle_kbind") -ntest -M't t' -pt <test.data"
-    echo "  $(tput setaf 1)ERR$(tput sgr0)  $mle_tname"
+    echo "  $(tput setaf 1)ERR$(tput sgr0) $mle_tname"
     echo "    expected: $(echo $mle_expect | tr -d '\n')"
     echo "    observed: $(echo $mle_stdout | tr -d '\n')"
     exit 1

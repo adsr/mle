@@ -3,11 +3,11 @@
 #include "mle.h"
 
 // Clone cursor
-int cursor_clone(cursor_t* cursor, cursor_t** ret_clone) {
+int cursor_clone(cursor_t* cursor, int use_srules, cursor_t** ret_clone) {
     cursor_t* clone;
     bview_add_cursor(cursor->bview, cursor->mark->bline, cursor->mark->col, &clone);
     if (cursor->is_anchored) {
-        cursor_toggle_anchor(clone, cursor->sel_rule ? 1 : 0);
+        cursor_toggle_anchor(clone, use_srules);
         mark_join(clone->anchor, cursor->anchor);
     }
     *ret_clone = clone;
@@ -17,6 +17,19 @@ int cursor_clone(cursor_t* cursor, cursor_t** ret_clone) {
 // Remove cursor
 int cursor_destroy(cursor_t* cursor) {
     return bview_remove_cursor(cursor->bview, cursor);
+}
+
+// Select by mark
+int cursor_select_between(cursor_t* cursor, mark_t* a, mark_t* b, int use_srules) {
+    cursor_drop_anchor(cursor, use_srules);
+    if (mark_is_lt(a, b)) {
+        mark_join(cursor->mark, a);
+        mark_join(cursor->anchor, b);
+    } else {
+        mark_join(cursor->mark, b);
+        mark_join(cursor->anchor, a);
+    }
+    return MLE_OK;
 }
 
 // Toggle cursor anchor
@@ -29,7 +42,7 @@ int cursor_toggle_anchor(cursor_t* cursor, int use_srules) {
         }
         cursor->is_anchored = 1;
     } else {
-        if (use_srules) {
+        if (use_srules && cursor->sel_rule) {
             buffer_remove_srule(cursor->bview->buffer, cursor->sel_rule);
             srule_destroy(cursor->sel_rule);
             cursor->sel_rule = NULL;
@@ -41,15 +54,15 @@ int cursor_toggle_anchor(cursor_t* cursor, int use_srules) {
 }
 
 // Drop cursor anchor
-int cursor_drop_anchor(cursor_t* cursor) {
+int cursor_drop_anchor(cursor_t* cursor, int use_srules) {
     if (cursor->is_anchored) return MLE_OK;
-    return cursor_toggle_anchor(cursor, 1);
+    return cursor_toggle_anchor(cursor, use_srules);
 }
 
 // Lift cursor anchor
 int cursor_lift_anchor(cursor_t* cursor) {
     if (!cursor->is_anchored) return MLE_OK;
-    return cursor_toggle_anchor(cursor, 1);
+    return cursor_toggle_anchor(cursor, cursor->sel_rule ? 1 : 0);
 }
 
 // Get lo and hi marks in a is_anchored=1 cursor

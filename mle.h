@@ -404,40 +404,42 @@ int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_register_cmd(editor_t* editor, cmd_t* cmd);
 
 // bview functions
+bview_t* bview_get_split_root(bview_t* self);
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
-int bview_open(bview_t* self, char* path, int path_len);
+int bview_add_cursor_asleep(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
+int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
+int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata);
+int bview_center_viewport_y(bview_t* self);
 int bview_destroy(bview_t* self);
-int bview_resize(bview_t* self, int x, int y, int w, int h);
+int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
 int bview_draw(bview_t* self);
 int bview_draw_cursor(bview_t* self, int set_real_cursor);
-int bview_rectify_viewport(bview_t* self);
-int bview_center_viewport_y(bview_t* self);
-int bview_zero_viewport_y(bview_t* self);
+int bview_get_active_cursor_count(bview_t* self);
 int bview_max_viewport_y(bview_t* self);
-int bview_push_kmap(bview_t* bview, kmap_t* kmap);
+int bview_open(bview_t* self, char* path, int path_len);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
+int bview_push_kmap(bview_t* bview, kmap_t* kmap);
+int bview_rectify_viewport(bview_t* self);
+int bview_remove_cursor(bview_t* self, cursor_t* cursor);
+int bview_remove_cursors_except(bview_t* self, cursor_t* one);
+int bview_resize(bview_t* self, int x, int y, int w, int h);
+int bview_set_syntax(bview_t* self, char* opt_syntax);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
 int bview_unsplit(bview_t* parent, bview_t* child);
-int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
-int bview_remove_cursor(bview_t* self, cursor_t* cursor);
-int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata);
-int bview_set_syntax(bview_t* self, char* opt_syntax);
-int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
-int bview_add_cursor_asleep(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
 int bview_wake_sleeping_cursors(bview_t* self);
-int bview_remove_cursors_except(bview_t* self, cursor_t* one);
-bview_t* bview_get_split_root(bview_t* self);
+int bview_zero_viewport_y(bview_t* self);
 
 // cursor functions
-int cursor_clone(cursor_t* cursor, cursor_t** ret_clone);
+int cursor_clone(cursor_t* cursor, int use_srules, cursor_t** ret_clone);
 int cursor_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append);
 int cursor_destroy(cursor_t* cursor);
-int cursor_drop_anchor(cursor_t* cursor);
+int cursor_drop_anchor(cursor_t* cursor, int use_srules);
 int cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi);
 int cursor_lift_anchor(cursor_t* cursor);
 int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt_replacement);
-int cursor_select_by_bracket(cursor_t* cursor);
+int cursor_select_between(cursor_t* cursor, mark_t* a, mark_t* b, int use_srules);
 int cursor_select_by(cursor_t* cursor, const char* strat);
+int cursor_select_by_bracket(cursor_t* cursor);
 int cursor_select_by_string(cursor_t* cursor);
 int cursor_select_by_word_back(cursor_t* cursor);
 int cursor_select_by_word(cursor_t* cursor);
@@ -632,8 +634,8 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
-[ ] lel: finish/remove unfinished features, write docs
 [ ] review default key bindings
+[ ] review lel command letters
 [ ] guard against mixed api use, refcounting
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
     [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
@@ -643,6 +645,7 @@ TODO
 [ ] segfault hunt: splits
 [ ] crash when M-e cat'ing huge files?
 --- LOW
+[ ] use_srules sucks
 [ ] undo/redo should center viewport?
 [ ] smart indent
 [ ] func_viewport, func_display

@@ -38,6 +38,7 @@ struct lel_ectx_s {
     mark_t* mark_end;
 };
 
+static void _lel_takeover_first_active_cursor(cursor_t* main);
 static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_cursor_clone(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ectx);
@@ -150,7 +151,7 @@ static lel_func_t func_table[] = {
     _lel_func_cursor_lift_anchor,            // U
     NULL,                                    // V
     _lel_func_move_word,                     // W
-    NULL,                                    // X
+    _lel_func_foreach_regex,                 // X
     _lel_func_text_copy_append,              // Y
     _lel_func_cursor_wake,                   // Z
     NULL,                                    // [
@@ -193,10 +194,12 @@ static lel_func_t func_table[] = {
 
 int cmd_lel(cmd_context_t* ctx) {
     char* cmd;
+    int cursor_count;
     lel_pstate_t lel_parse = {0};
     lel_ectx_t lel_ctx = {0};
     lel_pnode_t* lel_tree;
 
+    // Ask for lel cmd if not present as static param
     if (ctx->static_param) {
         cmd = strdup(ctx->static_param);
     } else {
@@ -204,6 +207,7 @@ int cmd_lel(cmd_context_t* ctx) {
         if (!cmd) return MLE_OK;
     }
 
+    // Parse lel cmd
     lel_parse.cmd = cmd;
     lel_parse.cmd_stop = cmd + strlen(cmd);
     lel_parse.cur = cmd;
@@ -211,6 +215,7 @@ int cmd_lel(cmd_context_t* ctx) {
     free(cmd);
     if (!lel_tree) return MLE_ERR;
 
+    // Setup a cursor to use for the lel program
     lel_ctx.ctx = ctx;
     bview_add_cursor(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, &lel_ctx.cursor);
     lel_ctx.bview = ctx->bview;
@@ -226,7 +231,25 @@ int cmd_lel(cmd_context_t* ctx) {
             mark_join(lel_ctx.mark_end, ctx->cursor->mark);
         }
     }
+
+    // Remember how many active cursors there were
+    cursor_count = bview_get_active_cursor_count(ctx->bview);
+
+    // Run the lel cmd
     _lel_execute(lel_tree, &lel_ctx);
+
+    // If the active cursor count increased, let the main cursor takeover the
+    // first other active cursor. This is a convenience measure so that the lel
+    // cmd does not need to care about deduplicating the main cursor. E.g.,
+    // consider the lel cmd `X/string/z Z` which drops an active cursor on every
+    // term "string". If we didn't do this takeover, the main cursor would still
+    // be floating around, preventing us from properly editing all "string"
+    // matches.
+    if (bview_get_active_cursor_count(ctx->bview) - cursor_count > 0) {
+        _lel_takeover_first_active_cursor(ctx->cursor);
+    }
+
+    // Deallocate stuff
     _lel_free_node(lel_tree, 1);
     mark_destroy(lel_ctx.mark_start);
     mark_destroy(lel_ctx.mark_end);
@@ -236,6 +259,111 @@ int cmd_lel(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+static void _lel_takeover_first_active_cursor(cursor_t* main) {
+    cursor_t* cursor;
+    cursor_t* cursor_tmp;
+    DL_FOREACH_SAFE(main->bview->cursors, cursor, cursor_tmp) {
+        if (cursor == main || cursor->is_asleep) continue;
+        mark_join(main->mark, cursor->mark);
+        if (cursor->is_anchored) {
+            cursor_drop_anchor(main, cursor->sel_rule ? 1 : 0);
+            mark_join(main->anchor, cursor->anchor);
+        }
+        cursor_destroy(cursor);
+        return;
+    }
+}
+
+static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
+    lel_pnode_t n = {0};
+    jmp_buf jmpbuf = {0};
+    jmp_buf* jmpbuf_orig;
+    int error;
+    int has_node;
+    lel_pnode_t* np;
+    char* ch;
+    bint_t num;
+
+    error = 0;
+    has_node = 1;
+    np = &n;
+
+    jmpbuf_orig = s->jmpbuf;
+    s->jmpbuf = &jmpbuf;
+
+    if (!setjmp(jmpbuf)) {
+        _lel_accept_ws(s);
+        n.repeat = _lel_accept_num(s);
+        _lel_accept_ws(s);
+        if (_lel_accept(s, '{')) {
+            n.ch = '{';
+            n.child = _lel_accept_cmds(s);
+            _lel_expect(s, '}');
+        } else if ((ch = _lel_accept_any(s, "^$wWnN~hHgGdkyYvDUOzZ.L")) != NULL) {
+            n.ch = *ch;
+            if (n.ch == 'L') {
+                n.child = _lel_accept_cmd(s);
+            }
+        } else if ((ch = _lel_accept_any_set_delim(s, "/?\"'")) != NULL) {
+            n.ch = *ch;
+            n.param1 = _lel_expect_delim_str(s);
+            _lel_expect_delim(s);
+        } else if ((ch = _lel_accept_any(s, "l#")) != NULL) {
+            n.ch = *ch;
+            if ((ch = _lel_accept_any(s, "+-")) != NULL) {
+                num = *ch == '-' ? -1 : 1;
+                n.sparam = "rel";
+            } else {
+                num = 1;
+                n.sparam = "abs";
+            }
+            n.num = num * _lel_expect_num(s);
+        } else if ((ch = _lel_accept_any(s, "rRfFaci|xXqQ")) != NULL) {
+            n.ch = *ch;
+            _lel_expect_set_delim(s);
+            n.param1 = _lel_expect_delim_str(s);
+            _lel_expect_delim(s);
+            if (n.ch == 'x' || n.ch == 'X' || n.ch == 'q' || n.ch == 'Q') {
+                n.child = _lel_accept_cmd(s);
+            }
+        } else if ((ch = _lel_accept_any(s, "tTmM><=_AI")) != NULL) {
+            n.ch = *ch;
+            n.param1 = malloc(2);
+            n.param1[0] = _lel_expect_one(s);
+            n.param1[1] = '\0';
+        } else if ((ch = _lel_accept_any(s, "s")) != NULL) {
+            n.ch = *ch;
+            _lel_expect_set_delim(s);
+            n.param1 = _lel_expect_delim_str(s);
+            _lel_expect_delim(s);
+            n.param2 = _lel_expect_delim_str(s);
+            _lel_expect_delim(s);
+            if (n.ch != 's') {
+                n.child = _lel_accept_cmd(s);
+            }
+        } else {
+            has_node = 0;
+        }
+    } else {
+        error = 1;
+    }
+
+    s->jmpbuf = jmpbuf_orig;
+
+    if (error) {
+        _lel_free_node(np, 0);
+        np = NULL;
+        if (s->jmpbuf) longjmp(*s->jmpbuf, 1);
+    } else if (!has_node) {
+        np = NULL;
+    } else {
+        np = malloc(sizeof(lel_pnode_t));
+        *np = n;
+    }
+
+    return np;
+}
+
 static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
     if (ectx->cursor->is_anchored) {
         mark_swap_with_mark(ectx->cursor->mark, ectx->cursor->anchor);
@@ -243,15 +371,22 @@ static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
 static void _lel_func_cursor_clone(lel_pnode_t* node, lel_ectx_t* ectx) {
-    bview_add_cursor_asleep(ectx->bview, ectx->cursor->mark->bline, ectx->cursor->mark->col, NULL);
+    cursor_t* clone;
+    cursor_clone(ectx->cursor, 1, &clone);
+    clone->is_asleep = 1;
 }
 
 static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ectx) {
-    bview_remove_cursors_except(ectx->bview, ectx->cursor);
+    cursor_t* cursor;
+    DL_FOREACH(ectx->cursor->bview->cursors, cursor) {
+        if (cursor != ectx->cursor && cursor != ectx->ctx->cursor) {
+            bview_remove_cursor(ectx->cursor->bview, cursor);
+        }
+    }
 }
 
 static void _lel_func_cursor_drop_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
-    cursor_drop_anchor(ectx->cursor);
+    cursor_drop_anchor(ectx->cursor, 1);
 }
 
 static void _lel_func_cursor_lift_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {
@@ -331,6 +466,9 @@ static void _lel_func_foreach_regex(lel_pnode_t* node, lel_ectx_t* ectx_orig) {
         mark_join(ectx->mark_start, ectx->cursor->mark);
         mark_join(ectx->mark_end, ectx->cursor->mark);
         mark_move_by(ectx->mark_end, num_chars);
+        if (node->ch == 'X') {
+            cursor_select_between(ectx->cursor, ectx->mark_start, ectx->mark_end, 0);
+        }
         _lel_execute(node->child, ectx);
         mark_join(ectx->cursor->mark, ectx->mark_end);
     }
@@ -534,9 +672,9 @@ static void _lel_func_text_search_replace(lel_pnode_t* node, lel_ectx_t* ectx) {
     cursor_t* cursor;
     mark_t* mark_a;
     mark_t* mark_b;
-    cursor_clone(ectx->cursor, &cursor);
+    cursor_clone(ectx->cursor, 0, &cursor);
     _lel_get_sel_marks(node, ectx, &mark_a, &mark_b);
-    cursor_drop_anchor(cursor);
+    cursor_drop_anchor(cursor, 0);
     mark_join(cursor->mark, mark_a);
     mark_join(cursor->anchor, mark_b);
     cursor_replace(cursor, 0, node->param1, node->param2);
@@ -612,96 +750,6 @@ static void _lel_execute(lel_pnode_t* tree, lel_ectx_t* ectx) {
         func = node->ch >= '!' && node->ch <= '~' ? func_table[node->ch - '!'] : NULL;
         if (func) for (i = 0; i < node->repeat; i++) func(node, ectx);
     }
-}
-
-static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
-    lel_pnode_t n = {0};
-    jmp_buf jmpbuf = {0};
-    jmp_buf* jmpbuf_orig;
-    int error;
-    int has_node;
-    lel_pnode_t* np;
-    char* ch;
-    bint_t num;
-
-    error = 0;
-    has_node = 1;
-    np = &n;
-
-    jmpbuf_orig = s->jmpbuf;
-    s->jmpbuf = &jmpbuf;
-
-    if (!setjmp(jmpbuf)) {
-        _lel_accept_ws(s);
-        n.repeat = _lel_accept_num(s);
-        _lel_accept_ws(s);
-        if (_lel_accept(s, '{')) {
-            n.ch = '{';
-            n.child = _lel_accept_cmds(s);
-            _lel_expect(s, '}');
-        } else if ((ch = _lel_accept_any(s, "^$wWnN~hHgGdkyYvDUOzZ.L")) != NULL) {
-            n.ch = *ch;
-            if (n.ch == 'L') {
-                n.child = _lel_accept_cmd(s);
-            }
-        } else if ((ch = _lel_accept_any_set_delim(s, "/?\"'")) != NULL) {
-            n.ch = *ch;
-            n.param1 = _lel_expect_delim_str(s);
-            _lel_expect_delim(s);
-        } else if ((ch = _lel_accept_any(s, "l#")) != NULL) {
-            n.ch = *ch;
-            if ((ch = _lel_accept_any(s, "+-")) != NULL) {
-                num = *ch == '-' ? -1 : 1;
-                n.sparam = "rel";
-            } else {
-                num = 1;
-                n.sparam = "abs";
-            }
-            n.num = num * _lel_expect_num(s);
-        } else if ((ch = _lel_accept_any(s, "rRfFaci|xqQ")) != NULL) {
-            n.ch = *ch;
-            _lel_expect_set_delim(s);
-            n.param1 = _lel_expect_delim_str(s);
-            _lel_expect_delim(s);
-            if (n.ch == 'x' || n.ch == 'q' || n.ch == 'Q') {
-                n.child = _lel_accept_cmd(s);
-            }
-        } else if ((ch = _lel_accept_any(s, "tTmM><=_AI")) != NULL) {
-            n.ch = *ch;
-            n.param1 = malloc(2);
-            n.param1[0] = _lel_expect_one(s);
-            n.param1[1] = '\0';
-        } else if ((ch = _lel_accept_any(s, "s")) != NULL) {
-            n.ch = *ch;
-            _lel_expect_set_delim(s);
-            n.param1 = _lel_expect_delim_str(s);
-            _lel_expect_delim(s);
-            n.param2 = _lel_expect_delim_str(s);
-            _lel_expect_delim(s);
-            if (n.ch != 's') {
-                n.child = _lel_accept_cmd(s);
-            }
-        } else {
-            has_node = 0;
-        }
-    } else {
-        error = 1;
-    }
-
-    s->jmpbuf = jmpbuf_orig;
-
-    if (error) {
-        _lel_free_node(np, 0);
-        np = NULL;
-        if (s->jmpbuf) longjmp(*s->jmpbuf, 1);
-    } else if (!has_node) {
-        np = NULL;
-    } else {
-        np = malloc(sizeof(lel_pnode_t));
-        *np = n;
-    }
-
-    return np;
 }
 
 static void _lel_free_node(lel_pnode_t* node, int and_self) {
