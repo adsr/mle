@@ -40,6 +40,7 @@ struct lel_ectx_s {
 };
 
 static void _lel_takeover_first_active_cursor(cursor_t* main);
+static void _lel_func_user_cursor_join(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_cursor_clone(lel_pnode_t* node, lel_ectx_t* ectx);
 static void _lel_func_cursor_collapse(lel_pnode_t* node, lel_ectx_t* ectx);
@@ -97,7 +98,7 @@ static char* _lel_accept_any_set_delim(lel_pstate_t* s, char* any);
 static char* _lel_expect_delim_str(lel_pstate_t* s);
 
 static lel_func_t func_table[] = {
-    NULL,                                    // !
+    _lel_func_user_cursor_join,              // !
     _lel_func_move_str,                      // "
     _lel_func_move_col,                      // #
     _lel_func_move_simple,                   // $
@@ -300,7 +301,7 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
             n.ch = '{';
             n.child = _lel_accept_cmds(s);
             _lel_expect(s, '}');
-        } else if ((ch = _lel_accept_any(s, "^$wWnN~hHgGdkyYvDUOzZ.L")) != NULL) {
+        } else if ((ch = _lel_accept_any(s, "!^$wWnN~hHgGdkyYvDUOzZ.L")) != NULL) {
             n.ch = *ch;
             if (n.ch == 'L') {
                 n.child = _lel_accept_cmd(s);
@@ -370,6 +371,10 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
     }
 
     return np;
+}
+
+static void _lel_func_user_cursor_join(lel_pnode_t* node, lel_ectx_t* ectx) {
+    mark_join(ectx->ctx->cursor->mark, ectx->cursor->mark);
 }
 
 static void _lel_func_cursor_swap_anchor(lel_pnode_t* node, lel_ectx_t* ectx) {

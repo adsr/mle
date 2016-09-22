@@ -150,6 +150,7 @@ Cursors
     .           collapse cursors
     O           swap cursor mark with anchor
     Ma          drop mark (a is [a-z])
+    !           move user cursor to lel cursor
 
 Registers
 
@@ -176,9 +177,9 @@ Examples
     Delete next 4 lines
         4d
     Find first occurrence of 'int'
-        g 'int'
+        g 'int' !
     Find last occurrence of 'int'
-        G "int"
+        G "int" !
     Remove all tabs from file
         L s/\t//
     Multi-cursor select all matches of 'var'
