@@ -13,9 +13,6 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     int rv;
     int readfd;
     int writefd;
-    char* readbuf;
-    size_t readbuf_len;
-    size_t readbuf_size;
     ssize_t rc;
     ssize_t nbytes;
     fd_set readfds;
@@ -23,12 +20,14 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     struct timeval* timeoutptr;
     int rw;
     pid_t pid;
+    str_t readbuf = {0};
 
     *ret_output = NULL;
     *ret_output_len = 0;
     readfd = -1;
     writefd = -1;
     pid = -1;
+    readbuf.inc = -2; // double capacity on each allocation
 
     // Open cmd
     rw = input && input_len > 0 ? 1 : 0;
@@ -37,9 +36,6 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     }
 
     // Read-write loop
-    readbuf = NULL;
-    readbuf_len = 0;
-    readbuf_size = 0;
     rv = MLE_OK;
     do {
         // Write to shell cmd if input is remaining
@@ -82,11 +78,8 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
             break;
         } else {
             // Read a kilobyte of data
-            if (readbuf_len + 1024 + 1 > readbuf_size) {
-                readbuf = realloc(readbuf, readbuf_len + 1024 + 1);
-                readbuf_size = readbuf_len + 1024 + 1;
-            }
-            nbytes = read(readfd, readbuf + readbuf_len, 1024);
+            str_ensure_cap(&readbuf, readbuf.len + 1024);
+            nbytes = read(readfd, readbuf.data + readbuf.len, 1024);
             if (nbytes < 0) {
                 // read err or EAGAIN/EWOULDBLOCK
                 MLE_SET_ERR(editor, "read error: %s", strerror(errno));
@@ -94,7 +87,7 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
                 break;
             } else if (nbytes > 0) {
                 // Got data
-                readbuf_len += nbytes;
+                readbuf.len += nbytes;
             }
         }
     } while(nbytes > 0); // until EOF
@@ -104,8 +97,9 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     if (rw) close(writefd);
     waitpid(pid, NULL, WNOHANG);
 
-    *ret_output = readbuf;
-    *ret_output_len = readbuf_len;
+    str_append_char(&readbuf, '\0');
+    *ret_output = readbuf.data;
+    *ret_output_len = readbuf.len;
 
     return rv;
 }
