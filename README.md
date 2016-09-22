@@ -96,7 +96,8 @@ registered by user scripts can be mapped to keys as normal via `-k`.
 
 mle comes with a built-in text editing language called lel, inspired by the
 [sam command language](http://doc.cat-v.org/bell_labs/sam_lang_tutorial/). lel
-commands can be entered manually at a prompt or bound to a key.
+commands can be entered manually at a prompt, or bound to any key via
+`-kcmd_lel,<key>,<lelcmd>`.
 
 Motions
 
