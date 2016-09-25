@@ -97,7 +97,6 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     if (rw) close(writefd);
     waitpid(pid, NULL, WNOHANG);
 
-    str_append_char(&readbuf, '\0');
     *ret_output = readbuf.data;
     *ret_output_len = readbuf.len;
 
