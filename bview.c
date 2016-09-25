@@ -368,6 +368,7 @@ int bview_rectify_viewport(bview_t* self) {
     mark = self->active_cursor->mark;
 
     // Rectify each dimension of the viewport
+    MLBUF_BLINE_ENSURE_CHARS(mark->bline);
     _bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x_vcol);
     bline_get_col_from_vcol(mark->bline, self->viewport_x_vcol, &(self->viewport_x));
 

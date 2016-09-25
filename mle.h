@@ -643,9 +643,10 @@ TODO
     [ ] test at tests/test_buffer_srule_overlap.c
     [ ] bugfix: insert lines, drop anchor at eof, delete up, type on 1st line, leftover styling?
 [ ] segfault hunt: splits
-[ ] crash when M-e cat'ing huge files?
+[ ] crash when M-e cat'ing huge files? (why does malloc crash program with large values?)
+[ ] move macros out of mle.h if only used in one source file
 --- LOW
-[ ] after bad cmd, EBADF on stdin/stdout ?
+[ ] after bad shell cmd, EBADF on stdin/stdout ?
 [ ] consider find_budge=0 by default, emulate find_budge=1 in calling code
 [ ] use_srules sucks
 [ ] undo/redo should center viewport?
