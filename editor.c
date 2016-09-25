@@ -2031,7 +2031,7 @@ static void _editor_init_status(editor_t* editor) {
     editor->status = bview_new(editor, NULL, 0, NULL);
     editor->status->type = MLE_BVIEW_TYPE_STATUS;
     editor->rect_status.fg = TB_WHITE;
-    editor->rect_status.bg = TB_BLACK | TB_BOLD;
+    editor->rect_status.bg = TB_BLACK;
 }
 
 // Init bviews
