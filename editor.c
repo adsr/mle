@@ -1210,7 +1210,7 @@ static void _editor_graceful_exit(int signum) {
     if (tb_width() >= 0) tb_shutdown();
     CDL_FOREACH2(_editor.all_bviews, bview, all_next) {
         if (bview->buffer->is_unsaved) {
-            snprintf((char*)&path, 64, "mle.bak.%d.%d", getpid(), bview_num);
+            snprintf((char*)&path, 64, ".mle.bak.%d.%d", getpid(), bview_num);
             buffer_save_as(bview->buffer, path, NULL);
             bview_num += 1;
         }
@@ -1243,6 +1243,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_insert_newline_above", cmd_insert_newline_above);
     _editor_register_cmd_fn(editor, "cmd_isearch", cmd_isearch);
     _editor_register_cmd_fn(editor, "cmd_lel", cmd_lel);
+    _editor_register_cmd_fn(editor, "cmd_less", cmd_less);
     _editor_register_cmd_fn(editor, "cmd_move_beginning", cmd_move_beginning);
     _editor_register_cmd_fn(editor, "cmd_move_bol", cmd_move_bol);
     _editor_register_cmd_fn(editor, "cmd_move_bracket_back", cmd_move_bracket_back);
@@ -1350,9 +1351,9 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_uncut", "C-u"),
         MLE_KBINDING_DEF("cmd_redraw", "M-x l"),
         MLE_KBINDING_DEF("cmd_lel", "M-x e"),
+        MLE_KBINDING_DEF("cmd_less", "M-l"),
         MLE_KBINDING_DEF("cmd_viewport_top", "M--"),
         MLE_KBINDING_DEF("cmd_viewport_mid", "C-l"),
-        MLE_KBINDING_DEF("cmd_viewport_mid", "M-l"),
         MLE_KBINDING_DEF("cmd_viewport_bot", "M-="),
         MLE_KBINDING_DEF("cmd_push_kmap", "M-x p"),
         MLE_KBINDING_DEF("cmd_pop_kmap", "M-x P"),

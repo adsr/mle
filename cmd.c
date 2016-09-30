@@ -821,7 +821,7 @@ static void _cmd_force_redraw(cmd_context_t* ctx) {
     int h;
     int x;
     int y;
-    tb_shutdown();
+    if (tb_width() >= 0) tb_shutdown();
     tb_init();
     tb_select_input_mode(TB_INPUT_ALT);
     tb_set_cursor(-1, -1);
@@ -901,6 +901,81 @@ int cmd_push_kmap(cmd_context_t* ctx) {
 int cmd_pop_kmap(cmd_context_t* ctx) {
     bview_pop_kmap(ctx->bview, NULL);
     return MLE_OK;
+}
+
+// Hacky as hell less integration
+int cmd_less(cmd_context_t* ctx) {
+    int rc;
+    char* sh_fmt;
+    char* sh;
+    char out[32];
+    int screen_x;
+    int screen_y;
+    ssize_t out_len;
+    bint_t line_top;
+    char tmp_buf[32];
+    char tmp_linenum[32];
+    int tmp_buf_fd;
+    int tmp_linenum_fd;
+
+    rc = MLE_OK;
+    sh = NULL;
+    tmp_buf_fd = -1;
+    tmp_linenum_fd = -1;
+
+    do {
+        if (MLE_ERR == bview_get_screen_coords(ctx->bview, ctx->cursor->mark, &screen_x, &screen_y, NULL)) {
+            rc = MLE_ERR;
+            break;
+        }
+        sprintf(tmp_linenum, "/tmp/mle-less-XXXXXX");
+        if ((tmp_linenum_fd = mkstemp(tmp_linenum)) < 0) {
+            rc = MLE_ERR;
+            break;
+        }
+        sprintf(tmp_buf, "/tmp/mle-less-XXXXXX");
+        if ((tmp_buf_fd = mkstemp(tmp_buf)) < 0) {
+            rc = MLE_ERR;
+            break;
+        }
+        if (MLBUF_ERR == buffer_write_to_fd(ctx->buffer, tmp_buf_fd, NULL)) {
+            rc = MLE_ERR;
+            break;
+        }
+        sh_fmt = "tmp_lesskey=$(mktemp -q /tmp/mle-less-XXXXXX);"
+            "echo -e \"#command\\nq visual\\nQ visual\\n:q visual\\n:Q visual\\nZZ visual\\n#env\\n"
+            "LESSEDIT=echo %%lt >%s; kill 0\" | lesskey -o $tmp_lesskey -- -;"
+            "less +%ld -j%ld -k $tmp_lesskey -SN %s;"
+            "rm -f $tmp_lesskey";
+        asprintf(&sh, sh_fmt, tmp_linenum, ctx->cursor->mark->bline->line_index+1, screen_y+1, tmp_buf);
+        tb_shutdown();
+        if (MLE_ERR == util_shell_exec(ctx->editor, sh, -1, NULL, 0, "bash", NULL, NULL)) {
+            rc = MLE_ERR;
+            break;
+        }
+        _cmd_force_redraw(ctx);
+        out_len = read(tmp_linenum_fd, &out, sizeof(out)-1);
+        out[out_len >= 0 ? out_len : 0] = '\0';
+        line_top = (bint_t)strtoull(out, NULL, 10);
+        if (line_top <= 0) {
+            rc = MLE_ERR;
+            break;
+        }
+        mark_move_to(ctx->cursor->mark, (line_top) + ctx->bview->rect_buffer.h/2, 0);
+        bview_center_viewport_y(ctx->bview);
+    } while(0);
+
+    if (tmp_buf_fd >= 0) {
+        close(tmp_buf_fd);
+        unlink(tmp_buf);
+    }
+    if (tmp_linenum_fd >= 0) {
+        close(tmp_linenum_fd);
+        unlink(tmp_linenum);
+    }
+    if (sh) free(sh);
+
+    return rc;
 }
 
 // Show help

@@ -19,7 +19,6 @@ static void _bview_draw_status(bview_t* self);
 static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t** optret_bline, int* optret_rect_y);
 static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark);
-static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell);
 
 // Create a new bview
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
@@ -175,7 +174,7 @@ int bview_draw_cursor(bview_t* self, int set_real_cursor) {
     struct tb_cell* cell;
     DL_FOREACH(self->cursors, cursor) {
         mark = cursor->mark;
-        if (_bview_get_screen_coords(self, mark, &screen_x, &screen_y, &cell) != MLE_OK) {
+        if (bview_get_screen_coords(self, mark, &screen_x, &screen_y, &cell) != MLE_OK) {
             // Out of bounds
             continue;
         }
@@ -1098,7 +1097,7 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
 
     pair.bline = line;
     pair.col = col;
-    if (_bview_get_screen_coords(self, &pair, &screen_x, &screen_y, &cell) != MLE_OK) {
+    if (bview_get_screen_coords(self, &pair, &screen_x, &screen_y, &cell) != MLE_OK) {
         // Out of bounds
         return;
     }
@@ -1106,7 +1105,7 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
 }
 
 // Find screen coordinates for a mark
-static int _bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell) {
+int bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell) {
     int screen_x;
     int screen_y;
     int is_soft_wrapped;

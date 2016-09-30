@@ -8,9 +8,11 @@
 
 // Run a shell command, optionally feeding stdin, collecting stdout
 // Specify timeout_s=-1 for no timeout
-int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len) {
+int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** optret_output, size_t* optret_output_len) {
     // TODO clean this crap up
     int rv;
+    int do_read;
+    int do_write;
     int readfd;
     int writefd;
     ssize_t rc;
@@ -18,35 +20,44 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     fd_set readfds;
     struct timeval timeout;
     struct timeval* timeoutptr;
-    int rw;
     pid_t pid;
     str_t readbuf = {0};
 
-    *ret_output = NULL;
-    *ret_output_len = 0;
+    do_read = optret_output != NULL ? 1 : 0;
+    do_write = input && input_len > 0 ? 1 : 0;
     readfd = -1;
     writefd = -1;
     pid = -1;
     readbuf.inc = -2; // double capacity on each allocation
+    rv = MLE_OK;
+    nbytes = 0;
+    if (do_read) {
+        *optret_output = NULL;
+        *optret_output_len = 0;
+    }
 
     // Open cmd
-    rw = input && input_len > 0 ? 1 : 0;
-    if (!util_popen2(cmd, opt_shell, rw, &readfd, &writefd, &pid)) {
+    if (!util_popen2(
+        cmd,
+        opt_shell,
+        do_read ? &readfd : NULL,
+        do_write ? &writefd : NULL,
+        &pid
+    )) {
         MLE_RETURN_ERR(editor, "Failed to exec shell cmd: %s", cmd);
     }
 
     // Read-write loop
-    rv = MLE_OK;
     do {
         // Write to shell cmd if input is remaining
-        if (input_len > 0) {
+        if (do_write && writefd >= 0) {
             rc = write(writefd, input, input_len);
             if (rc > 0) {
                 input += rc;
                 input_len -= rc;
                 if (input_len < 1) {
                     close(writefd);
-                    writefd = 0;
+                    writefd = -1;
                 }
             } else {
                 // write err
@@ -57,64 +68,74 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
         }
 
         // Read shell cmd, timing out after timeout_sec
-        if (timeout_s >= 0) {
-            timeout.tv_sec = timeout_s;
-            timeout.tv_usec = 0;
-            timeoutptr = &timeout;
-        } else {
-            timeoutptr = NULL;
-        }
-        FD_ZERO(&readfds);
-        FD_SET(readfd, &readfds);
-        rc = select(readfd + 1, &readfds, NULL, NULL, timeoutptr);
-        if (rc < 0) {
-            // Err on select
-            MLE_SET_ERR(editor, "select error: %s", strerror(errno));
-            rv = MLE_ERR;
-            break;
-        } else if (rc == 0) {
-            // Timed out
-            rv = MLE_ERR;
-            break;
-        } else {
-            // Read a kilobyte of data
-            str_ensure_cap(&readbuf, readbuf.len + 1024);
-            nbytes = read(readfd, readbuf.data + readbuf.len, 1024);
-            if (nbytes < 0) {
-                // read err or EAGAIN/EWOULDBLOCK
-                MLE_SET_ERR(editor, "read error: %s", strerror(errno));
+        if (do_read) {
+            if (timeout_s >= 0) {
+                timeout.tv_sec = timeout_s;
+                timeout.tv_usec = 0;
+                timeoutptr = &timeout;
+            } else {
+                timeoutptr = NULL;
+            }
+            FD_ZERO(&readfds);
+            FD_SET(readfd, &readfds);
+            rc = select(readfd + 1, &readfds, NULL, NULL, timeoutptr);
+            if (rc < 0) {
+                // Err on select
+                MLE_SET_ERR(editor, "select error: %s", strerror(errno));
                 rv = MLE_ERR;
                 break;
-            } else if (nbytes > 0) {
-                // Got data
-                readbuf.len += nbytes;
+            } else if (rc == 0) {
+                // Timed out
+                rv = MLE_ERR;
+                break;
+            } else {
+                // Read a kilobyte of data
+                str_ensure_cap(&readbuf, readbuf.len + 1024);
+                nbytes = read(readfd, readbuf.data + readbuf.len, 1024);
+                if (nbytes < 0) {
+                    // read err or EAGAIN/EWOULDBLOCK
+                    MLE_SET_ERR(editor, "read error: %s", strerror(errno));
+                    rv = MLE_ERR;
+                    break;
+                } else if (nbytes > 0) {
+                    // Got data
+                    readbuf.len += nbytes;
+                }
             }
         }
     } while(nbytes > 0); // until EOF
 
     // Close pipes and reap child proc
-    close(readfd);
-    if (rw) close(writefd);
-    waitpid(pid, NULL, WNOHANG);
+    if (readfd >= 0) close(readfd);
+    if (writefd >= 0) close(writefd);
+    waitpid(pid, NULL, do_read ? WNOHANG : 0);
 
-    *ret_output = readbuf.data;
-    *ret_output_len = readbuf.len;
+    if (do_read) {
+        *optret_output = readbuf.data;
+        *optret_output_len = readbuf.len;
+    }
 
     return rv;
 }
 
-// Like popen, but optionally bidirectional if rw==1. Returns 1 on success, 0 on failure.
-int util_popen2(char* cmd, char* opt_shell, int rw, int* ret_fdread, int* ret_fdwrite, pid_t* optret_pid) {
+// Like popen, but more control over pipes. Returns 1 on success, 0 on failure.
+int util_popen2(char* cmd, char* opt_shell, int* optret_fdread, int* optret_fdwrite, pid_t* optret_pid) {
     pid_t pid;
+    int do_read;
+    int do_write;
     int pout[2];
     int pin[2];
+
+    // Set r/w
+    do_read = optret_fdread != NULL ? 1 : 0;
+    do_write = optret_fdwrite != NULL ? 1 : 0;
 
     // Set shell
     opt_shell = opt_shell ? opt_shell : "sh";
 
     // Make pipes
-    if (pipe(pout)) return 0;
-    if (rw) if (pipe(pin)) return 0;
+    if (do_read) if (pipe(pout)) return 0;
+    if (do_write) if (pipe(pin)) return 0;
 
     // Fork
     pid = fork();
@@ -123,24 +144,29 @@ int util_popen2(char* cmd, char* opt_shell, int rw, int* ret_fdread, int* ret_fd
         return 0;
     } else if (pid == 0) {
         // Child
-        close(pout[0]);
-        dup2(pout[1], STDOUT_FILENO);
-        close(pout[1]);
-
-        if (rw) {
+        if (do_read) {
+            close(pout[0]);
+            dup2(pout[1], STDOUT_FILENO);
+            close(pout[1]);
+        }
+        if (do_write) {
             close(pin[1]);
             dup2(pin[0], STDIN_FILENO);
             close(pin[0]);
         }
-
+        setsid();
         execlp(opt_shell, opt_shell, "-c", cmd, NULL);
         exit(EXIT_FAILURE);
     }
     // Parent
-    close(pout[1]);
-    if (rw) close(pin[0]);
-    *ret_fdread = pout[0];
-    if (rw) *ret_fdwrite = pin[1];
+    if (do_read) {
+        close(pout[1]);
+        *optret_fdread = pout[0];
+    }
+    if (do_write) {
+        close(pin[0]);
+        *optret_fdwrite = pin[1];
+    }
     if (optret_pid) *optret_pid = pid;
     return 1;
 }

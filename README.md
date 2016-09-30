@@ -13,14 +13,16 @@ mle is a small but powerful console text editor written in C.
 * Stackable key maps (modes)
 * Extensible via stdio
 * Scriptable rc file
-* Built-in text editing language (see 'lel' below)
+* Built-in text editing language (lel)
 * Key macros
 * Multiple splittable windows
 * Regex search and replace
 * Large file support
 * Incremental search
+* Linear undo and redo
 * Multiple cursors
 * Headless mode
+* Movement via [less](https://www.gnu.org/software/less/)
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
 * File grep via [grep](https://www.gnu.org/software/grep/)
@@ -212,6 +214,7 @@ exist in `PATH`.
 * [bash](https://www.gnu.org/software/bash/) (tab completion)
 * [fzf](https://github.com/junegunn/fzf) (fuzzy file search)
 * [grep](https://www.gnu.org/software/grep/) (file grep)
+* [less](https://www.gnu.org/software/less/) (less integration)
 * [tree](http://mama.indstate.edu/users/ice/tree/) (file browsing)
 
 ### Known bugs

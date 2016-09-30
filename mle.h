@@ -415,6 +415,7 @@ int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
 int bview_draw(bview_t* self);
 int bview_draw_cursor(bview_t* self, int set_real_cursor);
 int bview_get_active_cursor_count(bview_t* self);
+int bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell);
 int bview_max_viewport_y(bview_t* self);
 int bview_open(bview_t* self, char* path, int path_len);
 int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap);
@@ -472,6 +473,7 @@ int cmd_insert_newline(cmd_context_t* ctx);
 int cmd_insert_tab(cmd_context_t* ctx);
 int cmd_isearch(cmd_context_t* ctx);
 int cmd_lel(cmd_context_t* ctx);
+int cmd_less(cmd_context_t* ctx);
 int cmd_move_beginning(cmd_context_t* ctx);
 int cmd_move_bol(cmd_context_t* ctx);
 int cmd_move_bracket_back(cmd_context_t* ctx);
@@ -533,8 +535,8 @@ uscript_t* uscript_run(editor_t* editor, char* cmd);
 int uscript_destroy(uscript_t* self);
 
 // util functions
-int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** ret_output, size_t* ret_output_len);
-int util_popen2(char* cmd, char* opt_shell, int rw, int* ret_fdread, int* ret_fdwrite, pid_t* optret_pid);
+int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** optret_output, size_t* optret_output_len);
+int util_popen2(char* cmd, char* opt_shell, int* optret_fdread, int* optret_fdwrite, pid_t* optret_pid);
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
 int util_is_file(char* path, char* opt_mode, FILE** optret_file);
 int util_is_dir(char* path);
