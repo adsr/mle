@@ -8,7 +8,7 @@
 
 // Run a shell command, optionally feeding stdin, collecting stdout
 // Specify timeout_s=-1 for no timeout
-int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, char* opt_shell, char** optret_output, size_t* optret_output_len) {
+int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, int setsid, char* opt_shell, char** optret_output, size_t* optret_output_len) {
     // TODO clean this crap up
     int rv;
     int do_read;
@@ -39,6 +39,7 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     // Open cmd
     if (!util_popen2(
         cmd,
+        setsid,
         opt_shell,
         do_read ? &readfd : NULL,
         do_write ? &writefd : NULL,
@@ -119,7 +120,7 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
 }
 
 // Like popen, but more control over pipes. Returns 1 on success, 0 on failure.
-int util_popen2(char* cmd, char* opt_shell, int* optret_fdread, int* optret_fdwrite, pid_t* optret_pid) {
+int util_popen2(char* cmd, int do_setsid, char* opt_shell, int* optret_fdread, int* optret_fdwrite, pid_t* optret_pid) {
     pid_t pid;
     int do_read;
     int do_write;
@@ -154,7 +155,7 @@ int util_popen2(char* cmd, char* opt_shell, int* optret_fdread, int* optret_fdwr
             dup2(pin[0], STDIN_FILENO);
             close(pin[0]);
         }
-        setsid();
+        if (do_setsid) setsid();
         execlp(opt_shell, opt_shell, "-c", cmd, NULL);
         exit(EXIT_FAILURE);
     }

@@ -557,7 +557,7 @@ static int _editor_prompt_input_complete(cmd_context_t* ctx) {
     // Run compgen command
     terms = NULL;
     terms_len = 0;
-    util_shell_exec(ctx->editor, cmd, 1, NULL, 0, "bash", &terms, &terms_len);
+    util_shell_exec(ctx->editor, cmd, 1, NULL, 0, 0, "bash", &terms, &terms_len);
     free(cmd);
     free(cmd_arg);
 

@@ -520,7 +520,7 @@ int cmd_fsearch(cmd_context_t* ctx) {
     char* path;
     size_t path_len;
     path = NULL;
-    if (util_shell_exec(ctx->editor, "fzf", -1, NULL, 0, NULL, &path, &path_len) == MLE_ERR) {
+    if (util_shell_exec(ctx->editor, "fzf", -1, NULL, 0, 0, NULL, &path, &path_len) == MLE_ERR) {
         return MLE_ERR;
     }
     _cmd_force_redraw(ctx);
@@ -798,7 +798,7 @@ int cmd_shell(cmd_context_t* ctx) {
         // Run cmd
         output = NULL;
         output_len = 0;
-        if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, NULL, &output, &output_len) == MLE_OK && output_len > 0) {
+        if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, 0, NULL, &output, &output_len) == MLE_OK && output_len > 0) {
             // Write output to buffer
             if (cursor->is_anchored) {
                 mark_delete_between_mark(cursor->mark, cursor->anchor);
@@ -949,7 +949,7 @@ int cmd_less(cmd_context_t* ctx) {
             "rm -f $tmp_lesskey";
         asprintf(&sh, sh_fmt, tmp_linenum, ctx->cursor->mark->bline->line_index+1, screen_y+1, tmp_buf);
         tb_shutdown();
-        if (MLE_ERR == util_shell_exec(ctx->editor, sh, -1, NULL, 0, "bash", NULL, NULL)) {
+        if (MLE_ERR == util_shell_exec(ctx->editor, sh, -1, NULL, 0, 1, "bash", NULL, NULL)) {
             rc = MLE_ERR;
             break;
         }

@@ -643,7 +643,7 @@ static void _lel_func_text_change_inner(lel_pnode_t* node, lel_ectx_t* ectx, int
     if (shell) {
         mark_get_between_mark(mark_a, mark_b, &shell_in, &shell_in_len);
         if (shell_in_len > 0
-            && util_shell_exec(ectx->ctx->editor, node->param1, 1, shell_in, (size_t)shell_in_len, NULL, &shell_out, &shell_out_len) == MLE_OK
+            && util_shell_exec(ectx->ctx->editor, node->param1, 1, shell_in, (size_t)shell_in_len, 0, NULL, &shell_out, &shell_out_len) == MLE_OK
             && shell_out_len > 0
         ) {
             repl = shell_out;
