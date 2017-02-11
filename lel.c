@@ -139,7 +139,7 @@ static lel_func_t func_table[] = {
     _lel_func_move_simple,                   // G
     _lel_func_move_simple,                   // H
     _lel_func_register_write,                // I
-    NULL,                                    // J
+    _lel_func_text_insert_before,            // J
     NULL,                                    // K
     _lel_func_foreach_line,                  // L
     _lel_func_cursor_drop_mark,              // M
@@ -298,19 +298,23 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
         n.repeat = _lel_accept_num(s);
         _lel_accept_ws(s);
         if (_lel_accept(s, '{')) {
+            // grouping { ... }
             n.ch = '{';
             n.child = _lel_accept_cmds(s);
             _lel_expect(s, '}');
-        } else if ((ch = _lel_accept_any(s, "!^$wWnN~hHgGdkyYvDUOzZ.L")) != NULL) {
+        } else if ((ch = _lel_accept_any(s, "!^$wWnN~hHgGdkyYvDUOzZ.LJ")) != NULL) {
+            // zero param
             n.ch = *ch;
             if (n.ch == 'L') {
                 n.child = _lel_accept_cmd(s);
             }
         } else if ((ch = _lel_accept_any_set_delim(s, "/?\"'")) != NULL) {
+            // @str@ format
             n.ch = *ch;
             n.param1 = _lel_expect_delim_str(s);
             _lel_expect_delim(s);
         } else if ((ch = _lel_accept_any(s, "l#")) != NULL) {
+            // @num format
             n.ch = *ch;
             if ((ch = _lel_accept_any(s, "+-")) != NULL) {
                 num = *ch == '-' ? -1 : 1;
@@ -321,6 +325,7 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
             }
             n.num = num * _lel_expect_num(s);
         } else if ((ch = _lel_accept_any(s, "rRfFaci|xXqQ")) != NULL) {
+            // x@str@cmd format
             n.ch = *ch;
             _lel_expect_set_delim(s);
             n.param1 = _lel_expect_delim_str(s);
@@ -329,11 +334,13 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
                 n.child = _lel_accept_cmd(s);
             }
         } else if ((ch = _lel_accept_any(s, "tTmM><=_AI")) != NULL) {
+            // @a format
             n.ch = *ch;
             n.param1 = malloc(2);
             n.param1[0] = _lel_expect_one(s);
             n.param1[1] = '\0';
         } else if ((ch = _lel_accept_any(s, "s")) != NULL) {
+            // s@str@str@ format
             n.ch = *ch;
             _lel_expect_set_delim(s);
             n.param1 = _lel_expect_delim_str(s);
@@ -341,6 +348,7 @@ static lel_pnode_t* _lel_accept_cmd(lel_pstate_t* s) {
             n.param2 = _lel_expect_delim_str(s);
             _lel_expect_delim(s);
         } else if ((ch = _lel_accept_any(s, "S")) != NULL) {
+            // Sa@str@str@ format
             n.ch = *ch;
             n.param1 = malloc(2);
             n.param1[0] = _lel_expect_one(s);
@@ -683,6 +691,10 @@ static void _lel_func_text_insert_after(lel_pnode_t* node, lel_ectx_t* ectx) {
 }
 
 static void _lel_func_text_insert_before(lel_pnode_t* node, lel_ectx_t* ectx) {
+    if (node->ch == 'J') {
+        mark_insert_before(ectx->cursor->mark, "\n", 1);
+        return;
+    }
     mark_insert_before(ectx->cursor->mark, node->param1, (bint_t)strlen(node->param1));
 }
 
