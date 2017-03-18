@@ -223,6 +223,11 @@ exist in `PATH`.
 * There's a segfault lurking in the window split code. I can't reliably
   reproduce it.
 
+### Fork
+
+Also check out [eon](https://github.com/tomas/eon), a fork of mle with some cool
+features.
+
 ### Acknowledgements
 
 mle makes extensive use of the following libraries.
