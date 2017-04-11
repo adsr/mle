@@ -1,8 +1,26 @@
 # mle
 
-mle is a small but powerful console text editor written in C.
+mle is a small, flexible console text editor written in C.
 
 [![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
+
+### Demos
+
+![mle demo](http://i.imgur.com/7xGs8fM.gif)
+
+View more demos [here](http://imgur.com/a/ZBmmQ).
+
+View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
+
+### Aims
+
+* Keep codebase small
+* Require minimal dependencies
+* Make extensibile and configurable
+* Favor simplicity over portability
+* Use shell commands to enhance functionality (e.g., grep, tree)
+* Enjoy writing C
+* Annoy world with another text editor
 
 ### Features
 
@@ -29,47 +47,64 @@ mle is a small but powerful console text editor written in C.
 
 ### Building
 
-    $ git clone https://github.com/adsr/mle.git
+    $ git clone --recursive https://github.com/adsr/mle.git
     $ cd mle
-    $ git submodule update --init --recursive
-    $ sudo apt-get install libpcre3-dev # or yum install pcre-devel, etc
+    $ sudo apt-get install libpcre3-dev # or `yum install pcre-devel`, `pacman -S pcre`, etc
     $ make
 
 You can run `make mle_static` instead to build a static binary.
 
-### Demos
+### Installing
 
-![mle demo](http://i.imgur.com/7xGs8fM.gif)
+To install to `/usr/bin`:
 
-View more demos [here](http://imgur.com/a/ZBmmQ).
+    $ make install
 
-View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
+To install to a custom directory, supply `DESTDIR`, e.g.:
 
-### mlerc
+    $ DESTDIR=/usr/local/bin make install
 
-mle is customized via an rc file, `~/.mlerc` (or `/etc/mlerc`). The contents of
-the rc file are any number of cli options separated by newlines. (Run `mle -h`
-to view all cli options.) Lines that begin with a semi-colon are comments.
+### Basic usage
 
-Alternatively, if `~/.mlerc` is executable, mle executes it and interprets the
-resulting stdout as described above.
+(The following assumes default configuration.)
 
-For example, my rc file is an executable php script, and includes the following
-snippet, which overrides `grep` with `git grep` if `.git` exists in the current
-working directory.
+Run `mle` to start editing a new text file. Type to type, use directional keys
+to navigate, `Ctrl+F` to search, `Ctrl+T` for search-and-replace, `Ctrl+S` to
+save, and `Ctrl+X` to exit. Press `F2` for full help.
+
+Run `mle existing-file` to edit an existing file. To edit multiple files try
+`mle file1 file2` and use `Alt+n` and `Alt+p` to switch between them. Press
+`Alt+c` to close a file. You can also specify `mle file.c:100` to start the
+editor at a certain line number.
+
+### Advanced usage: mlerc
+
+mle is customized via command line options. Run `mle -h` to view all cli
+options.
+
+To set default options, make an rc file named `~/.mlerc` (or `/etc/mlerc`). The
+contents of the rc file are any number of cli options separated by newlines.
+Lines that begin with a semi-colon are interpretted as comments.
+
+If `~/.mlerc` is executable, mle executes it and interprets the resulting stdout
+as described above. For example, consider the following snippet from an
+executable `~/.mlerc` PHP script:
 
     <?php if (file_exists('.git')): ?>
     -kcmd_grep,M-q,git grep --color=never -P -i -I -n %s 2>/dev/null
     <?php endif; ?>
 
-### Scripting
+This overrides the normal grep command with `git grep` if `.git` exists in the
+current working directory.
+
+### Advanced usage: Scripting
 
 mle is extensible via any program capable of standard I/O. A simple
 line-based request/response protocol enables user scripts to register commands
 and invoke internal editor functions in order to perform complex editing tasks.
 All messages are URL-encoded and end with a newline.
 
-Example exchange between a user script and mle:
+Example exchange between a user script (usx) and mle:
 
     usx -> mle    method=editor_register_cmd&params%5B%5D=hello&id=57cc98bb168ae
     mle -> usx    result%5Brc%5D=0&id=57cc98bb168ae
@@ -94,7 +129,7 @@ can be invoked by user scripts at startup time.
 For end-users, user scripts are loaded via the `-x` cli option. Commands
 registered by user scripts can be mapped to keys as normal via `-k`.
 
-### lel: edit language
+### Advanced usage: lel edit language
 
 mle comes with a built-in text editing language called lel, inspired by the
 [sam command language](http://doc.cat-v.org/bell_labs/sam_lang_tutorial/). lel
@@ -133,6 +168,7 @@ Motions
 Actions
 
     a/str/      insert string before cursor (/ is any delim)
+    J           insert newline before cursor
     c/str/      change sel to string
     i/str/      insert string after cursor
     d           delete sel
@@ -193,7 +229,7 @@ Examples
     Copy func protos here, replacing bracket with semi-colon
         x/^static.*{/>a ~ Sa/ {/;/ _a
 
-### Headless mode
+### Advanced usage: Headless mode
 
 mle provides support for non-interactive editing which may be useful for using
 the editor as a regular command line tool. In headless mode, mle reads stdin
