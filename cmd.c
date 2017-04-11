@@ -32,6 +32,8 @@ static int _cmd_menu_grep_cb(cmd_context_t* ctx);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
+static void _cmd_insert_smart_newline(cmd_context_t* ctx);
+static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -88,10 +90,17 @@ int cmd_insert_data(cmd_context_t* ctx) {
         util_pcre_replace("(?m) +$", ctx->editor->insertbuf, "", &trimmed, &trimmed_len);
         MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, trimmed, trimmed_len);
         free(trimmed);
+    } else if (ctx->editor->smart_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '\n') {
+        _cmd_insert_smart_newline(ctx);
+    } else if (ctx->editor->smart_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '}') {
+        _cmd_insert_smart_closing_bracket(ctx);
     } else {
         // Insert without trim
         MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, ctx->editor->insertbuf, insertbuf_len);
     }
+
+    // Remember last insert data
+    str_set_len(&ctx->loop_ctx->last_insert, ctx->editor->insertbuf, insertbuf_len);
 
     return MLE_OK;
 }
@@ -1351,4 +1360,70 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     free(corrected_path);
 
     return MLE_OK;
+}
+
+// Insert newline when smart_indent is enabled (preserves or increases indent)
+static void _cmd_insert_smart_newline(cmd_context_t* ctx) {
+    bline_t* prev_bline;
+    char* prev_line;
+    bint_t prev_line_len;
+    char* indent;
+    int indent_len;
+    char* tmp;
+    mark_insert_before(ctx->cursor->mark, "\n", 1);
+    prev_bline = ctx->cursor->mark->bline->prev;
+    prev_line = strndup(prev_bline->data, prev_bline->data_len);
+    prev_line_len = strlen(prev_line);
+    if (util_pcre_match("^\\s*", prev_line, prev_line_len, &indent, &indent_len) && indent_len > 0) {
+        // Insert same whitespace from prev_line on this line
+        mark_insert_before(ctx->cursor->mark, indent, indent_len);
+    }
+    if (prev_line_len > 0 && prev_line[prev_line_len-1] == '{') {
+        // Insert extra indent if last line ends with '{'
+        if (ctx->editor->tab_to_space
+            && indent_len % ctx->editor->tab_width == 0
+            && util_pcre_match("^ *$", indent, indent_len, NULL, NULL)
+        ) {
+            asprintf(&tmp, "%*c", (int)ctx->editor->tab_width, ' ');
+            mark_insert_before(ctx->cursor->mark, tmp, strlen(tmp));
+            free(tmp);
+        } else if (!ctx->editor->tab_to_space
+            && util_pcre_match("^\\t*$", indent, indent_len, NULL, NULL)
+        ) {
+            mark_insert_before(ctx->cursor->mark, "\t", 1);
+        }
+    } else if (ctx->loop_ctx->last_cmd->func == cmd_insert_data
+        && ctx->loop_ctx->last_insert.len == 1
+        && ctx->loop_ctx->last_insert.data[0] == '\n'
+        && util_pcre_match("^\\s+$", prev_line, prev_line_len, NULL, NULL)
+    ) {
+        // Clear prev line if it's all whitespace and last cmd was also
+        // inserting a newline
+        MLBUF_BLINE_ENSURE_CHARS(ctx->cursor->mark->bline->prev);
+        bline_delete(ctx->cursor->mark->bline->prev, 0, ctx->cursor->mark->bline->prev->char_count);
+    }
+    free(prev_line);
+}
+
+// Insert closing curly bracket when smart_indent is enabled (decreases indent)
+static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx) {
+    char* this_line;
+    int this_line_len;
+    this_line = strndup(ctx->cursor->mark->bline->data, ctx->cursor->mark->bline->data_len);
+    this_line_len = strlen(this_line);
+    if (ctx->editor->tab_to_space
+        && ctx->cursor->mark->bline->data_len % ctx->editor->tab_width == 0
+        && util_pcre_match("^ +$", this_line, this_line_len, NULL, NULL)
+    ) {
+        // Outdent with tab_width worth of spaces
+        bline_delete(ctx->cursor->mark->bline, 0, ctx->editor->tab_width);
+    } else if (
+        !ctx->editor->tab_to_space
+        && util_pcre_match("^\\t+$", this_line, this_line_len, NULL, NULL)
+    ) {
+        // Outdent one tab
+        bline_delete(ctx->cursor->mark->bline, 0, 1);
+    }
+    mark_insert_before(ctx->cursor->mark, "}", 1);
+    free(this_line);
 }

@@ -39,6 +39,7 @@ View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
 * Incremental search
 * Linear undo and redo
 * Multiple cursors
+* Smart indent
 * Headless mode
 * Movement via [less](https://www.gnu.org/software/less/)
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)

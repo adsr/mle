@@ -98,6 +98,7 @@ struct editor_s {
     int tab_width;
     int tab_to_space;
     int trim_paste;
+    int smart_indent;
     int read_rc_file;
     int highlight_bracket_pairs;
     int color_col;
@@ -319,6 +320,7 @@ struct loop_context_s {
     int tab_complete_index;
     char tab_complete_term[MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE];
     cmd_t* last_cmd;
+    str_t last_insert;
 };
 
 // async_proc_t
@@ -540,7 +542,7 @@ int util_popen2(char* cmd, int setsid, char* opt_shell, int* optret_fdread, int*
 int util_get_bracket_pair(uint32_t ch, int* optret_is_closing);
 int util_is_file(char* path, char* opt_mode, FILE** optret_file);
 int util_is_dir(char* path);
-int util_pcre_match(char* re, char* subject);
+int util_pcre_match(char* re, char* subject, int subject_len, char** optret_capture, int* optret_capture_len);
 int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* ret_result_len);
 int util_timeval_is_gt(struct timeval* a, struct timeval* b);
 char* util_escape_shell_arg(char* str, int l);
@@ -571,6 +573,7 @@ extern editor_t _editor;
 #define MLE_DEFAULT_TAB_WIDTH 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
 #define MLE_DEFAULT_TRIM_PASTE 1
+#define MLE_DEFAULT_SMART_INDENT 0
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "M-r"
 #define MLE_DEFAULT_HILI_BRACKET_PAIRS 1
 #define MLE_DEFAULT_READ_RC_FILE 1

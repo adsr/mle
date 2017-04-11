@@ -81,6 +81,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
         editor->tab_to_space = MLE_DEFAULT_TAB_TO_SPACE;
         editor->trim_paste = MLE_DEFAULT_TRIM_PASTE;
+        editor->smart_indent = MLE_DEFAULT_SMART_INDENT;
         editor->highlight_bracket_pairs = MLE_DEFAULT_HILI_BRACKET_PAIRS;
         editor->read_rc_file = MLE_DEFAULT_READ_RC_FILE;
         editor->soft_wrap = MLE_DEFAULT_SOFT_WRAP;
@@ -824,6 +825,9 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
 
     // Free pastebuf if present
     if (cmd_ctx.pastebuf) free(cmd_ctx.pastebuf);
+
+    // Free last_insert
+    str_free(&loop_ctx->last_insert);
 
     // Decrement loop_depth
     editor->loop_depth -= 1;
@@ -1885,7 +1889,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 0;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1895,6 +1899,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -b <1|0>     Enable/disbale highlight bracket pairs (default: %d)\n", MLE_DEFAULT_HILI_BRACKET_PAIRS);
                 printf("    -c <column>  Color column\n");
                 printf("    -H <1|0>     Enable/disable headless mode (default: 1 if no tty, else 0)\n");
+                printf("    -i <1|0>     Enable/disable smart_indent (default: %d)\n", MLE_DEFAULT_SMART_INDENT);
                 printf("    -K <kdef>    Set current kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use with -K)\n");
                 printf("    -l <ltype>   Set linenum type (default: 0)\n");
@@ -1936,6 +1941,9 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'H':
                 editor->headless_mode = atoi(optarg) ? 1 : 0;
+                break;
+            case 'i':
+                editor->smart_indent = atoi(optarg) ? 1 : 0;
                 break;
             case 'K':
                 if (_editor_init_kmap_by_str(editor, &cur_kmap, optarg) != MLE_OK) {
