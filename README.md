@@ -41,6 +41,7 @@ View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
 * Multiple cursors
 * Smart indent
 * Headless mode
+* Navigation via [ctags](https://github.com/universal-ctags/ctags)
 * Movement via [less](https://www.gnu.org/software/less/)
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
@@ -252,6 +253,7 @@ exist in `PATH`.
 * [fzf](https://github.com/junegunn/fzf) (fuzzy file search)
 * [grep](https://www.gnu.org/software/grep/) (file grep)
 * [less](https://www.gnu.org/software/less/) (less integration)
+* [readtags](https://github.com/universal-ctags/ctags) (ctags integration)
 * [tree](http://mama.indstate.edu/users/ice/tree/) (file browsing)
 
 ### Known bugs
