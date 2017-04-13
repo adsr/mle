@@ -293,18 +293,35 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
 // Open a bview
 int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
-    bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
-    bview->type = type;
-    CDL_PREPEND2(editor->all_bviews, bview, all_prev, all_next);
-    if (!parent) {
-        DL_APPEND2(editor->top_bviews, bview, top_prev, top_next);
-    } else {
-        parent->split_child = bview;
+    int found;
+    found = 0;
+    // Check if already open and not dirty
+    if (opt_path) {
+        CDL_FOREACH2(editor->all_bviews, bview, all_next) {
+            if (bview->buffer
+                && !bview->buffer->is_unsaved
+                && strncmp(opt_path, bview->buffer->path, opt_path_len) == 0
+            ) {
+                found = 1;
+                break;
+            }
+        }
+    }
+    // Make new bview if not already open
+    if (!found) {
+        bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
+        bview->type = type;
+        CDL_PREPEND2(editor->all_bviews, bview, all_prev, all_next);
+        if (!parent) {
+            DL_APPEND2(editor->top_bviews, bview, top_prev, top_next);
+        } else {
+            parent->split_child = bview;
+        }
     }
     if (make_active) {
         editor_set_active(editor, bview);
     }
-    if (opt_rect) {
+    if (!found && opt_rect) {
         bview_resize(bview, opt_rect->x, opt_rect->y, opt_rect->w, opt_rect->h);
     }
     if (linenum > 0) {
@@ -314,7 +331,7 @@ int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_pat
     if (optret_bview) {
         *optret_bview = bview;
     }
-    if (opt_path && util_is_dir(opt_path)) {
+    if (!found && opt_path && util_is_dir(opt_path)) {
         // TODO This is hacky
         cmd_context_t ctx;
         memset(&ctx, 0, sizeof(cmd_context_t));
@@ -1347,7 +1364,6 @@ static void _editor_init_kmaps(editor_t* editor) {
         //MLE_KBINDING_DEF("cmd_move_bracket_back", "M-["), // lame w/ shift+arrow
         MLE_KBINDING_DEF("cmd_search", "C-f"),
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
-        MLE_KBINDING_DEF("cmd_search_next", "F3"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),
         MLE_KBINDING_DEF("cmd_isearch", "C-r"),
         MLE_KBINDING_DEF("cmd_replace", "C-t"),
