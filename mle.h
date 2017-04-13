@@ -457,6 +457,7 @@ int cmd_browse(cmd_context_t* ctx);
 int cmd_close(cmd_context_t* ctx);
 int cmd_copy_by(cmd_context_t* ctx);
 int cmd_copy(cmd_context_t* ctx);
+int cmd_ctag(cmd_context_t* ctx);
 int cmd_cut_by(cmd_context_t* ctx);
 int cmd_cut(cmd_context_t* ctx);
 int cmd_delete_after(cmd_context_t* ctx);

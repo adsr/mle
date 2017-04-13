@@ -29,6 +29,7 @@ static void _cmd_aproc_bview_passthru_cb(async_proc_t* self, char* buf, size_t b
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_menu_browse_cb(cmd_context_t* ctx);
 static int _cmd_menu_grep_cb(cmd_context_t* ctx);
+static int _cmd_menu_ctag_cb(cmd_context_t* ctx);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
@@ -572,6 +573,32 @@ int cmd_grep(cmd_context_t* ctx) {
     free(cmd);
     if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_menu_grep_cb, NULL, 0, aproc, NULL);
+    return MLE_OK;
+}
+
+// Invoke ctag search
+int cmd_ctag(cmd_context_t* ctx) {
+    async_proc_t* aproc;
+    char* word;
+    char* word_arg;
+    char* cmd;
+    bint_t word_len;
+    if (cursor_select_by(ctx->cursor, "word") != MLE_OK) {
+        return MLE_ERR;
+    }
+    mark_get_between_mark(ctx->cursor->mark, ctx->cursor->anchor, &word, &word_len);
+    cursor_toggle_anchor(ctx->cursor, 0);
+    word_arg = util_escape_shell_arg(word, word_len);
+    free(word);
+    asprintf(&cmd, "readtags -e - %s", word_arg);
+    free(word_arg);
+    if (!cmd) {
+        MLE_RETURN_ERR(ctx->editor, "%s", "Failed to format readtags cmd");
+    }
+    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, _cmd_aproc_bview_passthru_cb);
+    free(cmd);
+    if (!aproc) return MLE_ERR;
+    editor_menu(ctx->editor, _cmd_menu_ctag_cb, NULL, 0, aproc, NULL);
     return MLE_OK;
 }
 
@@ -1310,6 +1337,54 @@ static int _cmd_menu_grep_cb(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Callback from cmd_ctag
+static int _cmd_menu_ctag_cb(cmd_context_t* ctx) {
+    char* line;
+    char* tok;
+    char* fname;
+    char* re;
+    char* qre;
+    char* qre2;
+    int re_len;
+    int qre_len;
+    int i;
+    bview_t* bview;
+    line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
+    i = 0;
+    fname = NULL;
+    re = NULL;
+    tok = strtok(line, "\t");
+    while (tok) {
+        if (i == 1) {
+            fname = tok;
+        } else if (i == 2) {
+            re = tok;
+            break;
+        }
+        tok = strtok(NULL, "\t");
+        i += 1;
+    }
+    re_len = re ? strlen(re) : 0;
+    if (!fname || re_len < 4) {
+        free(line);
+        return MLE_OK;
+    }
+    re += 2; // Skip leading `/^`
+    re_len -= 2;
+    re[re_len-4] = '\0'; // Trunc trailing `$/;"`
+    re_len -= 4;
+    util_pcre_replace("([\\.\\\\\\+\\*\\?\\^\\$\\[\\]\\(\\)\\{\\}\\=\\!\\>\\<\\|\\:\\-])", re, "\\\\$1", &qre, &qre_len);
+    editor_close_bview(ctx->editor, ctx->bview, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, fname, strlen(fname), 1, 0, &ctx->editor->rect_edit, NULL, &bview);
+    asprintf(&qre2, "^%s$", qre);
+    mark_move_next_re(bview->active_cursor->mark, qre2, qre_len+2);
+    bview_center_viewport_y(bview);
+    free(line);
+    free(qre);
+    free(qre2);
+    return MLE_OK;
+}
+
 // Callback from cmd_browse
 static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     char* line;
@@ -1392,7 +1467,8 @@ static void _cmd_insert_smart_newline(cmd_context_t* ctx) {
         ) {
             mark_insert_before(ctx->cursor->mark, "\t", 1);
         }
-    } else if (ctx->loop_ctx->last_cmd->func == cmd_insert_data
+    } else if (ctx->loop_ctx->last_cmd
+        && ctx->loop_ctx->last_cmd->func == cmd_insert_data
         && ctx->loop_ctx->last_insert.len == 1
         && ctx->loop_ctx->last_insert.data[0] == '\n'
         && util_pcre_match("^\\s+$", prev_line, prev_line_len, NULL, NULL)

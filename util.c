@@ -239,6 +239,7 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     int subj_offset_z;
     int subj_len;
     int subj_look_offset;
+    int last_look_offset;
     int ovector[30];
     int num_repls;
     int got_match = 0;
@@ -257,6 +258,7 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
     subj_offset = 0;
     subj_offset_z = 0;
     subj_look_offset = 0;
+    last_look_offset = 0;
     while (subj_offset < subj_len) {
         // Find match
         rc = pcre_exec(cre, NULL, subj, subj_len, subj_look_offset, 0, ovector, 30);
@@ -271,7 +273,8 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
         // Append part before match
         str_append_stop(&result, subj + subj_offset, subj + subj_offset_z);
         subj_offset = ovector[1];
-        subj_look_offset = subj_offset + 1;
+        subj_look_offset = subj_offset + (subj_offset > last_look_offset ? 0 : 1); // Prevent infinite loop
+        last_look_offset = subj_look_offset;
 
         // Break if no match
         if (!got_match) break;

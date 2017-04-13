@@ -1231,6 +1231,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_close", cmd_close);
     _editor_register_cmd_fn(editor, "cmd_copy", cmd_copy);
     _editor_register_cmd_fn(editor, "cmd_copy_by", cmd_copy_by);
+    _editor_register_cmd_fn(editor, "cmd_ctag", cmd_ctag);
     _editor_register_cmd_fn(editor, "cmd_cut", cmd_cut);
     _editor_register_cmd_fn(editor, "cmd_cut_by", cmd_cut_by);
     _editor_register_cmd_fn(editor, "cmd_delete_after", cmd_delete_after);
@@ -1343,7 +1344,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_move_word_forward", "M-f"),
         MLE_KBINDING_DEF("cmd_move_word_back", "M-b"),
         MLE_KBINDING_DEF("cmd_move_bracket_forward", "M-]"),
-        MLE_KBINDING_DEF("cmd_move_bracket_back", "M-["),
+        //MLE_KBINDING_DEF("cmd_move_bracket_back", "M-["), // lame w/ shift+arrow
         MLE_KBINDING_DEF("cmd_search", "C-f"),
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
         MLE_KBINDING_DEF("cmd_search_next", "F3"),
@@ -1406,6 +1407,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF_EX("cmd_fsearch", "C-q p", "replace"),
         MLE_KBINDING_DEF("cmd_indent", "M-."),
         MLE_KBINDING_DEF("cmd_outdent", "M-,"),
+        MLE_KBINDING_DEF("cmd_ctag", "F3"),
         MLE_KBINDING_DEF("cmd_shell", "M-e"),
         MLE_KBINDING_DEF("cmd_close", "M-c"),
         MLE_KBINDING_DEF("cmd_quit", "C-x"),
