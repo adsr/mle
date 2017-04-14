@@ -1376,8 +1376,8 @@ static int _cmd_menu_ctag_cb(cmd_context_t* ctx) {
     util_pcre_replace("([\\.\\\\\\+\\*\\?\\^\\$\\[\\]\\(\\)\\{\\}\\=\\!\\>\\<\\|\\:\\-])", re, "\\\\$1", &qre, &qre_len);
     editor_close_bview(ctx->editor, ctx->bview, NULL);
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, fname, strlen(fname), 1, 0, &ctx->editor->rect_edit, NULL, &bview);
-    asprintf(&qre2, "^%s$", qre);
-    mark_move_next_re(bview->active_cursor->mark, qre2, qre_len+2);
+    asprintf(&qre2, "^%s", qre);
+    mark_move_next_re(bview->active_cursor->mark, qre2, qre_len+1);
     bview_center_viewport_y(bview);
     free(line);
     free(qre);
