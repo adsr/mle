@@ -1056,9 +1056,9 @@ int cmd_show_help(cmd_context_t* ctx) {
 
     // Build kmap bindings
     HASH_ITER(hh, ctx->editor->kmap_map, kmap, kmap_tmp) {
-        str_append(&h, "    ");
+        str_append(&h, "    mode ");
         str_append(&h, kmap->name);
-        str_append(&h, " mode\n");
+        str_append(&h, "\n");
         snprintf(buf, sizeof(buf), "        %-40s %-16s\n", "(allow_fallthru)", kmap->allow_fallthru ? "yes" : "no");
         str_append(&h, buf);
         if (kmap->default_cmd_name) {
