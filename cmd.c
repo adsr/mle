@@ -1491,15 +1491,18 @@ static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx) {
     int this_ws_len;
     int prev_line_len;
     int prev_ws_len;
+    int prev_open;
     do {
         if (!ctx->cursor->mark->bline->prev) break;
         this_line = strndup(ctx->cursor->mark->bline->data, ctx->cursor->mark->bline->data_len);
         prev_line = strndup(ctx->cursor->mark->bline->prev->data, ctx->cursor->mark->bline->prev->data_len);
         this_line_len = strlen(this_line);
         prev_line_len = strlen(prev_line);
+        prev_open = prev_line_len > 0 && prev_line[prev_line_len-1] == '{' ? 1 : 0;
         if (!util_pcre_match("^\\s*", this_line, this_line_len, &this_ws, &this_ws_len)
             || !util_pcre_match("^\\s*", prev_line, prev_line_len, &prev_ws, &prev_ws_len)
-            || this_ws_len < prev_ws_len
+            || (!prev_open && this_ws_len < prev_ws_len)
+            || (prev_open && this_ws_len <= prev_ws_len)
         ) {
             // More whitespace on prev line
             break;
