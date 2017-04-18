@@ -1440,7 +1440,7 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
 // Insert newline when smart_indent is enabled (preserves or increases indent)
 static void _cmd_insert_smart_newline(cmd_context_t* ctx) {
     bline_t* prev_bline;
-    char* prev_line;
+    char* prev_line = NULL;
     bint_t prev_line_len;
     char* indent;
     int indent_len;
@@ -1483,9 +1483,9 @@ static void _cmd_insert_smart_newline(cmd_context_t* ctx) {
 
 // Insert closing curly bracket when smart_indent is enabled (decreases indent)
 static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx) {
-    char* this_line;
+    char* this_line = NULL;
     char* this_ws;
-    char* prev_line;
+    char* prev_line = NULL;
     char* prev_ws;
     int this_line_len;
     int this_ws_len;
