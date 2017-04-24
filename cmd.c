@@ -1389,7 +1389,7 @@ static int _cmd_menu_ctag_cb(cmd_context_t* ctx) {
 static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     char* line;
     char* path;
-    char* cwd;
+    char cwd[PATH_MAX];
     char* corrected_path;
     bview_t* new_bview;
 
@@ -1408,7 +1408,7 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     }
 
     // Fix cwd if it changed
-    cwd = get_current_dir_name();
+    getcwd(cwd, PATH_MAX);
     if (strcmp(cwd, ctx->bview->init_cwd) != 0) {
         asprintf(&corrected_path, "%s/%s", ctx->bview->init_cwd, path);
     } else {
