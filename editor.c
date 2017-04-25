@@ -1906,7 +1906,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
 
     cur_kmap = NULL;
     cur_syntax = NULL;
-    optind = 0;
+    optind = 1;
     while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:")) != -1) {
         switch (c) {
             case 'h':
