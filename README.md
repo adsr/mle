@@ -168,8 +168,6 @@ exist in `PATH`.
 ### Known bugs
 
 * Multi-line style rules don't work properly when overlapped/staggered.
-* There's a segfault lurking in the window split code. I can't reliably
-  reproduce it.
 
 ### Fork
 

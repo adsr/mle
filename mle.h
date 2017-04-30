@@ -640,6 +640,8 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
+[ ] pass in (bline_t* opt_hint) to buffer_get_* and start from there instead of first_line
+[ ] refactor buffer_set_mmapped to avoid huge mallocs
 [ ] review default key bindings
 [ ] review lel command letters
 [ ] guard against mixed api use, refcounting
@@ -648,7 +650,6 @@ TODO
     [ ] get rid of bol_rule
     [ ] test at tests/test_buffer_srule_overlap.c
     [ ] bugfix: insert lines, drop anchor at eof, delete up, type on 1st line, leftover styling?
-[ ] segfault hunt: splits
 [ ] crash when M-e cat'ing huge files? (why does malloc crash program with large values?)
 [ ] move macros out of mle.h if only used in one source file
 --- LOW

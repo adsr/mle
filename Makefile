@@ -10,7 +10,7 @@ termbox_objects:=$(patsubst termbox/src/%.c,termbox/src/%.o,$(wildcard termbox/s
 all: mle
 
 mle: $(mle_objects) ./mlbuf/libmlbuf.a ./termbox/src/libtermbox.a
-	$(CC) $(mle_objects) $(mle_static) ./mlbuf/libmlbuf.a ./termbox/src/libtermbox.a $(mle_ldlibs) -o mle
+	$(CC) $(mle_cflags) $(mle_objects) $(mle_static) ./mlbuf/libmlbuf.a ./termbox/src/libtermbox.a $(mle_ldlibs) -o mle
 
 mle_static: mle_static:=-static
 mle_static: mle_ldlibs:=$(mle_ldlibs) -lpthread
