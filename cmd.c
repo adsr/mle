@@ -49,6 +49,7 @@ int cmd_insert_data(cmd_context_t* ctx) {
     insert_size = MLE_MAX(6, ctx->bview->buffer->tab_width) * (ctx->pastebuf_len + 1);
     if (ctx->editor->insertbuf_size < insert_size) {
         ctx->editor->insertbuf = realloc(ctx->editor->insertbuf, insert_size);
+        memset(ctx->editor->insertbuf, 0, insert_size);
         ctx->editor->insertbuf_size = insert_size;
     }
 
@@ -84,7 +85,10 @@ int cmd_insert_data(cmd_context_t* ctx) {
     ctx->editor->insertbuf[insertbuf_len] = '\0';
 
     // Insert
-    if (insertbuf_len > 1 && ctx->editor->trim_paste && strchr(ctx->editor->insertbuf, '\n') != NULL) {
+    if (insertbuf_len > 1
+        && ctx->editor->trim_paste
+        && memchr(ctx->editor->insertbuf, '\n', ctx->editor->insertbuf_size) != NULL
+    ) {
         // Insert with trim
         char* trimmed = NULL;
         int trimmed_len = 0;
@@ -138,7 +142,7 @@ int cmd_move_bol(cmd_context_t* ctx) {
         mark_clone(cursor->mark, &mark);
         mark_move_bol(mark);
         mark_get_char_after(mark, &ch);
-        if (isspace((int)ch)) {
+        if (isspace((char)ch)) {
             mark_move_next_re(mark, "\\S", 2);
         }
         if (mark->col < cursor->mark->col) {

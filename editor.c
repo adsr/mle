@@ -300,6 +300,7 @@ int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_pat
         CDL_FOREACH2(editor->all_bviews, bview, all_next) {
             if (bview->buffer
                 && !bview->buffer->is_unsaved
+                && bview->buffer->path
                 && strncmp(opt_path, bview->buffer->path, opt_path_len) == 0
             ) {
                 found = 1;
