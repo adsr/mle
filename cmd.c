@@ -87,7 +87,7 @@ int cmd_insert_data(cmd_context_t* ctx) {
     // Insert
     if (insertbuf_len > 1
         && ctx->editor->trim_paste
-        && memchr(ctx->editor->insertbuf, '\n', ctx->editor->insertbuf_size) != NULL
+        && memchr(ctx->editor->insertbuf, '\n', insertbuf_len) != NULL
     ) {
         // Insert with trim
         char* trimmed = NULL;
