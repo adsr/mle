@@ -32,7 +32,7 @@ test: mle test_mle
 	$(MAKE) -C mlbuf test
 
 test_mle: mle
-	$(MAKE) -C tests && ./mle -v
+	./mle -v
 
 sloc:
 	find . -name '*.c' -or -name '*.h' | \
@@ -46,7 +46,6 @@ install: mle
 clean:
 	rm -f *.o mle.bak.* gmon.out perf.data perf.data.old mle
 	$(MAKE) -C mlbuf clean
-	$(MAKE) -C tests clean
 	rm -f termbox/src/*.o
 	rm -f termbox/src/libtermbox.a
 

@@ -31,7 +31,6 @@ View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
 * Stackable key maps (modes)
 * Extensible via stdio
 * Scriptable rc file
-* Built-in text editing language (lel)
 * Key macros
 * Multiple splittable windows
 * Regex search and replace
@@ -130,15 +129,6 @@ can be invoked by user scripts at startup time.
 
 For end-users, user scripts are loaded via the `-x` cli option. Commands
 registered by user scripts can be mapped to keys as normal via `-k`.
-
-### Advanced usage: lel edit language
-
-mle comes with a built-in text editing language called lel, inspired by the
-[sam command language](http://doc.cat-v.org/bell_labs/sam_lang_tutorial/). lel
-commands can be entered manually at a prompt, or bound to any key via
-`-kcmd_lel,<key>,<lelcmd>`.
-
-See [README.lel.md](README.lel.md) for lel command reference.
 
 ### Advanced usage: Headless mode
 

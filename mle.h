@@ -475,7 +475,6 @@ int cmd_insert_newline_above(cmd_context_t* ctx);
 int cmd_insert_newline(cmd_context_t* ctx);
 int cmd_insert_tab(cmd_context_t* ctx);
 int cmd_isearch(cmd_context_t* ctx);
-int cmd_lel(cmd_context_t* ctx);
 int cmd_less(cmd_context_t* ctx);
 int cmd_move_beginning(cmd_context_t* ctx);
 int cmd_move_bol(cmd_context_t* ctx);
@@ -640,10 +639,10 @@ extern editor_t _editor;
 /*
 TODO
 --- HIGH
+[ ] find doesn't work from boffset=0
 [ ] pass in (bline_t* opt_hint) to buffer_get_* and start from there instead of first_line
 [ ] refactor buffer_set_mmapped to avoid huge mallocs
 [ ] review default key bindings
-[ ] review lel command letters
 [ ] guard against mixed api use, refcounting
 [ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
     [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
