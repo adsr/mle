@@ -16,7 +16,7 @@ View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
 
 * Keep codebase small
 * Require minimal dependencies
-* Make extensibile and configurable
+* Make extensible and configurable
 * Favor simplicity over portability
 * Use shell commands to enhance functionality (e.g., grep, tree)
 * Enjoy writing C
@@ -164,7 +164,7 @@ exist in `PATH`.
 Also check out [eon](https://github.com/tomas/eon), a fork of mle with some cool
 features.
 
-### Acknowledgements
+### Acknowledgments
 
 mle makes extensive use of the following libraries.
 
