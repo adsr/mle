@@ -35,6 +35,7 @@ static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
 static void _cmd_insert_smart_newline(cmd_context_t* ctx);
 static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx);
+static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -807,10 +808,6 @@ int cmd_set_opt(cmd_context_t* ctx) {
 // Shell
 int cmd_shell(cmd_context_t* ctx) {
     char* cmd;
-    char* input;
-    bint_t input_len;
-    char* output;
-    size_t output_len;
 
     // Get shell cmd
     if (ctx->static_param) {
@@ -820,36 +817,32 @@ int cmd_shell(cmd_context_t* ctx) {
         if (!cmd) return MLE_OK;
     }
 
-    // Loop for each cursor
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        // Get data to send to stdin
-        if (ctx->cursor->is_anchored) {
-            mark_get_between_mark(cursor->mark, cursor->anchor, &input, &input_len);
-            // Add a newline
-            input = realloc(input, input_len + 2);
-            input[input_len] = '\n';
-            input[input_len+1] = '\0';
-            input_len += 1;
-        } else {
-            input = NULL;
-            input_len = 0;
-        }
+    // Apply shell cmd
+    _cmd_shell_apply_cmd(ctx, cmd);
 
-        // Run cmd
-        output = NULL;
-        output_len = 0;
-        if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, 0, NULL, &output, &output_len) == MLE_OK && output_len > 0) {
-            // Write output to buffer
-            if (cursor->is_anchored) {
-                mark_delete_between_mark(cursor->mark, cursor->anchor);
-            }
-            mark_insert_before(cursor->mark, output, output_len);
-        }
+    free(cmd);
+    return MLE_OK;
+}
 
-        // Free input and output
-        if (input) free(input);
-        if (output) free(output);
-    ); // Loop for next cursor
+// Perl
+int cmd_perl(cmd_context_t* ctx) {
+    char* code;
+    char* cmd;
+
+    // Get perl code
+    if (ctx->static_param) {
+        code = strdup(ctx->static_param);
+    } else {
+        editor_prompt(ctx->editor, "perl: Code?", NULL, &code);
+        if (!code) return MLE_OK;
+    }
+
+    // Format cmd
+    asprintf(&cmd, "perl -lp -E 'BEGIN{$i=0}' -E %s 2>/dev/null", code);
+    free(code);
+
+    // Apply perl cmd
+    _cmd_shell_apply_cmd(ctx, cmd);
 
     free(cmd);
     return MLE_OK;
@@ -1526,4 +1519,38 @@ static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx) {
     mark_insert_before(ctx->cursor->mark, "}", 1);
     if (this_line) free(this_line);
     if (prev_line) free(prev_line);
+}
+
+// Apply cmd for each cursor
+static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd) {
+    char* input;
+    bint_t input_len;
+    char* output;
+    size_t output_len;
+
+    // Loop for each cursor
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        // Get data to send to stdin
+        if (ctx->cursor->is_anchored) {
+            mark_get_between_mark(cursor->mark, cursor->anchor, &input, &input_len);
+        } else {
+            input = NULL;
+            input_len = 0;
+        }
+
+        // Run cmd
+        output = NULL;
+        output_len = 0;
+        if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, 0, NULL, &output, &output_len) == MLE_OK && output_len > 0) {
+            // Write output to buffer
+            if (cursor->is_anchored) {
+                mark_delete_between_mark(cursor->mark, cursor->anchor);
+            }
+            mark_insert_before(cursor->mark, output, output_len);
+        }
+
+        // Free input and output
+        if (input) free(input);
+        if (output) free(output);
+    ); // Loop for next cursor
 }

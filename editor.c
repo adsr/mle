@@ -1290,6 +1290,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_open_replace_file", cmd_open_replace_file);
     _editor_register_cmd_fn(editor, "cmd_open_replace_new", cmd_open_replace_new);
     _editor_register_cmd_fn(editor, "cmd_outdent", cmd_outdent);
+    _editor_register_cmd_fn(editor, "cmd_perl", cmd_perl);
     _editor_register_cmd_fn(editor, "cmd_pop_kmap", cmd_pop_kmap);
     _editor_register_cmd_fn(editor, "cmd_prev", cmd_prev);
     _editor_register_cmd_fn(editor, "cmd_push_kmap", cmd_push_kmap);
@@ -1424,6 +1425,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_outdent", "M-,"),
         MLE_KBINDING_DEF("cmd_ctag", "F3"),
         MLE_KBINDING_DEF("cmd_shell", "M-e"),
+        MLE_KBINDING_DEF("cmd_perl", "M-w"),
         MLE_KBINDING_DEF("cmd_close", "M-c"),
         MLE_KBINDING_DEF("cmd_quit", "C-x"),
         MLE_KBINDING_DEF(NULL, NULL)

@@ -501,6 +501,7 @@ int cmd_open_new(cmd_context_t* ctx);
 int cmd_open_replace_file(cmd_context_t* ctx);
 int cmd_open_replace_new(cmd_context_t* ctx);
 int cmd_outdent(cmd_context_t* ctx);
+int cmd_perl(cmd_context_t* ctx);
 int cmd_pop_kmap(cmd_context_t* ctx);
 int cmd_prev(cmd_context_t* ctx);
 int cmd_push_kmap(cmd_context_t* ctx);
