@@ -45,6 +45,7 @@ View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
 * File grep via [grep](https://www.gnu.org/software/grep/)
+* String manip via [perl](https://www.perl.org/)
 
 ### Building
 
@@ -152,6 +153,7 @@ exist in `PATH`.
 * [fzf](https://github.com/junegunn/fzf) (fuzzy file search)
 * [grep](https://www.gnu.org/software/grep/) (file grep)
 * [less](https://www.gnu.org/software/less/) (less integration)
+* [perl](https://www.perl.org/) (perl 1-liners)
 * [readtags](https://github.com/universal-ctags/ctags) (ctags integration)
 * [tree](http://mama.indstate.edu/users/ice/tree/) (file browsing)
 
