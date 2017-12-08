@@ -57,13 +57,13 @@ You can run `make mle_static` instead to build a static binary.
 
 ### Installing
 
-To install to `/usr/bin`:
+To install to `/usr/local/bin`:
 
     $ make install
 
 To install to a custom directory, supply `DESTDIR`, e.g.:
 
-    $ DESTDIR=/usr/local/bin make install
+    $ DESTDIR=/usr/bin make install
 
 ### Basic usage
 
