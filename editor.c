@@ -1703,7 +1703,6 @@ static void _editor_init_syntaxes(editor_t* editor) {
         { "^\\s*#( .*|)$", NULL, TB_CYAN, TB_DEFAULT },
         { "^#!/.*$", NULL, TB_CYAN, TB_DEFAULT },
         { "/\\" "*", "\\*" "/", TB_CYAN, TB_DEFAULT },
-        { "\"\"\"", "\"\"\"", TB_YELLOW | TB_BOLD, TB_DEFAULT },
         { "\\t+", NULL, TB_RED | TB_UNDERLINE, TB_DEFAULT },
         { "\\s+$", NULL, TB_GREEN | TB_UNDERLINE, TB_DEFAULT },
         { NULL, NULL, 0, 0 }
