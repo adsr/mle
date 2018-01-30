@@ -875,29 +875,32 @@ int cmd_jump(cmd_context_t* ctx) {
     jumps = calloc(26*26, sizeof(mark_t));
     jumpi = 0;
 
-    // Loop for words
-    while (jumpi < 26*26 && mark_move_next_re_ex(mark, "\\S{2,}", strlen("\\S{2,}"), &bline, &col, &nchars) == MLBUF_OK) {
-        if (bline->line_index >= stop->line_index) break;
-        jumps[jumpi].bline = bline;
-        jumps[jumpi].col = col;
-        mark_move_by(mark, MLE_MAX(0, nchars - 2));
-        bview_get_screen_coords(ctx->bview, mark, &screen_x, &screen_y, NULL);
-        sprintf(jumpa, "%c%c", 'a' + (jumpi / 26), 'a' + (jumpi % 26));
-        tb_print(screen_x, screen_y, TB_BLACK, TB_GREEN | TB_BOLD, jumpa);
-        jumpi += 1;
-    }
-    if (jumpi < 1) return MLE_OK;
-    tb_present();
+    do {
+        // Loop for words
+        while (jumpi < 26*26 && mark_move_next_re_ex(mark, "\\S{2,}", strlen("\\S{2,}"), &bline, &col, &nchars) == MLBUF_OK) {
+            if (bline->line_index >= stop->line_index) break;
+            jumps[jumpi].bline = bline;
+            jumps[jumpi].col = col;
+            mark_move_by(mark, MLE_MAX(0, nchars - 2));
+            bview_get_screen_coords(ctx->bview, mark, &screen_x, &screen_y, NULL);
+            sprintf(jumpa, "%c%c", 'a' + (jumpi / 26), 'a' + (jumpi % 26));
+            tb_print(screen_x, screen_y, TB_WHITE | TB_BOLD, TB_MAGENTA, jumpa);
+            jumpi += 1;
+            mark_move_by(mark, 2);
+        }
+        if (jumpi < 1) break;
+        tb_present();
 
-    // Get 2 inputs
-    tb_poll_event(&ev[0]);
-    tb_poll_event(&ev[1]);
+        // Get 2 inputs
+        tb_poll_event(&ev[0]); if (ev[0].ch < 'a' || ev[0].ch > 'z') break;
+        tb_poll_event(&ev[1]);
 
-    // Jump
-    jumpt = ((ev[0].ch - 'a') * 26) + (ev[1].ch - 'a');
-    if (jumpt >= 0 && jumpt < jumpi) {
-        mark_move_to_w_bline(ctx->cursor->mark, jumps[jumpt].bline, jumps[jumpt].col);
-    }
+        // Jump
+        jumpt = ((ev[0].ch - 'a') * 26) + (ev[1].ch - 'a');
+        if (jumpt >= 0 && jumpt < jumpi) {
+            mark_move_to_w_bline(ctx->cursor->mark, jumps[jumpt].bline, jumps[jumpt].col);
+        }
+    } while(0);
 
     // Cleanup
     free(jumps);
