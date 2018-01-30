@@ -1380,7 +1380,7 @@ static int _cmd_menu_grep_cb(cmd_context_t* ctx) {
         free(line);
         return MLE_OK;
     }
-    if (colon + 1 != '\0' && strchr(colon + 1, ':') != NULL) {
+    if (*(colon + 1) != '\0' && strchr(colon + 1, ':') != NULL) {
         linenum = strtoll(colon + 1, NULL, 10);
     } else {
         linenum = 0;
