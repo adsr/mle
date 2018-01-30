@@ -475,6 +475,7 @@ int cmd_insert_newline_above(cmd_context_t* ctx);
 int cmd_insert_newline(cmd_context_t* ctx);
 int cmd_insert_tab(cmd_context_t* ctx);
 int cmd_isearch(cmd_context_t* ctx);
+int cmd_jump(cmd_context_t* ctx);
 int cmd_less(cmd_context_t* ctx);
 int cmd_move_beginning(cmd_context_t* ctx);
 int cmd_move_bol(cmd_context_t* ctx);

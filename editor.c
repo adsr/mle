@@ -1265,6 +1265,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_insert_data", cmd_insert_data);
     _editor_register_cmd_fn(editor, "cmd_insert_newline_above", cmd_insert_newline_above);
     _editor_register_cmd_fn(editor, "cmd_isearch", cmd_isearch);
+    _editor_register_cmd_fn(editor, "cmd_jump", cmd_jump);
     _editor_register_cmd_fn(editor, "cmd_less", cmd_less);
     _editor_register_cmd_fn(editor, "cmd_move_beginning", cmd_move_beginning);
     _editor_register_cmd_fn(editor, "cmd_move_bol", cmd_move_bol);
@@ -1399,7 +1400,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_wake_sleeping_cursors", "C-/ a"),
         MLE_KBINDING_DEF("cmd_remove_extra_cursors", "C-/ /"),
         MLE_KBINDING_DEF("cmd_drop_cursor_column", "C-/ '"),
-        MLE_KBINDING_DEF("cmd_apply_macro", "M-j"),
+        MLE_KBINDING_DEF("cmd_apply_macro", "M-z"),
         MLE_KBINDING_DEF("cmd_apply_macro_by", "M-m **"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),
         MLE_KBINDING_DEF("cmd_prev", "M-p"),
@@ -1426,6 +1427,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_ctag", "F3"),
         MLE_KBINDING_DEF("cmd_shell", "M-e"),
         MLE_KBINDING_DEF("cmd_perl", "M-w"),
+        MLE_KBINDING_DEF("cmd_jump", "M-j"),
         MLE_KBINDING_DEF("cmd_close", "M-c"),
         MLE_KBINDING_DEF("cmd_quit", "C-x"),
         MLE_KBINDING_DEF(NULL, NULL)

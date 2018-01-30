@@ -848,6 +848,63 @@ int cmd_perl(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Jump to a `\S{2,}` on screen via `[a-z][a-z]`
+int cmd_jump(cmd_context_t* ctx) {
+    bline_t* bline;
+    bint_t col;
+    bint_t nchars;
+    bline_t* stop;
+    mark_t* mark;
+    mark_t* jumps;
+    int jumpi, jumpt, screen_x, screen_y;
+    char jumpa[3];
+    tb_event_t ev[2];
+
+    // Bail if applying a macro or in headless mode
+    if (ctx->editor->macro_apply || ctx->editor->headless_mode) return MLE_OK;
+
+    // Clone cursor mark
+    mark_clone(ctx->cursor->mark, &mark);
+    mark_move_to_w_bline(mark, ctx->bview->viewport_bline, 0);
+    mark_move_by(mark, -1);
+
+    // Get stop line
+    buffer_get_bline(ctx->buffer, ctx->bview->viewport_bline->line_index + ctx->bview->rect_buffer.h, &stop);
+
+    // Make jump map
+    jumps = calloc(26*26, sizeof(mark_t));
+    jumpi = 0;
+
+    // Loop for words
+    while (jumpi < 26*26 && mark_move_next_re_ex(mark, "\\S{2,}", strlen("\\S{2,}"), &bline, &col, &nchars) == MLBUF_OK) {
+        if (bline->line_index >= stop->line_index) break;
+        jumps[jumpi].bline = bline;
+        jumps[jumpi].col = col;
+        mark_move_by(mark, MLE_MAX(0, nchars - 2));
+        bview_get_screen_coords(ctx->bview, mark, &screen_x, &screen_y, NULL);
+        sprintf(jumpa, "%c%c", 'a' + (jumpi / 26), 'a' + (jumpi % 26));
+        tb_print(screen_x, screen_y, TB_BLACK, TB_GREEN | TB_BOLD, jumpa);
+        jumpi += 1;
+    }
+    if (jumpi < 1) return MLE_OK;
+    tb_present();
+
+    // Get 2 inputs
+    tb_poll_event(&ev[0]);
+    tb_poll_event(&ev[1]);
+
+    // Jump
+    jumpt = ((ev[0].ch - 'a') * 26) + (ev[1].ch - 'a');
+    if (jumpt >= 0 && jumpt < jumpi) {
+        mark_move_to_w_bline(ctx->cursor->mark, jumps[jumpt].bline, jumps[jumpt].col);
+    }
+
+    // Cleanup
+    free(jumps);
+    mark_destroy(mark);
+    return MLE_OK;
+}
+
 // Force a redraw of the screen
 static void _cmd_force_redraw(cmd_context_t* ctx) {
     int w;
