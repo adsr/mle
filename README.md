@@ -8,23 +8,21 @@ mle is a small, flexible console text editor written in C.
 
 ![mle demo](http://i.imgur.com/7xGs8fM.gif)
 
-View more demos [here](http://imgur.com/a/ZBmmQ).
-
-View large-file startup benchmark [here](http://i.imgur.com/VGGMmGg.gif).
+* [More demos](http://imgur.com/a/ZBmmQ)
+* [Large file benchmark](http://i.imgur.com/VGGMmGg.gif)
+* [Emacs-style jump](https://i.imgur.com/atS11HX.gif)
 
 ### Aims
 
 * Keep codebase small
-* Require minimal dependencies
+* Minimize build-time and run-time dependencies
 * Make extensible and configurable
 * Favor simplicity over portability
 * Use shell commands to enhance functionality (e.g., grep, tree)
-* Enjoy writing C
-* Annoy world with another text editor
 
 ### Features
 
-* Small codebase (~10k sloc)
+* Small codebase (<10k sloc)
 * Only 1 out-of-repo dependency (pcre)
 * Full UTF-8 support
 * Syntax highlighting
