@@ -1668,7 +1668,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t* editor) {
-    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cc|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua)$", -1, -1, (srule_def_t[]){
+    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cc|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua|rs)$", -1, -1, (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
@@ -1678,11 +1678,11 @@ static void _editor_init_syntaxes(editor_t* editor) {
           "dynamic_cast|echo|elif|else|elseif|elsif|empty|end|enddeclare|"
           "endfor|endforeach|endif|endswitch|endwhile|ensure|enum|eq|esac|"
           "eval|event|except|exec|exit|exp|explicit|export|extends|extern|"
-          "fallthrough|false|fi|final|finally|fixed|float|for|foreach|friend|"
-          "from|func|function|ge|global|go|goto|gt|if|implements|implicit|"
-          "import|in|include|include_once|inline|instanceof|insteadof|int|"
-          "interface|internal|is|isset|lambda|le|let|list|lock|long|lt|m|map|"
-          "module|mutable|namespace|native|ne|new|next|nil|no|noexcept|not|"
+          "fallthrough|false|fi|final|finally|fixed|float|fn|for|foreach|"
+          "friend|from|func|function|ge|global|go|goto|gt|if|implements|"
+          "implicit|import|in|include|include_once|inline|instanceof|insteadof|"
+          "int|interface|internal|is|isset|lambda|le|let|list|lock|long|lt|m|"
+          "map|module|mutable|namespace|native|ne|new|next|nil|no|noexcept|not|"
           "not_eq|null|nullptr|object|operator|or|or_eq|out|override|package|"
           "params|pass|print|private|protected|public|q|qq|qr|qw|qx|raise|"
           "range|readonly|redo|ref|register|reinterpret_cast|require|"
