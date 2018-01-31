@@ -853,7 +853,7 @@ int cmd_jump(cmd_context_t* ctx) {
     bline_t* bline;
     bint_t col;
     bint_t nchars;
-    bline_t* stop;
+    bint_t stop_line_index;
     mark_t* mark;
     mark_t* jumps;
     int jumpi, jumpt, screen_x, screen_y;
@@ -869,7 +869,7 @@ int cmd_jump(cmd_context_t* ctx) {
     mark_move_by(mark, -1);
 
     // Get stop line
-    buffer_get_bline(ctx->buffer, ctx->bview->viewport_bline->line_index + ctx->bview->rect_buffer.h, &stop);
+    stop_line_index = ctx->bview->viewport_bline->line_index + ctx->bview->rect_buffer.h;
 
     // Make jump map
     jumps = calloc(26*26, sizeof(mark_t));
@@ -878,7 +878,7 @@ int cmd_jump(cmd_context_t* ctx) {
     do {
         // Loop for words
         while (jumpi < 26*26 && mark_move_next_re_ex(mark, "\\S{2,}", strlen("\\S{2,}"), &bline, &col, &nchars) == MLBUF_OK) {
-            if (bline->line_index >= stop->line_index) break;
+            if (bline->line_index >= stop_line_index) break;
             jumps[jumpi].bline = bline;
             jumps[jumpi].col = col;
             mark_move_by(mark, MLE_MAX(0, nchars - 2));
