@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 DESTDIR?=/usr/local/bin/
-mle_cflags:=$(CFLAGS) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/
+mle_cflags:=$(CFLAGS) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ -I./uthash/src/
 mle_ldlibs:=$(LDLIBS) -lm -lpcre
 mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
 mle_static:=
