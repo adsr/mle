@@ -6,11 +6,11 @@ mle is a small, flexible console text editor written in C.
 
 ### Demos
 
-[![asciicast](https://asciinema.org/a/162536.png)](https://asciinema.org/a/162536)
+[![asciicast](https://i.imgur.com/PZocaOT.png)](https://asciinema.org/a/162536)
 
-* [More demos](http://imgur.com/a/ZBmmQ)
-* [Large file benchmark](http://i.imgur.com/VGGMmGg.gif)
 * [Emacs-style jump](https://i.imgur.com/atS11HX.gif)
+* [Large file benchmark](http://i.imgur.com/VGGMmGg.gif)
+* [Older demos](http://imgur.com/a/ZBmmQ)
 
 ### Aims
 
