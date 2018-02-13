@@ -545,7 +545,13 @@ int cmd_fsearch(cmd_context_t* ctx) {
             path_len -= 1;
         }
         if (path_len > 0) {
-            editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+            if (ctx->static_param && strcmp(ctx->static_param, "replace") == 0) {
+                if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_OK) {
+                    bview_open(ctx->bview, path, path_len);
+                }
+            } else {
+                editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+            }
         }
     }
     free(path);
@@ -657,7 +663,6 @@ int cmd_open_replace_file(cmd_context_t* ctx) {
     editor_prompt(ctx->editor, "replace_open: Path?", NULL, &path);
     if (!path) return MLE_OK;
     bview_open(ctx->bview, path, strlen(path));
-    bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
     free(path);
     return MLE_OK;
 }
@@ -666,7 +671,6 @@ int cmd_open_replace_file(cmd_context_t* ctx) {
 int cmd_open_replace_new(cmd_context_t* ctx) {
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     bview_open(ctx->bview, NULL, 0);
-    bview_resize(ctx->bview, ctx->bview->x, ctx->bview->y, ctx->bview->w, ctx->bview->h);
     return MLE_OK;
 }
 

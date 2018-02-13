@@ -60,6 +60,7 @@ int bview_open(bview_t* self, char* path, int path_len) {
     if (self->path) free(self->path);
     self->path = strndup(path, path_len);
     _bview_init(self, buffer);
+    bview_resize(self, self->x, self->y, self->w, self->h);
     return MLE_OK;
 }
 
