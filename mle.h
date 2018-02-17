@@ -654,6 +654,8 @@ TODO
 [ ] crash when M-e cat'ing huge files? (why does malloc crash program with large values?)
 [ ] move macros out of mle.h if only used in one source file
 --- LOW
+[ ] bad switch should exit 1
+[ ] block select/move
 [ ] after bad shell cmd, EBADF on stdin/stdout ?
 [ ] consider find_budge=0 by default, emulate find_budge=1 in calling code
 [ ] use_srules sucks
