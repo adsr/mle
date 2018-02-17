@@ -813,15 +813,26 @@ static void _bview_draw_status(bview_t* self) {
 
     // Anchor indicator
     int i_anchor_fg, i_anchor_bg;
+    bint_t anchor_len, anchor_nlines, anchor_tmp;
     char* i_anchor;
+    cursor_t* cursor;
     if (active_edit->active_cursor->is_anchored) {
         i_anchor_fg = TB_WHITE | TB_BOLD;
         i_anchor_bg = TB_BLACK;
-        i_anchor = "\xe2\x97\xa8";
+        i_anchor = "a";
+        cursor = active_edit->active_cursor;
+        mark_get_offset(cursor->anchor, &anchor_tmp);
+        mark_get_offset(cursor->mark, &anchor_len);
+        anchor_len -= anchor_tmp;
+        anchor_nlines = cursor->anchor->bline->line_index - cursor->mark->bline->line_index;
+        if (anchor_nlines < 0) anchor_nlines *= -1;
+        anchor_nlines += 1;
     } else {
         i_anchor_fg = 0;
         i_anchor_bg = 0;
         i_anchor = ".";
+        anchor_len = 0;
+        anchor_nlines = 0;
     }
 
     // Async indicator
@@ -867,11 +878,12 @@ static void _bview_draw_status(bview_t* self) {
     tb_printf(editor->rect_status, 0, 0, 0, 0, "%*.*s", editor->rect_status.w, editor->rect_status.w, " ");
     tb_printf_attr(editor->rect_status, 0, 0,
         "@%d,%d;%s@%d,%d;"                                // mle_normal    mode
-        "(@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;)  " // (....)        need_input,anchor,macro,async
-        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "         // buf[1/2]      bview num
+        "[@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;]  " // [....]        need_input,anchor,macro,async
+        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "         // buf:1/2       bview num
         "<@%d,%d;%s@%d,%d;>  "                            // <php>         syntax
         "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  "    // line:1/100    line
-        "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d; ",     // col:0/80      col
+        "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  "     // col:0/80      col
+        "%s@%d,%d;%lld@%d,%d;,@%d,%d;%llu@%d,%d;  ",      // sel:10,1      sel len, nlines
         TB_MAGENTA | TB_BOLD, 0, active->kmap_tail->kmap->name, 0, 0,
         i_needinput_fg, i_needinput_bg, i_needinput,
         i_anchor_fg, i_anchor_bg, i_anchor,
@@ -880,7 +892,11 @@ static void _bview_draw_status(bview_t* self) {
         TB_BLUE | TB_BOLD, 0, bview_num, 0, 0, TB_BLUE, 0, bview_count, 0, 0,
         TB_CYAN | TB_BOLD, 0, active_edit->syntax ? active_edit->syntax->name : "none", 0, 0,
         TB_YELLOW | TB_BOLD, 0, mark->bline->line_index + 1, 0, 0, TB_YELLOW, 0, active_edit->buffer->line_count, 0, 0,
-        TB_YELLOW | TB_BOLD, 0, mark->col, 0, 0, TB_YELLOW, 0, mark->bline->char_count, 0, 0
+        TB_YELLOW | TB_BOLD, 0, mark->col, 0, 0, TB_YELLOW, 0, mark->bline->char_count, 0, 0,
+        anchor_nlines == 0 ? "" : "sel:",
+        anchor_nlines == 0 ? TB_BLACK : TB_YELLOW | TB_BOLD, 0, anchor_len,
+        anchor_nlines == 0 ? TB_BLACK : 0, 0,
+        anchor_nlines == 0 ? TB_BLACK : TB_YELLOW, 0, anchor_nlines, 0, 0
     );
 
     // Overlay errstr if present
