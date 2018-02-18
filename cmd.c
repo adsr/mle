@@ -595,13 +595,13 @@ int cmd_ctag(cmd_context_t* ctx) {
     char* cmd;
     bint_t word_len;
     if (cursor_select_by(ctx->cursor, "word") != MLE_OK) {
-        return MLE_ERR;
+        MLE_RETURN_ERR(ctx->editor, "%s", "Failed to select word under cursor");
     }
     mark_get_between_mark(ctx->cursor->mark, ctx->cursor->anchor, &word, &word_len);
     cursor_toggle_anchor(ctx->cursor, 0);
     word_arg = util_escape_shell_arg(word, word_len);
     free(word);
-    asprintf(&cmd, "readtags -e - %s", word_arg);
+    asprintf(&cmd, "readtags -e - %s 2>/dev/null", word_arg);
     free(word_arg);
     if (!cmd) {
         MLE_RETURN_ERR(ctx->editor, "%s", "Failed to format readtags cmd");
