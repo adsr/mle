@@ -640,8 +640,10 @@ extern editor_t _editor;
 
 /*
 TODO
---- HIGH
-[ ] find doesn't work from boffset=0
+[ ] page_up/down by half/third etc
+[ ] `echo hi | mle -H0` should start with a buffer containing 'hi'
+[ ] replace mark_set_pcre_capture with mark local
+[ ] bad switch should exit 1
 [ ] pass in (bline_t* opt_hint) to buffer_get_* and start from there instead of first_line
 [ ] refactor buffer_set_mmapped to avoid huge mallocs
 [ ] review default key bindings
@@ -653,11 +655,8 @@ TODO
     [ ] bugfix: insert lines, drop anchor at eof, delete up, type on 1st line, leftover styling?
 [ ] crash when M-e cat'ing huge files? (why does malloc crash program with large values?)
 [ ] move macros out of mle.h if only used in one source file
---- LOW
-[ ] bad switch should exit 1
 [ ] block select/move
 [ ] after bad shell cmd, EBADF on stdin/stdout ?
-[ ] consider find_budge=0 by default, emulate find_budge=1 in calling code
 [ ] use_srules sucks
 [ ] undo/redo should center viewport?
 [ ] smart indent

@@ -247,7 +247,6 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
     int pcre_ovector[30];
     str_t repl_backref = {0};
     int num_replacements;
-    int orig_find_budge;
 
     if (!interactive && (!opt_regex || !opt_replacement)) {
         return MLE_ERR;
@@ -265,7 +264,6 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
     all = interactive ? 0 : 1;
     num_replacements = 0;
     mark_set_pcre_capture(&pcre_rc, pcre_ovector, 30);
-    mark_set_find_budge(0, &orig_find_budge);
 
     do {
         if (!interactive) {
@@ -284,6 +282,8 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
         search_mark_end = buffer_add_mark(cursor->bview->buffer, NULL, 0);
         mark_join(search_mark, cursor->mark);
         mark_join(orig_mark, cursor->mark);
+        orig_mark->lefty = 1; // lefty==1 avoids moving when text is inserted at mark
+        lo_mark->lefty = 1;
         if (cursor->is_anchored) {
             anchored_before = mark_is_gt(cursor->mark, cursor->anchor);
             mark_join(lo_mark, !anchored_before ? cursor->mark : cursor->anchor);
@@ -296,9 +296,9 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
             pcre_rc = 0;
             if (mark_find_next_re(search_mark, regex, strlen(regex), &bline, &col, &char_count) == MLBUF_OK
                 && (mark_move_to(search_mark, bline->line_index, col) == MLBUF_OK)
-                && (mark_is_gt(search_mark, lo_mark) || mark_is_eq(search_mark, lo_mark))
+                && (mark_is_gte(search_mark, lo_mark))
                 && (mark_is_lt(search_mark, hi_mark))
-                && (!wrapped || mark_is_lt(search_mark, orig_mark) || mark_is_eq(search_mark, orig_mark))
+                && (!wrapped || mark_is_lt(search_mark, orig_mark))
             ) {
                 mark_move_to(search_mark_end, bline->line_index, col + char_count);
                 mark_join(cursor->mark, search_mark);
@@ -330,7 +330,6 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
                 }
             } else if (!wrapped) {
                 mark_join(search_mark, lo_mark);
-                mark_move_by(search_mark, -1);
                 wrapped = 1;
             } else {
                 break;
@@ -341,9 +340,10 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
     if (cursor->is_anchored && lo_mark && hi_mark) {
         mark_join(cursor->mark, anchored_before ? hi_mark : lo_mark);
         mark_join(cursor->anchor, anchored_before ? lo_mark : hi_mark);
+    } else if (orig_mark) {
+        mark_join(cursor->mark, orig_mark);
     }
 
-    mark_set_find_budge(orig_find_budge, NULL);
     mark_set_pcre_capture(NULL, NULL, 0);
     if (regex) free(regex);
     if (replacement) free(replacement);

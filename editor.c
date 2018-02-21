@@ -740,7 +740,7 @@ static int _editor_prompt_menu_page_down(cmd_context_t* ctx) {
 // Invoked when user hits down in a prompt_isearch
 static int _editor_prompt_isearch_next(cmd_context_t* ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
-        mark_move_next_cre(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
+        mark_move_next_cre_nudge(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
         bview_center_viewport_y(ctx->editor->active_edit);
     }
     return MLE_OK;
@@ -769,7 +769,7 @@ static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
     cre = bview->isearch_rule->cre;
     mark_move_beginning(mark);
     last_cursor = NULL;
-    while (mark_move_next_cre(mark, cre) == MLBUF_OK) {
+    while (mark_move_next_cre_nudge(mark, cre) == MLBUF_OK) {
         bview_add_cursor(bview, mark->bline, mark->col, &last_cursor);
     }
     if (last_cursor) bview_remove_cursor(bview, last_cursor);
@@ -1363,7 +1363,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_move_word_forward", "M-f"),
         MLE_KBINDING_DEF("cmd_move_word_back", "M-b"),
         MLE_KBINDING_DEF("cmd_move_bracket_forward", "M-]"),
-        //MLE_KBINDING_DEF("cmd_move_bracket_back", "M-["), // lame w/ shift+arrow
+        MLE_KBINDING_DEF("cmd_move_bracket_back", "M-["),
         MLE_KBINDING_DEF("cmd_search", "C-f"),
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),
