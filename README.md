@@ -23,7 +23,7 @@ mle is a small, flexible console text editor written in C.
 ### Features
 
 * Small codebase (<10k sloc)
-* Only 1 out-of-repo dependency (pcre)
+* Only 1 out-of-repo dependency (PCRE)
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
@@ -141,6 +141,9 @@ contents to stdout. For example:
 
 If stdin is a pipe, mle goes into headless mode automatically. Headless mode can
 be explicitly enabled or disabled with the `-H` option.
+
+If stdin is a pipe and headless mode is disabled via `-H0`, mle reads stdin into
+a new buffer and then runs as normal in interactive mode.
 
 ### Runtime dependencies (optional)
 

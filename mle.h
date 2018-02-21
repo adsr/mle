@@ -641,7 +641,6 @@ extern editor_t _editor;
 /*
 TODO
 [ ] page_up/down by half/third etc
-[ ] `echo hi | mle -H0` should start with a buffer containing 'hi'
 [ ] replace mark_set_pcre_capture with mark local
 [ ] bad switch should exit 1
 [ ] pass in (bline_t* opt_hint) to buffer_get_* and start from there instead of first_line

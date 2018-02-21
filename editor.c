@@ -2087,13 +2087,19 @@ static int _editor_init_headless_mode(editor_t* editor) {
     ssize_t nbytes;
     char buf[1024];
     bview_t* bview;
-    if (!editor->headless_mode) return MLE_OK;
+    int stdin_is_a_pipe;
+
+    // Check if stdin is a pipe
+    stdin_is_a_pipe = isatty(STDIN_FILENO) != 1 ? 1 : 0;
+
+    // Bail if not in headless mode and stdin is not a pipe
+    if (!editor->headless_mode && !stdin_is_a_pipe) return MLE_OK;
 
     // Open blank bview
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, &bview);
 
-    // If we have a pipe, read stdin into bview
-    if (isatty(STDIN_FILENO) == 1) return MLE_OK;
+    // If stdin is a pipe, read into bview
+    if (!stdin_is_a_pipe) return MLE_OK;
     do {
         FD_ZERO(&readfds);
         FD_SET(STDIN_FILENO, &readfds);
@@ -2106,6 +2112,8 @@ static int _editor_init_headless_mode(editor_t* editor) {
             }
         }
     } while (nbytes > 0);
+
+    mark_move_beginning(bview->active_cursor->mark);
     return MLE_OK;
 }
 
