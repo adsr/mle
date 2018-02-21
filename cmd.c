@@ -33,8 +33,8 @@ static int _cmd_menu_ctag_cb(cmd_context_t* ctx);
 static int _cmd_indent(cmd_context_t* ctx, int outdent);
 static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
 static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
-static void _cmd_insert_smart_newline(cmd_context_t* ctx);
-static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx);
+static void _cmd_insert_auto_indent_newline(cmd_context_t* ctx);
+static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t* ctx);
 static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd);
 
 // Insert data
@@ -96,10 +96,10 @@ int cmd_insert_data(cmd_context_t* ctx) {
         util_pcre_replace("(?m) +$", ctx->editor->insertbuf, "", &trimmed, &trimmed_len);
         MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, trimmed, trimmed_len);
         free(trimmed);
-    } else if (ctx->editor->smart_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '\n') {
-        _cmd_insert_smart_newline(ctx);
-    } else if (ctx->editor->smart_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '}') {
-        _cmd_insert_smart_closing_bracket(ctx);
+    } else if (ctx->editor->auto_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '\n') {
+        _cmd_insert_auto_indent_newline(ctx);
+    } else if (ctx->editor->auto_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '}') {
+        _cmd_insert_auto_indent_closing_bracket(ctx);
     } else {
         // Insert without trim
         MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, ctx->editor->insertbuf, insertbuf_len);
@@ -1496,8 +1496,8 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
-// Insert newline when smart_indent is enabled (preserves or increases indent)
-static void _cmd_insert_smart_newline(cmd_context_t* ctx) {
+// Insert newline when auto_indent is enabled (preserves or increases indent)
+static void _cmd_insert_auto_indent_newline(cmd_context_t* ctx) {
     bline_t* prev_bline;
     char* prev_line = NULL;
     bint_t prev_line_len;
@@ -1540,8 +1540,8 @@ static void _cmd_insert_smart_newline(cmd_context_t* ctx) {
     free(prev_line);
 }
 
-// Insert closing curly bracket when smart_indent is enabled (decreases indent)
-static void _cmd_insert_smart_closing_bracket(cmd_context_t* ctx) {
+// Insert closing curly bracket when auto_indent is enabled (decreases indent)
+static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t* ctx) {
     char* this_line = NULL;
     char* this_ws;
     char* prev_line = NULL;

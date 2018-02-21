@@ -98,7 +98,7 @@ struct editor_s {
     int tab_width;
     int tab_to_space;
     int trim_paste;
-    int smart_indent;
+    int auto_indent;
     int read_rc_file;
     int highlight_bracket_pairs;
     int color_col;
@@ -575,7 +575,7 @@ extern editor_t _editor;
 #define MLE_DEFAULT_TAB_WIDTH 4
 #define MLE_DEFAULT_TAB_TO_SPACE 1
 #define MLE_DEFAULT_TRIM_PASTE 1
-#define MLE_DEFAULT_SMART_INDENT 0
+#define MLE_DEFAULT_AUTO_INDENT 0
 #define MLE_DEFAULT_MACRO_TOGGLE_KEY "M-r"
 #define MLE_DEFAULT_HILI_BRACKET_PAIRS 1
 #define MLE_DEFAULT_READ_RC_FILE 1
@@ -659,7 +659,6 @@ TODO
 [ ] after bad shell cmd, EBADF on stdin/stdout ?
 [ ] use_srules sucks
 [ ] undo/redo should center viewport?
-[ ] smart indent
 [ ] func_viewport, func_display
 [ ] ctrl-enter in prompt inserts newline
 [ ] when opening path check if a buffer exists that already has it open via inode

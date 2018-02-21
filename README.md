@@ -36,7 +36,7 @@ mle is a small, flexible console text editor written in C.
 * Incremental search
 * Linear undo and redo
 * Multiple cursors
-* Smart indent
+* Auto indent
 * Headless mode
 * Navigation via [ctags](https://github.com/universal-ctags/ctags)
 * Movement via [less](https://www.gnu.org/software/less/)
