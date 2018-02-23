@@ -21,6 +21,9 @@ int main(int argc, char** argv) {
         if (_editor.headless_mode && _editor.active_edit) {
             buffer_write_to_fd(_editor.active_edit->buffer, STDOUT_FILENO, NULL);
         }
+        if (_editor.debug_dump_state_on_exit) {
+            editor_debug_dump(&_editor, stderr);
+        }
         editor_deinit(&_editor);
         if (!_editor.headless_mode) {
             tb_shutdown();

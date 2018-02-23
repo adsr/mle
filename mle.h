@@ -115,6 +115,7 @@ struct editor_s {
     char errstr[MLE_ERRSTR_SIZE];
     char infostr[MLE_ERRSTR_SIZE];
     int debug_exit_after_startup;
+    int debug_dump_state_on_exit;
     int exit_code;
 };
 
@@ -407,6 +408,7 @@ int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer);
 int editor_register_cmd(editor_t* editor, cmd_t* cmd);
 int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* ctx);
 int editor_display(editor_t* editor);
+int editor_debug_dump(editor_t* editor, FILE* fp);
 
 // bview functions
 bview_t* bview_get_split_root(bview_t* self);

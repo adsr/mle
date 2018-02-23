@@ -373,6 +373,42 @@ int editor_set_active(editor_t* editor, bview_t* bview) {
     return MLE_OK;
 }
 
+// Print debug info
+int editor_debug_dump(editor_t* editor, FILE* fp) {
+    bview_t* bview;
+    cursor_t* cursor;
+    buffer_t* buffer;
+    int bview_index;
+    int cursor_index;
+    bview_index = 0;
+    CDL_FOREACH2(editor->all_bviews, bview, all_next) {
+        if (!MLE_BVIEW_IS_EDIT(bview)) continue;
+        cursor_index = 0;
+        DL_FOREACH(bview->cursors, cursor) {
+            fprintf(fp, "bview[%d].cursor[%d].mark.line_index=%ld\n", bview_index, cursor_index, cursor->mark->bline->line_index);
+            fprintf(fp, "bview[%d].cursor[%d].mark.col=%ld\n", bview_index, cursor_index, cursor->mark->col);
+            if (cursor->is_anchored) {
+                fprintf(fp, "bview[%d].cursor[%d].anchor.line_index=%ld\n", bview_index, cursor_index, cursor->anchor->bline->line_index);
+                fprintf(fp, "bview[%d].cursor[%d].anchor.col=%ld\n", bview_index, cursor_index, cursor->anchor->col);
+            }
+            cursor_index += 1;
+        }
+        fprintf(fp, "bview[%d].cursor_count=%d\n", bview_index, cursor_index);
+        buffer = bview->buffer;
+        fprintf(fp, "bview[%d].buffer.byte_count=%ld\n", bview_index, buffer->byte_count);
+        fprintf(fp, "bview[%d].buffer.line_count=%ld\n", bview_index, buffer->line_count);
+        if (buffer->path) {
+            fprintf(fp, "bview[%d].buffer.path=%s\n", bview_index, buffer->path);
+        }
+        fprintf(fp, "bview[%d].buffer.data_begin\n", bview_index);
+        buffer_write_to_file(buffer, fp, NULL);
+        fprintf(fp, "\nbview[%d].buffer.data_end\n", bview_index);
+        bview_index += 1;
+    }
+    fprintf(fp, "bview_count=%d\n", bview_index);
+    return MLE_OK;
+}
+
 // Set macro toggle key
 static int _editor_set_macro_toggle_key(editor_t* editor, char* key) {
     return _editor_key_to_input(key, &editor->macro_toggle_key);
@@ -2053,6 +2089,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
             case 'Q':
                 switch (*optarg) {
                     case 'q': editor->debug_exit_after_startup = 1; break;
+                    case 'd': editor->debug_dump_state_on_exit = 1; break;
                 }
                 break;
             default:
