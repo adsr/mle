@@ -163,7 +163,7 @@ int cursor_select_by_string(cursor_t* cursor) {
     } else {
         qre = "(?<!\\\\)`";
     }
-    if (mark_move_next_re(cursor->anchor, qre, strlen(qre)) != MLBUF_OK) {
+    if (mark_move_next_re_nudge(cursor->anchor, qre, strlen(qre)) != MLBUF_OK) {
         cursor_toggle_anchor(cursor, 0);
         mark_join(cursor->mark, orig);
         mark_destroy(orig);
