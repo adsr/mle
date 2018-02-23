@@ -701,6 +701,12 @@ int cmd_quit(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Quit editor without saving
+int cmd_quit_without_saving(cmd_context_t* ctx) {
+    ctx->loop_ctx->should_exit = 1;
+    return MLE_OK;
+}
+
 // Apply a macro with single-char name
 int cmd_apply_macro_by(cmd_context_t* ctx) {
     kmacro_t* macro;

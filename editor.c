@@ -1301,6 +1301,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_prev", cmd_prev);
     _editor_register_cmd_fn(editor, "cmd_push_kmap", cmd_push_kmap);
     _editor_register_cmd_fn(editor, "cmd_quit", cmd_quit);
+    _editor_register_cmd_fn(editor, "cmd_quit_without_saving", cmd_quit_without_saving);
     _editor_register_cmd_fn(editor, "cmd_redo", cmd_redo);
     _editor_register_cmd_fn(editor, "cmd_redraw", cmd_redraw);
     _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);

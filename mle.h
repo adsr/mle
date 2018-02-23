@@ -510,6 +510,7 @@ int cmd_pop_kmap(cmd_context_t* ctx);
 int cmd_prev(cmd_context_t* ctx);
 int cmd_push_kmap(cmd_context_t* ctx);
 int cmd_quit(cmd_context_t* ctx);
+int cmd_quit_without_saving(cmd_context_t* ctx);
 int cmd_redo(cmd_context_t* ctx);
 int cmd_redraw(cmd_context_t* ctx);
 int cmd_remove_extra_cursors(cmd_context_t* ctx);
