@@ -803,6 +803,11 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             editor_display(editor);
         }
 
+        // Bail if debug_exit_after_startup set
+        if (editor->debug_exit_after_startup) {
+            break;
+        }
+
         // Check for async io
         // async_proc_drain_all will bail and return 0 if there's any tty data
         if (editor->async_procs && async_proc_drain_all(editor->async_procs, &editor->ttyfd)) {
@@ -1909,7 +1914,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 1;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:Q:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -2043,6 +2048,11 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'z':
                 editor->trim_paste = atoi(optarg) ? 1 : 0;
+                break;
+            case 'Q':
+                switch (*optarg) {
+                    case 'q': editor->debug_exit_after_startup = 1; break;
+                }
                 break;
             default:
                 rv = MLE_ERR;
