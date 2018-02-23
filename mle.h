@@ -336,7 +336,6 @@ struct async_proc_s {
     int rfd;
     int wfd;
     int is_done;
-    int is_solo;
     async_proc_cb_t callback;
     async_proc_t* next;
     async_proc_t* prev;

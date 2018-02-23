@@ -93,15 +93,8 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
     // Simultaneously check for solo, which takes precedence over everything
     maxfd = *ttyfd;
     DL_FOREACH(aprocs, aproc) {
-        if (aproc->is_solo) {
-            FD_ZERO(&readfds);
-            FD_SET(aproc->rfd, &readfds);
-            maxfd = aproc->rfd;
-            break;
-        } else {
-            FD_SET(aproc->rfd, &readfds);
-            if (aproc->rfd > maxfd) maxfd = aproc->rfd;
-        }
+        FD_SET(aproc->rfd, &readfds);
+        if (aproc->rfd > maxfd) maxfd = aproc->rfd;
     }
 
     // Perform select
