@@ -2143,8 +2143,14 @@ static int _editor_init_headless_mode(editor_t* editor) {
     // Bail if not in headless mode and stdin is not a pipe
     if (!editor->headless_mode && !stdin_is_a_pipe) return MLE_OK;
 
-    // Open blank bview
-    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, &bview);
+    // Ensure blank bview
+    if (!editor->active_edit->buffer->path
+        && editor->active_edit->buffer->byte_count == 0
+    ) {
+        bview = editor->active_edit;
+    } else {
+        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, &bview);
+    }
 
     // If stdin is a pipe, read into bview
     if (!stdin_is_a_pipe) return MLE_OK;
