@@ -266,7 +266,7 @@ int cmd_move_word_back(cmd_context_t* ctx) {
 
 // Move to next open bracket
 int cmd_move_bracket_forward(cmd_context_t* ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str, "{", 1);
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, "{", 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
