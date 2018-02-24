@@ -3,6 +3,7 @@
 actual=$(
     $MLE \
     -N \
+    -H1 \
     -Qd \
     -K test_kmap,,1 \
     -k cmd_quit_without_saving,F12, \
