@@ -36,6 +36,7 @@ static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
 static void _cmd_insert_auto_indent_newline(cmd_context_t* ctx);
 static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t* ctx);
 static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd);
+static void _cmd_get_input(cmd_context_t* ctx, kinput_t* ret_input);
 
 // Insert data
 int cmd_insert_data(cmd_context_t* ctx) {
@@ -868,18 +869,21 @@ int cmd_jump(cmd_context_t* ctx) {
     mark_t* jumps;
     int jumpi, jumpt, screen_x, screen_y;
     char jumpa[3];
-    tb_event_t ev[2];
+    kinput_t ev[2];
+    int headless;
 
-    // Bail if applying a macro or in headless mode
-    if (ctx->editor->macro_apply || ctx->editor->headless_mode) return MLE_OK;
+    // Check if headless
+    headless = ctx->editor->headless_mode ? 1 : 0;
 
-    // Clone cursor mark
+    // Set boundaries
     mark_clone(ctx->cursor->mark, &mark);
-    mark_move_to_w_bline(mark, ctx->bview->viewport_bline, 0);
-    mark_move_by(mark, -1);
-
-    // Get stop line
-    stop_line_index = ctx->bview->viewport_bline->line_index + ctx->bview->rect_buffer.h;
+    if (headless) {
+        mark_move_bol(mark);
+        stop_line_index = mark->bline->line_index + 1;
+    } else {
+        mark_move_to_w_bline(mark, ctx->bview->viewport_bline, 0);
+        stop_line_index = ctx->bview->viewport_bline->line_index + ctx->bview->rect_buffer.h;
+    }
 
     // Make jump map
     jumps = calloc(26*26, sizeof(mark_t));
@@ -892,18 +896,20 @@ int cmd_jump(cmd_context_t* ctx) {
             jumps[jumpi].bline = bline;
             jumps[jumpi].col = col;
             mark_move_by(mark, MLE_MAX(0, nchars - 2));
-            bview_get_screen_coords(ctx->bview, mark, &screen_x, &screen_y, NULL);
-            sprintf(jumpa, "%c%c", 'a' + (jumpi / 26), 'a' + (jumpi % 26));
-            tb_print(screen_x, screen_y, TB_WHITE | TB_BOLD, TB_MAGENTA, jumpa);
+            if (!headless) {
+                bview_get_screen_coords(ctx->bview, mark, &screen_x, &screen_y, NULL);
+                sprintf(jumpa, "%c%c", 'a' + (jumpi / 26), 'a' + (jumpi % 26));
+                tb_print(screen_x, screen_y, TB_WHITE | TB_BOLD, TB_MAGENTA, jumpa);
+            }
             jumpi += 1;
             mark_move_by(mark, 2);
         }
         if (jumpi < 1) break;
-        tb_present();
+        if (!headless) tb_present();
 
         // Get 2 inputs
-        tb_poll_event(&ev[0]); if (ev[0].ch < 'a' || ev[0].ch > 'z') break;
-        tb_poll_event(&ev[1]);
+        _cmd_get_input(ctx, &ev[0]); if (ev[0].ch < 'a' || ev[0].ch > 'z') break;
+        _cmd_get_input(ctx, &ev[1]);
 
         // Jump
         jumpt = ((ev[0].ch - 'a') * 26) + (ev[1].ch - 'a');
@@ -1621,4 +1627,14 @@ static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd) {
         if (input) free(input);
         if (output) free(output);
     ); // Loop for next cursor
+}
+
+// Get one kinput_t, saving original input on cmd_context_t
+static void _cmd_get_input(cmd_context_t* ctx, kinput_t* ret_input) {
+    kinput_t oinput;
+    oinput = ctx->input;
+    memset(ret_input, 0, sizeof(kinput_t));
+    editor_get_input(ctx->editor, ctx->loop_ctx, ctx);
+    *ret_input = ctx->input;
+    ctx->input = oinput;
 }
