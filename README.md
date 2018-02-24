@@ -27,7 +27,6 @@ mle is a small, flexible console text editor written in C.
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
-* Extensible via stdio
 * Scriptable rc file
 * Key macros
 * Multiple splittable windows
@@ -96,38 +95,6 @@ executable `~/.mlerc` PHP script:
 
 This overrides the normal grep command with `git grep` if `.git` exists in the
 current working directory.
-
-### Advanced usage: Scripting
-
-mle is extensible via any program capable of standard I/O. A simple
-line-based request/response protocol enables user scripts to register commands
-and invoke internal editor functions in order to perform complex editing tasks.
-All messages are URL-encoded and end with a newline.
-
-Example exchange between a user script (usx) and mle:
-
-    usx -> mle    method=editor_register_cmd&params%5B%5D=hello&id=57cc98bb168ae
-    mle -> usx    result%5Brc%5D=0&id=57cc98bb168ae
-    ...
-    mle -> usx    method=hello&params%5Bmark%5D=76d6e0&params%5Bstatic_param%5D=&id=0x76d3a0-0
-    usx -> mle    method=mark_insert_before&params%5B%5D=76d6e0&params%5B%5D=hello%3F&params%5B%5D=5&id=57cc98bb6ab3d
-    mle -> usx    result%5Brc%5D=0&id=57cc98bb6ab3d
-    usx -> mle    result%5Brc%5D=0&error=&id=0x76d3a0-0
-
-In the example above, the user script registers a command called `hello` at
-startup, and mle replies with success. Later, the end-user invokes the `hello`
-command, so mle sends a request to the user script. The user script receives the
-request and sends a sub-request invoking `mark_insert_before`, to which mle
-replies with success. Finally the user script returns overall success for the
-`hello` command.
-
-Currently, mle only accepts requests from user scripts while a request to the
-user script itself is pending. (In other words, mle enforces an "only do stuff
-if I ask you to" policy.) The exception to this is `editor_register_cmd` which
-can be invoked by user scripts at startup time.
-
-For end-users, user scripts are loaded via the `-x` cli option. Commands
-registered by user scripts can be mapped to keys as normal via `-k`.
 
 ### Advanced usage: Headless mode
 

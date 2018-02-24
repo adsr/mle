@@ -172,8 +172,6 @@ int editor_deinit(editor_t* editor) {
     prompt_hnode_t* prompt_hnode;
     prompt_hnode_t* prompt_hnode_tmp1;
     prompt_hnode_t* prompt_hnode_tmp2;
-    uscript_t* uscript;
-    uscript_t* uscript_tmp;
     _editor_init_or_deinit_commands(editor, 1);
     if (editor->status) bview_destroy(editor->status);
     CDL_FOREACH_SAFE2(editor->all_bviews, bview, bview_tmp1, bview_tmp2, all_prev, all_next) {
@@ -207,10 +205,6 @@ int editor_deinit(editor_t* editor) {
             free(prompt_hnode);
         }
         free(prompt_history);
-    }
-    DL_FOREACH_SAFE(editor->uscripts, uscript, uscript_tmp) {
-        DL_DELETE(editor->uscripts, uscript);
-        uscript_destroy(uscript);
     }
     if (editor->macro_record) {
         if (editor->macro_record->inputs) free(editor->macro_record->inputs);
@@ -1949,14 +1943,13 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     int rv;
     kmap_t* cur_kmap;
     syntax_t* cur_syntax;
-    uscript_t* uscript;
     int c;
     rv = MLE_OK;
 
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 1;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:Q:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:y:z:Q:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1980,7 +1973,6 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
                 printf("    -w <1|0>     Enable/disable soft word wrap (default: %d)\n", MLE_DEFAULT_SOFT_WRAP);
-                printf("    -x <script>  Run userscript\n");
                 printf("    -y <syntax>  Set override syntax for files opened at start up\n");
                 printf("    -z <1|0>     Enable/disable trim_paste (default: %d)\n", MLE_DEFAULT_TRIM_PASTE);
                 printf("\n");
@@ -2076,14 +2068,6 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'w':
                 editor->soft_wrap = atoi(optarg);
-                break;
-            case 'x':
-                if (!(uscript = uscript_run(editor, optarg))) {
-                    MLE_LOG_ERR("Could not run uscript: %s", optarg);
-                    editor->exit_code = EXIT_FAILURE;
-                    rv = MLE_ERR;
-                }
-                DL_APPEND(editor->uscripts, uscript);
                 break;
             case 'y':
                 editor->syntax_override = optarg;
