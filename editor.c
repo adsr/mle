@@ -798,6 +798,7 @@ static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
     pcre* cre;
     cursor_t* orig_cursor;
     cursor_t* last_cursor;
+    bint_t nchars;
     bview = ctx->editor->active_edit;
     if (!bview->isearch_rule) return MLE_OK;
     orig_cursor = bview->active_cursor;
@@ -805,10 +806,14 @@ static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
     cre = bview->isearch_rule->cre;
     mark_move_beginning(mark);
     last_cursor = NULL;
-    while (mark_move_next_cre_nudge(mark, cre) == MLBUF_OK) {
+    while (mark_move_next_cre_ex(mark, cre, NULL, NULL, &nchars) == MLBUF_OK) {
         bview_add_cursor(bview, mark->bline, mark->col, &last_cursor);
+        mark_move_by(mark, MLE_MAX(1, nchars));
     }
-    if (last_cursor) bview_remove_cursor(bview, last_cursor);
+    if (last_cursor) {
+        mark_join(orig_cursor->mark, last_cursor->mark);
+        bview_remove_cursor(bview, last_cursor);
+    }
     bview->active_cursor = orig_cursor;
     bview_center_viewport_y(bview);
     ctx->loop_ctx->prompt_answer = NULL;
