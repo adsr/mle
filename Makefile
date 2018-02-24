@@ -29,8 +29,7 @@ $(termbox_objects): %.o: %.c
 	$(CC) -c $(termbox_cflags) $< -o $@
 
 test: mle test_mle
-	$(MAKE) -C tests
-	$(MAKE) -C mlbuf test
+	$(MAKE) -C tests && $(MAKE) -C mlbuf test
 
 test_mle: mle
 	./mle -v

@@ -18,7 +18,9 @@ for testname in "${!expected[@]}"; do
     if grep -Pq "$expected_re" <<<"$actual"; then
         echo -e "  \x1b[32mOK \x1b[0m $testname"
     else
-        echo -e "  \x1b[31mERR\x1b[0m $testname expected=$expected_re"
+        echo -e "  \x1b[31mERR\x1b[0m $testname expected=$expected_re\n\n$actual"
+        exit 1
     fi
 done
 
+unset expected
