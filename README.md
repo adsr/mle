@@ -27,6 +27,7 @@ mle is a small, flexible console text editor written in C.
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
+* Extensible via [Wren](http://wren.io)
 * Scriptable rc file
 * Key macros
 * Multiple splittable windows
@@ -65,16 +66,13 @@ To install to a custom directory, supply `DESTDIR`, e.g.:
 
 ### Basic usage
 
-(The following assumes default configuration.)
+    $ mle             # Blank buffer
+    $ mle one.c       # Open one.c
+    $ mle one.c:100   # Open one.c at line 100
+    $ mle one.c two.c # Open one.c and two.c
+    $ mle -h          # Show command line help
 
-Run `mle` to start editing a new text file. Type to type, use directional keys
-to navigate, `Ctrl+F` to search, `Ctrl+T` for search-and-replace, `Ctrl+S` to
-save, and `Ctrl+X` to exit. Press `F2` for full help.
-
-Run `mle existing-file` to edit an existing file. To edit multiple files try
-`mle file1 file2` and use `Alt+n` and `Alt+p` to switch between them. Press
-`Alt+c` to close a file. You can also specify `mle file.c:100` to start the
-editor at a certain line number.
+Press F2 for help when inside the editor.
 
 ### Advanced usage: mlerc
 
@@ -95,6 +93,12 @@ executable `~/.mlerc` PHP script:
 
 This overrides the normal grep command with `git grep` if `.git` exists in the
 current working directory.
+
+### Advanced usage: Scripting
+
+mle is extensible via the [Wren](http://wren.io) programming language. Scripts
+are loaded via the `-x` cli option. Commands registered by scripts can be mapped
+to keys as normal via `-k`. See `uscript.wren` for a simple example.
 
 ### Advanced usage: Headless mode
 
