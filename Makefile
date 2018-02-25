@@ -39,7 +39,7 @@ test_mle: mle
 
 sloc:
 	find . -name '*.c' -or -name '*.h' | \
-		grep -Pv '(termbox|test|ut)' | \
+		grep -Pv '(termbox|test|ut|wren)' | \
 		xargs -rn1 cat | \
 		wc -l
 
