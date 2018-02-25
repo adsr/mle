@@ -1,6 +1,6 @@
 # mle
 
-mle is a small, flexible console text editor written in C.
+mle is a small, flexible, terminal-based text editor written in C.
 
 [![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
 
