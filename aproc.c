@@ -8,37 +8,37 @@
 #include "utlist.h"
 #include "mle.h"
 
-// Return a new async_proc_t
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, async_proc_cb_t callback) {
-    async_proc_t* aproc;
-    aproc = calloc(1, sizeof(async_proc_t));
+// Return a new aproc_t
+aproc_t* aproc_new(editor_t* editor, void* owner, aproc_t** owner_aproc, char* shell_cmd, int rw, aproc_cb_t callback) {
+    aproc_t* aproc;
+    aproc = calloc(1, sizeof(aproc_t));
     aproc->editor = editor;
-    async_proc_set_owner(aproc, owner, owner_aproc);
+    aproc_set_owner(aproc, owner, owner_aproc);
     if (rw) {
         if (!util_popen2(shell_cmd, 0, NULL, &aproc->rfd, &aproc->wfd, &aproc->pid)) {
-            goto async_proc_new_failure;
+            goto aproc_new_failure;
         }
         aproc->rpipe = fdopen(aproc->rfd, "r");
         aproc->wpipe = fdopen(aproc->wfd, "w");
     } else {
         if (!(aproc->rpipe = popen(shell_cmd, "r"))) {
-            goto async_proc_new_failure;
+            goto aproc_new_failure;
         }
         aproc->rfd = fileno(aproc->rpipe);
     }
     setvbuf(aproc->rpipe, NULL, _IONBF, 0);
     if (aproc->wpipe) setvbuf(aproc->wpipe, NULL, _IONBF, 0);
     aproc->callback = callback;
-    DL_APPEND(editor->async_procs, aproc);
+    DL_APPEND(editor->aprocs, aproc);
     return aproc;
 
-async_proc_new_failure:
+aproc_new_failure:
     free(aproc);
     return NULL;
 }
 
 // Set aproc owner
-int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_aproc) {
+int aproc_set_owner(aproc_t* aproc, void* owner, aproc_t** owner_aproc) {
     if (aproc->owner_aproc) {
         *aproc->owner_aproc = NULL;
     }
@@ -48,9 +48,9 @@ int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_
     return MLE_OK;
 }
 
-// Destroy an async_proc_t
-int async_proc_destroy(async_proc_t* aproc, int preempt) {
-    DL_DELETE(aproc->editor->async_procs, aproc);
+// Destroy an aproc_t
+int aproc_destroy(aproc_t* aproc, int preempt) {
+    DL_DELETE(aproc->editor->aprocs, aproc);
     if (aproc->owner_aproc) *aproc->owner_aproc = NULL;
     if (preempt) {
         if (aproc->rfd) close(aproc->rfd);
@@ -65,11 +65,11 @@ int async_proc_destroy(async_proc_t* aproc, int preempt) {
 
 // Manage async procs, giving priority to user input. Return 1 if drain should
 // be called again, else return 0.
-int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
+int aproc_drain_all(aproc_t* aprocs, int* ttyfd) {
     int maxfd;
     fd_set readfds;
-    async_proc_t* aproc;
-    async_proc_t* aproc_tmp;
+    aproc_t* aproc;
+    aproc_t* aproc_tmp;
     char buf[1024 + 1];
     ssize_t nbytes;
     int rc;
@@ -122,7 +122,7 @@ int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd) {
             // Not sure if ferror and feof have any effect here given we're not
             // using fread.
             if (ferror(aproc->rpipe) || feof(aproc->rpipe) || aproc->is_done) {
-                async_proc_destroy(aproc, 0);
+                aproc_destroy(aproc, 0);
             }
         }
     }

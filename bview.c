@@ -567,9 +567,9 @@ static void _bview_deinit(bview_t* self) {
     }
 
     // Destroy async proc
-    if (self->async_proc) {
-        async_proc_destroy(self->async_proc, 1);
-        self->async_proc = NULL;
+    if (self->aproc) {
+        aproc_destroy(self->aproc, 1);
+        self->aproc = NULL;
     }
 
     // Remove all listeners
@@ -838,7 +838,7 @@ static void _bview_draw_status(bview_t* self) {
     // Async indicator
     int i_async_fg, i_async_bg;
     char* i_async;
-    if (editor->async_procs) {
+    if (editor->aprocs) {
         i_async_fg = TB_YELLOW | TB_BOLD;
         i_async_bg = TB_BLACK;
         i_async = "x";

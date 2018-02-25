@@ -268,14 +268,14 @@ int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params
 }
 
 // Open dialog menu
-int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu) {
+int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, aproc_t* opt_aproc, bview_t** optret_menu) {
     bview_t* menu;
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, &menu);
     menu->is_menu = 1;
     menu->menu_callback = callback;
     bview_push_kmap(menu, editor->kmap_menu);
     if (opt_aproc) {
-        async_proc_set_owner(opt_aproc, menu, &(menu->async_proc));
+        aproc_set_owner(opt_aproc, menu, &(menu->aproc));
     }
     if (opt_buf_data) {
         mark_insert_before(menu->active_cursor->mark, opt_buf_data, opt_buf_data_len);
@@ -735,7 +735,7 @@ static int _editor_menu_submit(cmd_context_t* ctx) {
 
 // Invoked when user hits C-c in a menu
 static int _editor_menu_cancel(cmd_context_t* ctx) {
-    if (ctx->bview->async_proc) async_proc_destroy(ctx->bview->async_proc, 1);
+    if (ctx->bview->aproc) aproc_destroy(ctx->bview->aproc, 1);
     return MLE_OK;
 }
 
@@ -844,8 +844,8 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
         }
 
         // Check for async io
-        // async_proc_drain_all will bail and return 0 if there's any tty data
-        if (editor->async_procs && async_proc_drain_all(editor->async_procs, &editor->ttyfd)) {
+        // aproc_drain_all will bail and return 0 if there's any tty data
+        if (editor->aprocs && aproc_drain_all(editor->aprocs, &editor->ttyfd)) {
             continue;
         }
 

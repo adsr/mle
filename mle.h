@@ -26,8 +26,8 @@ typedef struct kbinding_s kbinding_t; // A single binding in a keymap
 typedef struct syntax_s syntax_t; // A syntax definition
 typedef struct syntax_node_s syntax_node_t; // A node in a linked list of syntaxes
 typedef struct srule_def_s srule_def_t; // A definition of a syntax
-typedef struct async_proc_s async_proc_t; // An asynchronous process
-typedef void (*async_proc_cb_t)(async_proc_t* self, char* buf, size_t buf_len); // An async_proc_t callback
+typedef struct aproc_s aproc_t; // An asynchronous process
+typedef void (*aproc_cb_t)(aproc_t* self, char* buf, size_t buf_len); // An aproc_t callback
 typedef struct editor_prompt_params_s editor_prompt_params_t; // Extra params for editor_prompt
 typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
@@ -87,7 +87,8 @@ struct editor_s {
     prompt_history_t* prompt_history;
     char* kmap_init_name;
     kmap_t* kmap_init;
-    async_proc_t* async_procs;
+    aproc_t* aprocs;
+    uscript_t* uscripts;
     FILE* tty;
     int ttyfd;
     char* syntax_override;
@@ -184,7 +185,7 @@ struct bview_s {
     int tab_width;
     int tab_to_space;
     syntax_t* syntax;
-    async_proc_t* async_proc;
+    aproc_t* aproc;
     cmd_func_t menu_callback;
     int is_menu;
     char init_cwd[PATH_MAX + 1];
@@ -322,20 +323,20 @@ struct loop_context_s {
     str_t last_insert;
 };
 
-// async_proc_t
-struct async_proc_s {
+// aproc_t
+struct aproc_s {
     editor_t* editor;
     void* owner;
-    async_proc_t** owner_aproc;
+    aproc_t** owner_aproc;
     FILE* rpipe;
     FILE* wpipe;
     pid_t pid;
     int rfd;
     int wfd;
     int is_done;
-    async_proc_cb_t callback;
-    async_proc_t* next;
-    async_proc_t* prev;
+    aproc_cb_t callback;
+    aproc_t* next;
+    aproc_t* prev;
 };
 
 // editor_prompt_params_t
@@ -367,7 +368,7 @@ int editor_init(editor_t* editor, int argc, char** argv);
 int editor_run(editor_t* editor);
 int editor_deinit(editor_t* editor);
 int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer);
-int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, async_proc_t* opt_aproc, bview_t** optret_menu);
+int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, aproc_t* opt_aproc, bview_t** optret_menu);
 int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed);
 int editor_set_active(editor_t* editor, bview_t* bview);
@@ -503,10 +504,10 @@ int cmd_viewport_top(cmd_context_t* ctx);
 int cmd_wake_sleeping_cursors(cmd_context_t* ctx);
 
 // async functions
-async_proc_t* async_proc_new(editor_t* editor, void* owner, async_proc_t** owner_aproc, char* shell_cmd, int rw, async_proc_cb_t callback);
-int async_proc_set_owner(async_proc_t* aproc, void* owner, async_proc_t** owner_aproc);
-int async_proc_destroy(async_proc_t* aproc, int preempt);
-int async_proc_drain_all(async_proc_t* aprocs, int* ttyfd);
+aproc_t* aproc_new(editor_t* editor, void* owner, aproc_t** owner_aproc, char* shell_cmd, int rw, aproc_cb_t callback);
+int aproc_set_owner(aproc_t* aproc, void* owner, aproc_t** owner_aproc);
+int aproc_destroy(aproc_t* aproc, int preempt);
+int aproc_drain_all(aproc_t* aprocs, int* ttyfd);
 
 // util functions
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, int setsid, char* opt_shell, char** optret_output, size_t* optret_output_len);

@@ -25,7 +25,7 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview);
 static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
 static int _cmd_save(editor_t* editor, bview_t* bview, int save_as);
 static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
-static void _cmd_aproc_bview_passthru_cb(async_proc_t* self, char* buf, size_t buf_len);
+static void _cmd_aproc_bview_passthru_cb(aproc_t* self, char* buf, size_t buf_len);
 static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
 static int _cmd_menu_browse_cb(cmd_context_t* ctx);
 static int _cmd_menu_grep_cb(cmd_context_t* ctx);
@@ -561,7 +561,7 @@ int cmd_fsearch(cmd_context_t* ctx) {
 
 // Grep for pattern in cwd
 int cmd_grep(cmd_context_t* ctx) {
-    async_proc_t* aproc;
+    aproc_t* aproc;
     char* path;
     char* path_arg;
     char* cmd;
@@ -581,7 +581,7 @@ int cmd_grep(cmd_context_t* ctx) {
         MLE_RETURN_ERR(ctx->editor, "Failed to format grep cmd: %s", grep_fmt);
     }
 
-    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, _cmd_aproc_bview_passthru_cb);
+    aproc = aproc_new(ctx->editor, ctx->bview, &(ctx->bview->aproc), cmd, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_menu_grep_cb, NULL, 0, aproc, NULL);
@@ -590,7 +590,7 @@ int cmd_grep(cmd_context_t* ctx) {
 
 // Invoke ctag search
 int cmd_ctag(cmd_context_t* ctx) {
-    async_proc_t* aproc;
+    aproc_t* aproc;
     char* word;
     char* word_arg;
     char* cmd;
@@ -607,7 +607,7 @@ int cmd_ctag(cmd_context_t* ctx) {
     if (!cmd) {
         MLE_RETURN_ERR(ctx->editor, "%s", "Failed to format readtags cmd");
     }
-    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, _cmd_aproc_bview_passthru_cb);
+    aproc = aproc_new(ctx->editor, ctx->bview, &(ctx->bview->aproc), cmd, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_menu_ctag_cb, NULL, 0, aproc, NULL);
@@ -617,10 +617,10 @@ int cmd_ctag(cmd_context_t* ctx) {
 // Browse directory via tree
 int cmd_browse(cmd_context_t* ctx) {
     bview_t* menu;
-    async_proc_t* aproc;
+    aproc_t* aproc;
     char* cmd;
     asprintf(&cmd, "tree --charset C -n -f -L 2 %s 2>/dev/null", ctx->static_param ? ctx->static_param : "");
-    aproc = async_proc_new(ctx->editor, ctx->bview, &(ctx->bview->async_proc), cmd, 0, _cmd_aproc_bview_passthru_cb);
+    aproc = aproc_new(ctx->editor, ctx->bview, &(ctx->bview->aproc), cmd, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_menu_browse_cb, "..\n", 3, aproc, &menu);
@@ -1336,7 +1336,7 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
 }
 
 // Aproc callback that writes buf to bview buffer
-static void _cmd_aproc_bview_passthru_cb(async_proc_t* aproc, char* buf, size_t buf_len) {
+static void _cmd_aproc_bview_passthru_cb(aproc_t* aproc, char* buf, size_t buf_len) {
     mark_t* active_mark;
     mark_t* ins_mark;
     int is_cursor_at_zero;
