@@ -7,3 +7,6 @@
 [submodule "uthash"]
 	path = uthash
 	url = https://github.com/troydhanson/uthash.git
+[submodule "wren"]
+	path = wren
+	url = https://github.com/munificent/wren.git

@@ -1943,13 +1943,14 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     int rv;
     kmap_t* cur_kmap;
     syntax_t* cur_syntax;
+    uscript_t* uscript;
     int c;
     rv = MLE_OK;
 
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 1;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:y:z:Q:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:Q:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -1973,6 +1974,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
                 printf("    -v           Print version and exit\n");
                 printf("    -w <1|0>     Enable/disable soft word wrap (default: %d)\n", MLE_DEFAULT_SOFT_WRAP);
+                printf("    -x <uscript> Run a Wren user script\n");
                 printf("    -y <syntax>  Set override syntax for files opened at start up\n");
                 printf("    -z <1|0>     Enable/disable trim_paste (default: %d)\n", MLE_DEFAULT_TRIM_PASTE);
                 printf("\n");
@@ -2068,6 +2070,15 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'w':
                 editor->soft_wrap = atoi(optarg);
+                break;
+            case 'x':
+                if (!(uscript = uscript_run(editor, optarg))) {
+                    MLE_LOG_ERR("Failed to run uscript: %s\n", optarg);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
+                } else {
+                    DL_APPEND(editor->uscripts, uscript);
+                }
                 break;
             case 'y':
                 editor->syntax_override = optarg;

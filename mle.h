@@ -6,6 +6,7 @@
 #include "termbox.h"
 #include "uthash.h"
 #include "mlbuf.h"
+#include "wren.h"
 
 // Typedefs
 typedef struct editor_s editor_t; // A container for editor-wide globals
@@ -33,6 +34,8 @@ typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
 typedef struct prompt_hnode_s prompt_hnode_t; // A node in a linked list of prompt history
 typedef int (*cmd_func_t)(cmd_context_t* ctx); // A command function
+typedef struct uscript_s uscript_t; // A userscript
+typedef struct uhandle_s uhandle_t; // A method handle in a uscript
 
 // kinput_t
 struct kinput_s {
@@ -363,12 +366,30 @@ struct prompt_hnode_s {
     prompt_hnode_t* next;
 };
 
+// uscript_t
+struct uscript_s {
+    editor_t* editor;
+    WrenVM* vm;
+    uhandle_t* uhandles;
+    uscript_t* prev;
+    uscript_t* next;
+};
+
+// uhandle_t
+struct uhandle_s {
+    uscript_t* uscript;
+    WrenHandle* receiver;
+    WrenHandle* method;
+    uhandle_t* next;
+    uhandle_t* prev;
+};
+
 // editor functions
 int editor_init(editor_t* editor, int argc, char** argv);
 int editor_run(editor_t* editor);
 int editor_deinit(editor_t* editor);
 int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer);
-int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, aproc_t* opt_aproc, bview_t** optret_menu);
+int editor_menu(editor_t* editor, cmd_func_t fn_callback, char* opt_buf_data, int opt_buf_data_len, aproc_t* opt_aproc, bview_t** optret_menu);
 int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed);
 int editor_set_active(editor_t* editor, bview_t* bview);
@@ -384,7 +405,7 @@ bview_t* bview_get_split_root(bview_t* self);
 bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer);
 int bview_add_cursor_asleep(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
 int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor);
-int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata);
+int bview_add_listener(bview_t* self, bview_listener_cb_t fn_callback, void* udata);
 int bview_center_viewport_y(bview_t* self);
 int bview_destroy(bview_t* self);
 int bview_destroy_listener(bview_t* self, bview_listener_t* listener);
@@ -402,7 +423,6 @@ int bview_remove_cursors_except(bview_t* self, cursor_t* one);
 int bview_resize(bview_t* self, int x, int y, int w, int h);
 int bview_set_syntax(bview_t* self, char* opt_syntax);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
-int bview_unsplit(bview_t* parent, bview_t* child);
 int bview_wake_sleeping_cursors(bview_t* self);
 int bview_zero_viewport_y(bview_t* self);
 
@@ -504,10 +524,14 @@ int cmd_viewport_top(cmd_context_t* ctx);
 int cmd_wake_sleeping_cursors(cmd_context_t* ctx);
 
 // async functions
-aproc_t* aproc_new(editor_t* editor, void* owner, aproc_t** owner_aproc, char* shell_cmd, int rw, aproc_cb_t callback);
+aproc_t* aproc_new(editor_t* editor, void* owner, aproc_t** owner_aproc, char* shell_cmd, int rw, aproc_cb_t fn_callback);
 int aproc_set_owner(aproc_t* aproc, void* owner, aproc_t** owner_aproc);
 int aproc_destroy(aproc_t* aproc, int preempt);
 int aproc_drain_all(aproc_t* aprocs, int* ttyfd);
+
+// uscript functions
+uscript_t* uscript_run(editor_t* editor, char* path);
+int uscript_destroy(uscript_t* uscript);
 
 // util functions
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, int setsid, char* opt_shell, char** optret_output, size_t* optret_output_len);
