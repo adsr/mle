@@ -26,6 +26,7 @@ $(mle_objects): %.o: %.c
 	$(AR) rcs $@ $(termbox_objects)
 
 ./wren/lib/libwrend.a:
+	find wren/ -name '*.wren.inc' | xargs touch # prevent python rule
 	$(MAKE) -C wren -f util/wren.mk static MODE=debug
 
 $(termbox_objects): %.o: %.c
