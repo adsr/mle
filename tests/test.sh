@@ -10,6 +10,7 @@ actual=$(
     -n test_kmap \
     -M "test_macro $macro F12" \
     -p test_macro \
+    $extra_opts \
     2>&1 >/dev/null
 );
 
