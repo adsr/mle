@@ -42,10 +42,13 @@ class CodeGen {
     function printForeignClass($protos) {
         echo 'const char* mle_wren = "class mle {\n\\' . "\n";
         foreach ($protos as $proto) {
+            $non_ret_params = array_filter($proto->params, function($param) {
+                return !$param->is_ret;
+            });
             printf(
                 "    foreign static %s(%s) \\n\\\n",
                 $proto->name,
-                implode(', ', array_column($proto->params, 'name'))
+                implode(', ', array_column($non_ret_params, 'name'))
             );
         }
         echo '} \\' . "\n";

@@ -1,6 +1,6 @@
 const char* mle_wren = "class mle {\n\
-    foreign static bview_add_cursor(self, bline, col, optret_cursor) \n\
-    foreign static bview_add_cursor_asleep(self, bline, col, optret_cursor) \n\
+    foreign static bview_add_cursor(self, bline, col) \n\
+    foreign static bview_add_cursor_asleep(self, bline, col) \n\
     foreign static bview_center_viewport_y(self) \n\
     foreign static bview_destroy(self) \n\
     foreign static bview_draw(self) \n\
@@ -10,21 +10,21 @@ const char* mle_wren = "class mle {\n\
     foreign static bview_max_viewport_y(self) \n\
     foreign static bview_new(editor, opt_path, opt_path_len, opt_buffer) \n\
     foreign static bview_open(self, path, path_len) \n\
-    foreign static bview_pop_kmap(bview, optret_kmap) \n\
+    foreign static bview_pop_kmap(bview) \n\
     foreign static bview_push_kmap(bview, kmap) \n\
     foreign static bview_rectify_viewport(self) \n\
     foreign static bview_remove_cursor(self, cursor) \n\
     foreign static bview_remove_cursors_except(self, one) \n\
     foreign static bview_resize(self, x, y, w, h) \n\
     foreign static bview_set_syntax(self, opt_syntax) \n\
-    foreign static bview_split(self, is_vertical, factor, optret_bview) \n\
+    foreign static bview_split(self, is_vertical, factor) \n\
     foreign static bview_wake_sleeping_cursors(self) \n\
     foreign static bview_zero_viewport_y(self) \n\
-    foreign static cursor_clone(cursor, use_srules, ret_clone) \n\
+    foreign static cursor_clone(cursor, use_srules) \n\
     foreign static cursor_cut_copy(cursor, is_cut, use_srules, append) \n\
     foreign static cursor_destroy(cursor) \n\
     foreign static cursor_drop_anchor(cursor, use_srules) \n\
-    foreign static cursor_get_lo_hi(cursor, ret_lo, ret_hi) \n\
+    foreign static cursor_get_lo_hi(cursor) \n\
     foreign static cursor_lift_anchor(cursor) \n\
     foreign static cursor_replace(cursor, interactive, opt_regex, opt_replacement) \n\
     foreign static cursor_select_between(cursor, a, b, use_srules) \n\
@@ -37,31 +37,31 @@ const char* mle_wren = "class mle {\n\
     foreign static cursor_toggle_anchor(cursor, use_srules) \n\
     foreign static cursor_uncut(cursor) \n\
     foreign static editor_bview_edit_count(editor) \n\
-    foreign static editor_close_bview(editor, bview, optret_num_closed) \n\
+    foreign static editor_close_bview(editor, bview) \n\
     foreign static editor_count_bviews_by_buffer(editor, buffer) \n\
     foreign static editor_display(editor) \n\
     foreign static editor_get_input(editor, loop_ctx, ctx) \n\
-    foreign static editor_menu(editor, fn_callback, opt_buf_data, opt_buf_data_len, opt_aproc, optret_menu) \n\
-    foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, opt_rect, opt_buffer, optret_bview) \n\
-    foreign static editor_prompt(editor, prompt, params, optret_answer) \n\
+    foreign static editor_menu(editor, fn_callback, opt_buf_data, opt_buf_data_len, opt_aproc) \n\
+    foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, opt_rect, opt_buffer) \n\
+    foreign static editor_prompt(editor, prompt, params) \n\
     foreign static editor_register_cmd(editor, cmd) \n\
     foreign static editor_set_active(editor, bview) \n\
-    foreign static mark_clone(self, ret_mark) \n\
-    foreign static mark_clone_w_letter(self, letter, ret_mark) \n\
+    foreign static mark_clone(self) \n\
+    foreign static mark_clone_w_letter(self, letter) \n\
     foreign static mark_delete_after(self, num_chars) \n\
     foreign static mark_delete_before(self, num_chars) \n\
     foreign static mark_delete_between_mark(self, other) \n\
     foreign static mark_destroy(self) \n\
-    foreign static mark_find_bracket_pair(self, max_chars, ret_line, ret_col, ret_brkt) \n\
-    foreign static mark_find_bracket_top(self, max_chars, ret_line, ret_col, ret_brkt) \n\
-    foreign static mark_find_next_re(self, re, re_len, ret_line, ret_col, ret_num_chars) \n\
-    foreign static mark_find_next_str(self, str, str_len, ret_line, ret_col, ret_num_chars) \n\
-    foreign static mark_find_prev_re(self, re, re_len, ret_line, ret_col, ret_num_chars) \n\
-    foreign static mark_find_prev_str(self, str, str_len, ret_line, ret_col, ret_num_chars) \n\
-    foreign static mark_get_between_mark(self, other, ret_str, ret_str_len) \n\
-    foreign static mark_get_char_after(self, ret_char) \n\
-    foreign static mark_get_char_before(self, ret_char) \n\
-    foreign static mark_get_offset(self, ret_offset) \n\
+    foreign static mark_find_bracket_pair(self, max_chars) \n\
+    foreign static mark_find_bracket_top(self, max_chars) \n\
+    foreign static mark_find_next_re(self, re, re_len) \n\
+    foreign static mark_find_next_str(self, str, str_len) \n\
+    foreign static mark_find_prev_re(self, re, re_len) \n\
+    foreign static mark_find_prev_str(self, str, str_len) \n\
+    foreign static mark_get_between_mark(self, other) \n\
+    foreign static mark_get_char_after(self) \n\
+    foreign static mark_get_char_before(self) \n\
+    foreign static mark_get_offset(self) \n\
     foreign static mark_insert_after(self, data, data_len) \n\
     foreign static mark_insert_before(self, data, data_len) \n\
     foreign static mark_is_after_col_minus_lefties(self, col) \n\
@@ -77,24 +77,24 @@ const char* mle_wren = "class mle {\n\
     foreign static mark_move_beginning(self) \n\
     foreign static mark_move_bol(self) \n\
     foreign static mark_move_bracket_pair(self, max_chars) \n\
-    foreign static mark_move_bracket_pair_ex(self, max_chars, optret_line, optret_col, optret_num_chars) \n\
+    foreign static mark_move_bracket_pair_ex(self, max_chars) \n\
     foreign static mark_move_bracket_top(self, max_chars) \n\
-    foreign static mark_move_bracket_top_ex(self, max_chars, optret_line, optret_col, optret_num_chars) \n\
+    foreign static mark_move_bracket_top_ex(self, max_chars) \n\
     foreign static mark_move_by(self, char_delta) \n\
     foreign static mark_move_col(self, col) \n\
     foreign static mark_move_end(self) \n\
     foreign static mark_move_eol(self) \n\
     foreign static mark_move_next_re(self, re, re_len) \n\
-    foreign static mark_move_next_re_ex(self, re, re_len, optret_line, optret_col, optret_num_chars) \n\
+    foreign static mark_move_next_re_ex(self, re, re_len) \n\
     foreign static mark_move_next_re_nudge(self, re, re_len) \n\
     foreign static mark_move_next_str(self, str, str_len) \n\
-    foreign static mark_move_next_str_ex(self, str, str_len, optret_line, optret_col, optret_num_chars) \n\
+    foreign static mark_move_next_str_ex(self, str, str_len) \n\
     foreign static mark_move_next_str_nudge(self, str, str_len) \n\
     foreign static mark_move_offset(self, offset) \n\
     foreign static mark_move_prev_re(self, re, re_len) \n\
-    foreign static mark_move_prev_re_ex(self, re, re_len, optret_line, optret_col, optret_num_chars) \n\
+    foreign static mark_move_prev_re_ex(self, re, re_len) \n\
     foreign static mark_move_prev_str(self, str, str_len) \n\
-    foreign static mark_move_prev_str_ex(self, str, str_len, optret_line, optret_col, optret_num_chars) \n\
+    foreign static mark_move_prev_str_ex(self, str, str_len) \n\
     foreign static mark_move_to(self, line_index, col) \n\
     foreign static mark_move_to_w_bline(self, bline, col) \n\
     foreign static mark_move_vert(self, line_delta) \n\
