@@ -635,7 +635,8 @@ extern editor_t _editor;
 
 /*
 TODO
-[ ] replace uscript with wren?
+[ ] some sort of syntax checking
+[ ] hooks!
 [ ] page_up/down by half/third etc
 [ ] replace mark_set_pcre_capture with mark local
 [ ] bad switch should exit 1
