@@ -637,44 +637,42 @@ extern editor_t _editor;
 #define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
 /*
-TODO
-[ ] some sort of syntax checking
-[ ] hooks!
-[ ] page_up/down by half/third etc
+TODO PRIORITY
+[ ] add `_free_` hint to (opt)ret vars that need to be freed
+[ ] finish uscript callbacks
+[ ] add hooks/event bus
+[ ] add some sort of syntax checking via hooks
+[ ] add ## param to page_up/down (by half/third etc)
+[ ] fix alt/ctrl-enter in prompt inserts newline
 [ ] replace mark_set_pcre_capture with mark local
-[ ] bad switch should exit 1
+[ ] fix invalid cli switch should exit(1)
+[ ] use editor prompt history when bview prompt history is empty
+TODO BACKLOG
+[ ] improve isearch kmap (next/prev history, control viewport)
+[ ] add option to undo bactions in same loop# as a group
+[ ] add buffer_repeat
+[ ] add block select/move
+[ ] investigate crash when M-e cat'ing huge files
+[ ] add mark stack (push, move around, pop to go back)
+[ ] add last cmd status indicator
 [ ] pass in (bline_t* opt_hint) to buffer_get_* and start from there instead of first_line
-[ ] refactor buffer_set_mmapped to avoid huge mallocs
+[ ] check if buffer exists by inode instead of path
 [ ] review default key bindings
-[ ] guard against mixed api use, refcounting
-[ ] overlapping multi rules / range+hili should be separate in styling / srule priority / isearch hili in middle of multiline rule
-    [ ] rewrite _buffer_apply_styles_multis and _buffer_bline_apply_style_multi
-    [ ] get rid of bol_rule
-    [ ] test at tests/test_buffer_srule_overlap.c
-    [ ] bugfix: insert lines, drop anchor at eof, delete up, type on 1st line, leftover styling?
-[ ] crash when M-e cat'ing huge files? (why does malloc crash program with large values?)
-[ ] move macros out of mle.h if only used in one source file
-[ ] block select/move
-[ ] after bad shell cmd, EBADF on stdin/stdout ?
-[ ] use_srules sucks
-[ ] undo/redo should center viewport?
-[ ] func_viewport, func_display
-[ ] ctrl-enter in prompt inserts newline
-[ ] when opening path check if a buffer exists that already has it open via inode
-[ ] undo stack with same loop# should get undone as a group option
-[ ] refactor kmap, ** and ## is kind of inelegant, trie code not easy to grok
-[ ] refactor aproc and menu code
-[ ] ensure multi_cursor_code impl for all appropriate
-[ ] use MLE_RETURN_ERR more
-[ ] pgup/down in isearch to control viewport
-[ ] drop/goto mark with char
-[ ] last cmd status code indicator
-[ ] click to set cursor/focus
-[ ] buffer_repeat
-[ ] multi-level undo/redo
-[ ] prompt history view
-[ ] bview_config_t to use in editor and individual bviews
-[ ] configurable colors, status line, caption line
+[ ] review use of multi_cursor_code
+[ ] review use of MLE_RETURN_ERR
+[ ] move single-use macros out of mle.h
+TODO REWRITE
+[ ] rewrite kmap, trie code is hard to read, ** and ## is not elegantb
+[ ] rewrite hili code (use_srules sucks; overlapping multi rules bug; test_buffer_srule_overlap.c.todo)
+[ ] rewrite aproc and menu code
+[ ] rewrite buffer_set_mmapped to avoid huge mallocs
+TODO MAYBE
+[ ] ?allow uscripts to preempt control, use shared uscriptfd
+[ ] ?add vim emulation mode
+[ ] ?add refcounting to prevent uscripts from segfaulting
+[ ] ?make colors, status line, layout configurable
+[ ] ?add multi-level undo/redo
+[ ] ?add simple mouse support
 */
 
 #endif
