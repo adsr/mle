@@ -42,7 +42,7 @@ const char* mle_wren = "class mle {\n\
     foreign static editor_display(editor) \n\
     foreign static editor_get_input(editor, loop_ctx, ctx) \n\
     foreign static editor_menu(editor, fn_callback, opt_buf_data, opt_buf_data_len, opt_aproc) \n\
-    foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, opt_rect, opt_buffer) \n\
+    foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer) \n\
     foreign static editor_prompt(editor, prompt, params) \n\
     foreign static editor_register_cmd(editor, cmd) \n\
     foreign static editor_set_active(editor, bview) \n\

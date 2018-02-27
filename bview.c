@@ -231,7 +231,7 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     }
 
     // Make child
-    editor_open_bview(self->editor, self, self->type, NULL, 0, 1, 0, NULL, self->buffer, &child);
+    editor_open_bview(self->editor, self, self->type, NULL, 0, 1, 0, 1, self->buffer, &child);
     child->split_parent = self;
     self->split_child = child;
     self->split_factor = factor;

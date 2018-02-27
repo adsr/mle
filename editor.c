@@ -236,7 +236,7 @@ int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params
     loop_ctx.prompt_answer = NULL;
 
     // Init prompt
-    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, 0, &editor->rect_prompt, NULL, &editor->prompt);
+    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_PROMPT, NULL, 0, 1, 0, 0, NULL, &editor->prompt);
     if (params && params->prompt_cb) bview_add_listener(editor->prompt, params->prompt_cb, params->prompt_cb_udata);
     editor->prompt->prompt_str = prompt;
     bview_push_kmap(editor->prompt, params && params->kmap ? params->kmap : editor->kmap_prompt_input);
@@ -270,7 +270,7 @@ int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params
 // Open dialog menu
 int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, aproc_t* opt_aproc, bview_t** optret_menu) {
     bview_t* menu;
-    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, &menu);
+    editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, &menu);
     menu->is_menu = 1;
     menu->menu_callback = callback;
     bview_push_kmap(menu, editor->kmap_menu);
@@ -285,8 +285,9 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
 }
 
 // Open a bview
-int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview) {
+int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, int skip_resize, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
+    bview_rect_t* rect;
     int found;
     found = 0;
     // Check if already open and not dirty
@@ -316,8 +317,14 @@ int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_pat
     if (make_active) {
         editor_set_active(editor, bview);
     }
-    if (!found && opt_rect) {
-        bview_resize(bview, opt_rect->x, opt_rect->y, opt_rect->w, opt_rect->h);
+    if (!found && !editor->is_in_init && !skip_resize) {
+        switch (type) {
+            case MLE_BVIEW_TYPE_STATUS: rect = &editor->rect_status; break;
+            case MLE_BVIEW_TYPE_PROMPT: rect = &editor->rect_prompt; break;
+            default:
+            case MLE_BVIEW_TYPE_EDIT:   rect = &editor->rect_edit;   break;
+        }
+        bview_resize(bview, rect->x, rect->y, rect->w, rect->h);
     }
     if (linenum > 0) {
         mark_move_to(bview->active_cursor->mark, linenum - 1, 0);
@@ -538,7 +545,7 @@ static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optr
         } else if (bview->all_next && bview->all_next != bview && MLE_BVIEW_IS_EDIT(bview->all_next)) {
             editor_set_active(editor, bview->all_next);
         } else {
-            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &editor->rect_edit, NULL, NULL);
+            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, NULL);
         }
     }
     if (!bview->split_parent) {
@@ -2118,13 +2125,13 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
     // Open bviews
     if (optind >= argc) {
         // Open blank
-        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, NULL);
+        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, NULL);
     } else {
         // Open files
         for (i = optind; i < argc; i++) {
             path = argv[i];
             path_len = strlen(path);
-            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, NULL, NULL, NULL);
+            editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, 0, NULL, NULL);
         }
     }
 }
@@ -2149,7 +2156,7 @@ static int _editor_init_headless_mode(editor_t* editor) {
     ) {
         bview = editor->active_edit;
     } else {
-        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, NULL, NULL, &bview);
+        editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, &bview);
     }
 
     // If stdin is a pipe, read into bview

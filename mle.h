@@ -390,7 +390,7 @@ int editor_run(editor_t* editor);
 int editor_deinit(editor_t* editor);
 int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer);
 int editor_menu(editor_t* editor, cmd_func_t fn_callback, char* opt_buf_data, int opt_buf_data_len, aproc_t* opt_aproc, bview_t** optret_menu);
-int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, bview_rect_t* opt_rect, buffer_t* opt_buffer, bview_t** optret_bview);
+int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, int skip_resize, buffer_t* opt_buffer, bview_t** optret_bview);
 int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed);
 int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);

@@ -551,7 +551,7 @@ int cmd_fsearch(cmd_context_t* ctx) {
                     bview_open(ctx->bview, path, path_len);
                 }
             } else {
-                editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+                editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, 0, NULL, NULL);
             }
         }
     }
@@ -645,14 +645,14 @@ int cmd_open_file(cmd_context_t* ctx) {
     char* path;
     editor_prompt(ctx->editor, "new_open: File?", NULL, &path);
     if (!path) return MLE_OK;
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, 0, NULL, NULL);
     free(path);
     return MLE_OK;
 }
 
 // Open empty buffer in a new bview
 int cmd_open_new(cmd_context_t* ctx) {
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, NULL);
     return MLE_OK;
 }
 
@@ -1143,7 +1143,7 @@ int cmd_show_help(cmd_context_t* ctx) {
     }
 
     // Show help in new bview
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, &ctx->editor->rect_edit, NULL, &bview);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, &bview);
     buffer_insert(bview->buffer, 0, h.data, (bint_t)h.len, NULL);
     bview->buffer->is_unsaved = 0;
     mark_move_beginning(bview->active_cursor->mark);
@@ -1403,7 +1403,7 @@ static int _cmd_menu_grep_cb(cmd_context_t* ctx) {
         linenum = 0;
     }
     editor_close_bview(ctx->editor, ctx->bview, NULL);
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, line, (int)(colon - line), 1, linenum, &ctx->editor->rect_edit, NULL, NULL);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, line, (int)(colon - line), 1, linenum, 0, NULL, NULL);
     free(line);
     return MLE_OK;
 }
@@ -1446,7 +1446,7 @@ static int _cmd_menu_ctag_cb(cmd_context_t* ctx) {
     re_len -= 4;
     util_pcre_replace("([\\.\\\\\\+\\*\\?\\^\\$\\[\\]\\(\\)\\{\\}\\=\\!\\>\\<\\|\\:\\-])", re, "\\\\$1", &qre, &qre_len);
     editor_close_bview(ctx->editor, ctx->bview, NULL);
-    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, fname, strlen(fname), 1, 0, &ctx->editor->rect_edit, NULL, &bview);
+    editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, fname, strlen(fname), 1, 0, 0, NULL, &bview);
     asprintf(&qre2, "^%s", qre);
     mark_move_next_re(bview->active_cursor->mark, qre2, qre_len+1);
     bview_center_viewport_y(bview);
@@ -1493,7 +1493,7 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
         ctx->bview = ctx->editor->active_edit;
         cmd_browse(ctx);
     } else {
-        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, corrected_path, strlen(corrected_path), 0, 0, &ctx->editor->rect_edit, NULL, &new_bview);
+        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, corrected_path, strlen(corrected_path), 0, 0, 0, NULL, &new_bview);
     }
 
     // Close menu
