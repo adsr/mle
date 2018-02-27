@@ -399,6 +399,7 @@ int editor_register_cmd(editor_t* editor, cmd_t* cmd);
 int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* ctx);
 int editor_display(editor_t* editor);
 int editor_debug_dump(editor_t* editor, FILE* fp);
+int editor_input_to_key(editor_t* editor, kinput_t* input, char* keybuf);
 
 // bview functions
 bview_t* bview_get_split_root(bview_t* self);

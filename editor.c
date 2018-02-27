@@ -410,6 +410,26 @@ int editor_debug_dump(editor_t* editor, FILE* fp) {
     return MLE_OK;
 }
 
+// Given a kinput, put the key name in keybuf
+int editor_input_to_key(editor_t* editor, kinput_t* input, char* keybuf) {
+    int nbytes;
+    #define MLE_KEY_DEF(pckey, pmod, pch, pkey) \
+        } else if (input->key == (pkey) && input->ch == (pch) && input->mod == (pmod)) { \
+            sprintf(keybuf, "%s", (pckey)); \
+            return MLE_OK;
+    if (0) {
+        #include "keys.h"
+    }
+    #undef MLE_KEY_DEF
+    if (input->mod == TB_MOD_ALT) {
+        sprintf(keybuf, "M-");
+        keybuf += 2;
+    }
+    nbytes = utf8_unicode_to_char(keybuf, input->ch);
+    keybuf[nbytes] = '\0';
+    return MLE_ERR;
+}
+
 // Set macro toggle key
 static int _editor_set_macro_toggle_key(editor_t* editor, char* key) {
     return _editor_key_to_input(key, &editor->macro_toggle_key);
