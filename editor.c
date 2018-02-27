@@ -2069,9 +2069,11 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 // See _editor_should_skip_rc
                 break;
             case 'n':
+                if (editor->kmap_init_name) free(editor->kmap_init_name);
                 editor->kmap_init_name = strdup(optarg);
                 break;
             case 'p':
+                if (editor->startup_macro_name) free(editor->startup_macro_name);
                 editor->startup_macro_name = strdup(optarg);
                 break;
             case 'S':
