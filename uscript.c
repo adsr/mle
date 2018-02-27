@@ -6,6 +6,8 @@ static void _uscript_write(WrenVM* vm, const char* text);
 static void _uscript_error(WrenVM* vm, WrenErrorType type, const char* module_name, int line_num, const char* message);
 static void* wrenGetSlotPointer(WrenVM* vm, int slot);
 static void wrenSetSlotPointer(WrenVM* vm, int slot, void* ptr);
+static char* wrenGetSlotNullableString(WrenVM* vm, int slot);
+static void wrenSetSlotNullableString(WrenVM* vm, int slot, char* str);
 static int wrenInterpretFile(WrenVM* vm, char* path);
 static void _uscript_bview_pop_kmap(WrenVM* vm);
 static void _uscript_bview_push_kmap(WrenVM* vm);
@@ -13,7 +15,7 @@ static void _uscript_editor_get_input(WrenVM* vm);
 static void _uscript_editor_menu(WrenVM* vm);
 static void _uscript_editor_prompt(WrenVM* vm);
 static void _uscript_editor_register_cmd(WrenVM* vm);
-
+static WrenHandle* _uscript_make_cmd_map(uscript_t* uscript, cmd_context_t* ctx);
 #include "uscript.inc"
 
 // Run uscript
@@ -34,9 +36,14 @@ uscript_t* uscript_run(editor_t* editor, char* path) {
     if (wrenInterpret(uscript->vm, mle_wren) != WREN_RESULT_SUCCESS
         || wrenInterpretFile(uscript->vm, path) != MLE_OK
     ) {
-        free(uscript);
+        uscript_destroy(uscript);
         return NULL;
     }
+
+    wrenEnsureSlots(uscript->vm, 1);
+    wrenGetVariable(uscript->vm, "main", "mle", 0);
+    uscript->class_mle = wrenGetSlotHandle(uscript->vm, 0);
+    uscript->func_list2map = wrenMakeCallHandle(uscript->vm, "list2map(_,_)");
 
     return uscript;
 }
@@ -51,6 +58,8 @@ int uscript_destroy(uscript_t* uscript) {
         wrenReleaseHandle(uscript->vm, uhandle->method);
         free(uhandle);
     }
+    if (uscript->class_mle) wrenReleaseHandle(uscript->vm, uscript->class_mle);
+    if (uscript->func_list2map) wrenReleaseHandle(uscript->vm, uscript->func_list2map);
     wrenFreeVM(uscript->vm);
     free(uscript);
     return MLE_OK;
@@ -59,12 +68,17 @@ int uscript_destroy(uscript_t* uscript) {
 // Invoke cmd in uscript
 static int _uscript_cmd(cmd_context_t* ctx) {
     WrenVM* vm;
+    WrenHandle* cmd_map;
     uhandle_t* uhandle;
     uhandle = (uhandle_t*)ctx->cmd->udata;
     vm = uhandle->uscript->vm;
+    if (!(cmd_map = _uscript_make_cmd_map(uhandle->uscript, ctx))) {
+        return MLE_ERR;
+    }
     wrenEnsureSlots(vm, 2);
     wrenSetSlotHandle(vm, 0, uhandle->receiver);
-    wrenSetSlotPointer(vm, 1, ctx->cursor->mark); // TODO context as map
+    wrenSetSlotHandle(vm, 1, cmd_map);
+    wrenReleaseHandle(vm, cmd_map);
     if (wrenCall(vm, uhandle->method) != WREN_RESULT_SUCCESS) {
         return MLE_ERR;
     } else if (wrenGetSlotType(vm, 0) == WREN_TYPE_BOOL && !wrenGetSlotBool(vm, 0)) {
@@ -106,6 +120,23 @@ static void wrenSetSlotPointer(WrenVM* vm, int slot, void* ptr) {
     } else {
         snprintf(ptrbuf, 32, "%llx", (unsigned long long)ptr);
         wrenSetSlotString(vm, slot, ptrbuf);
+    }
+}
+
+// Get nullable string from Wren slot
+static char* wrenGetSlotNullableString(WrenVM* vm, int slot) {
+    if (wrenGetSlotType(vm, slot) == WREN_TYPE_STRING) {
+        return (char*)wrenGetSlotString(vm, slot);
+    }
+    return NULL;
+}
+
+// Set nullable string to Wren slot
+static void wrenSetSlotNullableString(WrenVM* vm, int slot, char* str) {
+    if (str == NULL) {
+        wrenSetSlotNull(vm, slot);
+    } else {
+        wrenSetSlotString(vm, slot, (const char*)str);
     }
 }
 
@@ -173,4 +204,38 @@ static void _uscript_editor_register_cmd(WrenVM* vm) {
     cmd.udata = (void*)uhandle;
     rv = editor_register_cmd(uscript->editor, &cmd);
     wrenSetSlotBool(vm, 0, rv == MLE_OK ? 1 : 0);
+}
+
+static WrenHandle* _uscript_make_cmd_map(uscript_t* uscript, cmd_context_t* ctx) {
+    // TODO Refactor when wrenSetSlotNewMap is available
+    WrenVM* vm;
+    char input_str[16];
+    vm = uscript->vm;
+    editor_input_to_key(ctx->editor, &ctx->input, input_str);
+    wrenEnsureSlots(vm, 4); // 0 (mle_class), 1 (keys), 2 (vals), 3 (tmp)
+    wrenSetSlotHandle(vm, 0, uscript->class_mle);
+    wrenSetSlotNewList(vm, 1);
+    wrenSetSlotString(vm, 3, "editor");       wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "loop_ctx");     wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "cmd");          wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "buffer");       wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "bview");        wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "cursor");       wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "mark");         wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "input");        wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotString(vm, 3, "static_param"); wrenInsertInList(vm, 1, -1, 3);
+    wrenSetSlotNewList(vm, 2);
+    wrenSetSlotPointer(vm, 3, (void*)ctx->editor);       wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotPointer(vm, 3, (void*)ctx->loop_ctx);     wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotPointer(vm, 3, (void*)ctx->cmd);          wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotPointer(vm, 3, (void*)ctx->buffer);       wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotPointer(vm, 3, (void*)ctx->bview);        wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotPointer(vm, 3, (void*)ctx->cursor);       wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotPointer(vm, 3, (void*)ctx->cursor->mark); wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotString(vm, 3, (const char*)input_str);    wrenInsertInList(vm, 2, -1, 3);
+    wrenSetSlotNullableString(vm, 3, ctx->static_param); wrenInsertInList(vm, 2, -1, 3);
+    if (wrenCall(vm, uscript->func_list2map) != WREN_RESULT_SUCCESS) {
+        return NULL;
+    }
+    return wrenGetSlotHandle(vm, 0);
 }

@@ -40,7 +40,14 @@ class CodeGen {
     }
 
     function printForeignClass($protos) {
-        echo 'const char* mle_wren = "class mle {\n\\' . "\n";
+        echo 'const char* mle_wren = "class mle {   \n\\' . "\n";
+        echo '    static list2map(ks, vs) {         \n\\' . "\n";
+        echo '        var m = {}                    \n\\' . "\n";
+        echo '        for (i in 0...ks.count) {     \n\\' . "\n";
+        echo '            m[ks[i]] = vs[i]          \n\\' . "\n";
+        echo '        }                             \n\\' . "\n";
+        echo '        return m                      \n\\' . "\n";
+        echo '    }                                 \n\\' . "\n";
         foreach ($protos as $proto) {
             $non_ret_params = array_filter($proto->params, function($param) {
                 return !$param->is_ret;
@@ -136,7 +143,7 @@ class CodeGen {
         if (strpos($type, 'int') !== false || $type === 'char' || $type === 'float') {
             printf("    %s = (%s)wrenGetSlotDouble(vm, %d);\n", $name, $type, $slot);
         } else if ($type === 'char*' || $type === 'const char*') {
-            printf("    %s = (%s)wrenGetSlotString(vm, %d);\n", $name, $type, $slot);
+            printf("    %s = (%s)wrenGetSlotNullableString(vm, %d);\n", $name, $type, $slot);
         } else if (strpos($type, '*') !== false) {
             printf("    %s = (%s)wrenGetSlotPointer(vm, %d);\n", $name, $type, $slot);
         } else {

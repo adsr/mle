@@ -370,6 +370,8 @@ struct prompt_hnode_s {
 struct uscript_s {
     editor_t* editor;
     WrenVM* vm;
+    WrenHandle* class_mle;
+    WrenHandle* func_list2map;
     uhandle_t* uhandles;
     uscript_t* prev;
     uscript_t* next;

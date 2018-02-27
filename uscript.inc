@@ -1,4 +1,11 @@
-const char* mle_wren = "class mle {\n\
+const char* mle_wren = "class mle {   \n\
+    static list2map(ks, vs) {         \n\
+        var m = {}                    \n\
+        for (i in 0...ks.count) {     \n\
+            m[ks[i]] = vs[i]          \n\
+        }                             \n\
+        return m                      \n\
+    }                                 \n\
     foreign static bview_add_cursor(self, bline, col) \n\
     foreign static bview_add_cursor_asleep(self, bline, col) \n\
     foreign static bview_center_viewport_y(self) \n\
@@ -41,6 +48,7 @@ const char* mle_wren = "class mle {\n\
     foreign static editor_count_bviews_by_buffer(editor, buffer) \n\
     foreign static editor_display(editor) \n\
     foreign static editor_get_input(editor, loop_ctx, ctx) \n\
+    foreign static editor_input_to_key(editor, input, keybuf) \n\
     foreign static editor_menu(editor, fn_callback, opt_buf_data, opt_buf_data_len, opt_aproc) \n\
     foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer) \n\
     foreign static editor_prompt(editor, prompt, params) \n\
@@ -226,7 +234,7 @@ static void _uscript_bview_new(WrenVM* vm) {
     int opt_path_len;
     buffer_t* opt_buffer;
     editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    opt_path = (char*)wrenGetSlotString(vm, 2);
+    opt_path = (char*)wrenGetSlotNullableString(vm, 2);
     opt_path_len = (int)wrenGetSlotDouble(vm, 3);
     opt_buffer = (buffer_t*)wrenGetSlotPointer(vm, 4);
     rv = bview_new(editor, opt_path, opt_path_len, opt_buffer);
@@ -242,7 +250,7 @@ static void _uscript_bview_open(WrenVM* vm) {
     char* path;
     int path_len;
     self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    path = (char*)wrenGetSlotString(vm, 2);
+    path = (char*)wrenGetSlotNullableString(vm, 2);
     path_len = (int)wrenGetSlotDouble(vm, 3);
     rv = bview_open(self, path, path_len);
     wrenEnsureSlots(vm, 2);
@@ -318,7 +326,7 @@ static void _uscript_bview_set_syntax(WrenVM* vm) {
     bview_t* self;
     char* opt_syntax;
     self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    opt_syntax = (char*)wrenGetSlotString(vm, 2);
+    opt_syntax = (char*)wrenGetSlotNullableString(vm, 2);
     rv = bview_set_syntax(self, opt_syntax);
     wrenEnsureSlots(vm, 2);
     wrenSetSlotNewList(vm, 0);
@@ -459,8 +467,8 @@ static void _uscript_cursor_replace(WrenVM* vm) {
     char* opt_replacement;
     cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
     interactive = (int)wrenGetSlotDouble(vm, 2);
-    opt_regex = (char*)wrenGetSlotString(vm, 3);
-    opt_replacement = (char*)wrenGetSlotString(vm, 4);
+    opt_regex = (char*)wrenGetSlotNullableString(vm, 3);
+    opt_replacement = (char*)wrenGetSlotNullableString(vm, 4);
     rv = cursor_replace(cursor, interactive, opt_regex, opt_replacement);
     wrenEnsureSlots(vm, 2);
     wrenSetSlotNewList(vm, 0);
@@ -490,7 +498,7 @@ static void _uscript_cursor_select_by(WrenVM* vm) {
     cursor_t* cursor;
     const char* strat;
     cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    strat = (const char*)wrenGetSlotString(vm, 2);
+    strat = (const char*)wrenGetSlotNullableString(vm, 2);
     rv = cursor_select_by(cursor, strat);
     wrenEnsureSlots(vm, 2);
     wrenSetSlotNewList(vm, 0);
@@ -631,6 +639,21 @@ static void _uscript_editor_display(WrenVM* vm) {
 // static void _uscript_editor_get_input(WrenVM* vm) {
 // }
 
+static void _uscript_editor_input_to_key(WrenVM* vm) {
+    int rv;
+    editor_t* editor;
+    kinput_t* input;
+    char* keybuf;
+    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
+    input = (kinput_t*)wrenGetSlotPointer(vm, 2);
+    keybuf = (char*)wrenGetSlotNullableString(vm, 3);
+    rv = editor_input_to_key(editor, input, keybuf);
+    wrenEnsureSlots(vm, 2);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, (double)rv);
+    wrenInsertInList(vm, 0, -1, 1);
+}
+
 // static void _uscript_editor_menu(WrenVM* vm) {
 // }
 
@@ -643,19 +666,19 @@ static void _uscript_editor_open_bview(WrenVM* vm) {
     int opt_path_len;
     int make_active;
     bint_t linenum;
-    bview_rect_t* opt_rect;
+    int skip_resize;
     buffer_t* opt_buffer;
     bview_t* optret_bview = NULL;
     editor = (editor_t*)wrenGetSlotPointer(vm, 1);
     parent = (bview_t*)wrenGetSlotPointer(vm, 2);
     type = (int)wrenGetSlotDouble(vm, 3);
-    opt_path = (char*)wrenGetSlotString(vm, 4);
+    opt_path = (char*)wrenGetSlotNullableString(vm, 4);
     opt_path_len = (int)wrenGetSlotDouble(vm, 5);
     make_active = (int)wrenGetSlotDouble(vm, 6);
     linenum = (bint_t)wrenGetSlotDouble(vm, 7);
-    opt_rect = (bview_rect_t*)wrenGetSlotPointer(vm, 8);
+    skip_resize = (int)wrenGetSlotDouble(vm, 8);
     opt_buffer = (buffer_t*)wrenGetSlotPointer(vm, 9);
-    rv = editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, opt_rect, opt_buffer, &optret_bview);
+    rv = editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer, &optret_bview);
     wrenEnsureSlots(vm, 3);
     wrenSetSlotNewList(vm, 0);
     wrenSetSlotDouble(vm, 1, (double)rv);
@@ -816,7 +839,7 @@ static void _uscript_mark_find_next_re(WrenVM* vm) {
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotString(vm, 2);
+    re = (char*)wrenGetSlotNullableString(vm, 2);
     re_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_find_next_re(self, re, re_len, &ret_line, &ret_col, &ret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -840,7 +863,7 @@ static void _uscript_mark_find_next_str(WrenVM* vm) {
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotString(vm, 2);
+    str = (char*)wrenGetSlotNullableString(vm, 2);
     str_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_find_next_str(self, str, str_len, &ret_line, &ret_col, &ret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -864,7 +887,7 @@ static void _uscript_mark_find_prev_re(WrenVM* vm) {
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotString(vm, 2);
+    re = (char*)wrenGetSlotNullableString(vm, 2);
     re_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_find_prev_re(self, re, re_len, &ret_line, &ret_col, &ret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -888,7 +911,7 @@ static void _uscript_mark_find_prev_str(WrenVM* vm) {
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotString(vm, 2);
+    str = (char*)wrenGetSlotNullableString(vm, 2);
     str_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_find_prev_str(self, str, str_len, &ret_line, &ret_col, &ret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -970,7 +993,7 @@ static void _uscript_mark_insert_after(WrenVM* vm) {
     char* data;
     bint_t data_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    data = (char*)wrenGetSlotString(vm, 2);
+    data = (char*)wrenGetSlotNullableString(vm, 2);
     data_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_insert_after(self, data, data_len);
     wrenEnsureSlots(vm, 2);
@@ -985,7 +1008,7 @@ static void _uscript_mark_insert_before(WrenVM* vm) {
     char* data;
     bint_t data_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    data = (char*)wrenGetSlotString(vm, 2);
+    data = (char*)wrenGetSlotNullableString(vm, 2);
     data_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_insert_before(self, data, data_len);
     wrenEnsureSlots(vm, 2);
@@ -1266,7 +1289,7 @@ static void _uscript_mark_move_next_re(WrenVM* vm) {
     char* re;
     bint_t re_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotString(vm, 2);
+    re = (char*)wrenGetSlotNullableString(vm, 2);
     re_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_next_re(self, re, re_len);
     wrenEnsureSlots(vm, 2);
@@ -1284,7 +1307,7 @@ static void _uscript_mark_move_next_re_ex(WrenVM* vm) {
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotString(vm, 2);
+    re = (char*)wrenGetSlotNullableString(vm, 2);
     re_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_next_re_ex(self, re, re_len, &optret_line, &optret_col, &optret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -1305,7 +1328,7 @@ static void _uscript_mark_move_next_re_nudge(WrenVM* vm) {
     char* re;
     bint_t re_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotString(vm, 2);
+    re = (char*)wrenGetSlotNullableString(vm, 2);
     re_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_next_re_nudge(self, re, re_len);
     wrenEnsureSlots(vm, 2);
@@ -1320,7 +1343,7 @@ static void _uscript_mark_move_next_str(WrenVM* vm) {
     char* str;
     bint_t str_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotString(vm, 2);
+    str = (char*)wrenGetSlotNullableString(vm, 2);
     str_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_next_str(self, str, str_len);
     wrenEnsureSlots(vm, 2);
@@ -1338,7 +1361,7 @@ static void _uscript_mark_move_next_str_ex(WrenVM* vm) {
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotString(vm, 2);
+    str = (char*)wrenGetSlotNullableString(vm, 2);
     str_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_next_str_ex(self, str, str_len, &optret_line, &optret_col, &optret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -1359,7 +1382,7 @@ static void _uscript_mark_move_next_str_nudge(WrenVM* vm) {
     char* str;
     bint_t str_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotString(vm, 2);
+    str = (char*)wrenGetSlotNullableString(vm, 2);
     str_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_next_str_nudge(self, str, str_len);
     wrenEnsureSlots(vm, 2);
@@ -1387,7 +1410,7 @@ static void _uscript_mark_move_prev_re(WrenVM* vm) {
     char* re;
     bint_t re_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotString(vm, 2);
+    re = (char*)wrenGetSlotNullableString(vm, 2);
     re_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_prev_re(self, re, re_len);
     wrenEnsureSlots(vm, 2);
@@ -1405,7 +1428,7 @@ static void _uscript_mark_move_prev_re_ex(WrenVM* vm) {
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotString(vm, 2);
+    re = (char*)wrenGetSlotNullableString(vm, 2);
     re_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_prev_re_ex(self, re, re_len, &optret_line, &optret_col, &optret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -1426,7 +1449,7 @@ static void _uscript_mark_move_prev_str(WrenVM* vm) {
     char* str;
     bint_t str_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotString(vm, 2);
+    str = (char*)wrenGetSlotNullableString(vm, 2);
     str_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_prev_str(self, str, str_len);
     wrenEnsureSlots(vm, 2);
@@ -1444,7 +1467,7 @@ static void _uscript_mark_move_prev_str_ex(WrenVM* vm) {
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotString(vm, 2);
+    str = (char*)wrenGetSlotNullableString(vm, 2);
     str_len = (bint_t)wrenGetSlotDouble(vm, 3);
     rv = mark_move_prev_str_ex(self, str, str_len, &optret_line, &optret_col, &optret_num_chars);
     wrenEnsureSlots(vm, 5);
@@ -1510,7 +1533,7 @@ static void _uscript_mark_replace(WrenVM* vm) {
     bint_t data_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
     num_chars = (bint_t)wrenGetSlotDouble(vm, 2);
-    data = (char*)wrenGetSlotString(vm, 3);
+    data = (char*)wrenGetSlotNullableString(vm, 3);
     data_len = (bint_t)wrenGetSlotDouble(vm, 4);
     rv = mark_replace(self, num_chars, data, data_len);
     wrenEnsureSlots(vm, 2);
@@ -1527,7 +1550,7 @@ static void _uscript_mark_replace_between_mark(WrenVM* vm) {
     bint_t data_len;
     self = (mark_t*)wrenGetSlotPointer(vm, 1);
     other = (mark_t*)wrenGetSlotPointer(vm, 2);
-    data = (char*)wrenGetSlotString(vm, 3);
+    data = (char*)wrenGetSlotNullableString(vm, 3);
     data_len = (bint_t)wrenGetSlotDouble(vm, 4);
     rv = mark_replace_between_mark(self, other, data, data_len);
     wrenEnsureSlots(vm, 2);
@@ -1641,6 +1664,8 @@ static WrenForeignMethodFn _uscript_bind_method(WrenVM* vm, const char* module, 
         return _uscript_editor_display;
     } else if (strncmp(sig, "editor_get_input(", 17) == 0) {
         return _uscript_editor_get_input;
+    } else if (strncmp(sig, "editor_input_to_key(", 20) == 0) {
+        return _uscript_editor_input_to_key;
     } else if (strncmp(sig, "editor_menu(", 12) == 0) {
         return _uscript_editor_menu;
     } else if (strncmp(sig, "editor_open_bview(", 18) == 0) {
