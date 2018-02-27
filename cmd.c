@@ -503,13 +503,13 @@ int cmd_cut_by(cmd_context_t* ctx) {
 
 // Go to next bview
 int cmd_next(cmd_context_t* ctx) {
-    editor_set_active(ctx->editor, ctx->bview->all_prev);
+    editor_set_active(ctx->editor, ctx->bview->all_next);
     return MLE_OK;
 }
 
 // Go to prev bview
 int cmd_prev(cmd_context_t* ctx) {
-    editor_set_active(ctx->editor, ctx->bview->all_next);
+    editor_set_active(ctx->editor, ctx->bview->all_prev);
     return MLE_OK;
 }
 

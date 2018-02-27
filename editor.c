@@ -307,7 +307,7 @@ int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_pat
     if (!found) {
         bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
         bview->type = type;
-        CDL_PREPEND2(editor->all_bviews, bview, all_prev, all_next);
+        CDL_APPEND2(editor->all_bviews, bview, all_prev, all_next);
         if (!parent) {
             DL_APPEND2(editor->top_bviews, bview, top_prev, top_next);
         } else {
