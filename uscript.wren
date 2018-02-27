@@ -1,6 +1,7 @@
-// mle -x uscript.wren -K kmap_wren,,1 -k wren_hello,F12, -n kmap_wren
+// mle -x uscript.wren -K kmap_wren,,1 -k cmd_wren_hello,F12, -n kmap_wren
 
-mle.editor_register_cmd("wren_hello", Fn.new {|mark|
-    mle.mark_insert_before(mark, "hi from Wren\n", 13)
-    System.print("hi from System.print")
+mle.editor_register_cmd("cmd_wren_hello", Fn.new {|ctx|
+    var rv = mle.editor_prompt(ctx["editor"], "What is your name?", null)
+    var str = "Hello %(rv[1]) from Wren"
+    mle.mark_insert_before(ctx["mark"], str, str.bytes.count)
 })

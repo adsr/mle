@@ -97,7 +97,7 @@ static void _uscript_write(WrenVM* vm, const char* text) {
 
 // Handle error from uscript
 static void _uscript_error(WrenVM* vm, WrenErrorType type, const char* module_name, int line_num, const char* message) {
-    _uscript_write(vm, message); // TODO something else?
+    MLE_LOG_ERR("Error in uscript %s:%d: %s\n", module_name, line_num, message);
 }
 
 // Get pointer from Wren slot as string
@@ -185,7 +185,22 @@ static void _uscript_editor_menu(WrenVM* vm) {
 }
 
 static void _uscript_editor_prompt(WrenVM* vm) {
-    // TODO
+    int rv;
+    editor_t* editor;
+    char* prompt;
+    editor_prompt_params_t* params;
+    char* optret_answer = NULL;
+    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
+    prompt = (char*)wrenGetSlotNullableString(vm, 2);
+    params = NULL;
+    rv = editor_prompt(editor, prompt, params, &optret_answer);
+    wrenEnsureSlots(vm, 3);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, (double)rv);
+    wrenInsertInList(vm, 0, -1, 1);
+    wrenSetSlotNullableString(vm, 2, (char*)optret_answer);
+    wrenInsertInList(vm, 0, -1, 2);
+    free(optret_answer);
 }
 
 static void _uscript_editor_register_cmd(WrenVM* vm) {

@@ -33,10 +33,10 @@ $(termbox_objects): %.o: %.c
 	$(CC) -c $(termbox_cflags) $< -o $@
 
 test: mle test_mle
-	$(MAKE) -C tests && $(MAKE) -C mlbuf test
+	$(MAKE) -C mlbuf test
 
 test_mle: mle
-	./mle -v
+	./mle -v && $(MAKE) -C tests
 
 sloc:
 	find . -name '*.c' -or -name '*.h' | \
