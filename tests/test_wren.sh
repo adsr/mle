@@ -35,7 +35,7 @@ source 'test.sh'
 macro='F11 t e s t enter . . . F11 C-c'
 cat >$wren_script <<"EOD"
 mle.editor_register_cmd("cmd_wren_test", Fn.new {|ctx|
-    var rv = mle.editor_prompt(ctx["editor"], "input?", null)
+    var rv = mle.editor_prompt(ctx["editor"], "input?")
     var str = ""
     if (rv[1]) {
         str = "hello %(rv[1]) from wren"
@@ -47,4 +47,21 @@ mle.editor_register_cmd("cmd_wren_test", Fn.new {|ctx|
 EOD
 declare -A expected
 expected[prompt_data]='^hello test from wren...you hit ctrl-c$'
+source 'test.sh'
+
+# mle.editor_register_observer
+macro='F11'
+cat >$wren_script <<"EOD"
+mle.editor_register_cmd("cmd_wren_test", Fn.new {|ctx|
+    System.write("ell")
+})
+mle.editor_register_observer("cmd_wren_test", 1, Fn.new {|ctx|
+    System.write("h")
+})
+mle.editor_register_observer("cmd_wren_test", 0, Fn.new {|ctx|
+    System.write("o")
+})
+EOD
+declare -A expected
+expected[prompt_data]='^hello$'
 source 'test.sh'
