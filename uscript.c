@@ -1,7 +1,8 @@
 #include "mle.h"
 
 static int _uscript_cmd(cmd_context_t* ctx);
-static WrenForeignMethodFn _uscript_bind_method(WrenVM* vm, const char* module_name, const char* class_name, bool is_static, const char* sig);
+static int _uscript_observer_cb(cmd_context_t* ctx);
+static int _uscript_cmd_ex(cmd_context_t* ctx, int is_observer_cb);
 static void _uscript_write(WrenVM* vm, const char* text);
 static void _uscript_error(WrenVM* vm, WrenErrorType type, const char* module_name, int line_num, const char* message);
 static void* wrenGetSlotPointer(WrenVM* vm, int slot);
@@ -9,13 +10,14 @@ static void wrenSetSlotPointer(WrenVM* vm, int slot, void* ptr);
 static char* wrenGetSlotNullableString(WrenVM* vm, int slot);
 static void wrenSetSlotNullableString(WrenVM* vm, int slot, char* str);
 static int wrenInterpretFile(WrenVM* vm, char* path);
-static void _uscript_bview_pop_kmap(WrenVM* vm);
-static void _uscript_bview_push_kmap(WrenVM* vm);
-static void _uscript_editor_get_input(WrenVM* vm);
-static void _uscript_editor_menu(WrenVM* vm);
+static WrenHandle* _uscript_make_cmd_map(uscript_t* uscript, cmd_context_t* ctx);
 static void _uscript_editor_prompt(WrenVM* vm);
 static void _uscript_editor_register_cmd(WrenVM* vm);
-static WrenHandle* _uscript_make_cmd_map(uscript_t* uscript, cmd_context_t* ctx);
+static void _uscript_editor_register_observer(WrenVM* vm);
+static void _uscript_editor_get_input(WrenVM* vm);
+static void _uscript_editor_menu(WrenVM* vm);
+static void _uscript_bview_pop_kmap(WrenVM* vm);
+static void _uscript_bview_push_kmap(WrenVM* vm);
 #include "uscript.inc"
 
 // Run uscript
@@ -65,12 +67,20 @@ int uscript_destroy(uscript_t* uscript) {
     return MLE_OK;
 }
 
-// Invoke cmd in uscript
 static int _uscript_cmd(cmd_context_t* ctx) {
+    return _uscript_cmd_ex(ctx, 0);
+}
+
+static int _uscript_observer_cb(cmd_context_t* ctx) {
+    return _uscript_cmd_ex(ctx, 1);
+}
+
+// Invoke cmd in uscript
+static int _uscript_cmd_ex(cmd_context_t* ctx, int is_observer_cb) {
     WrenVM* vm;
     WrenHandle* cmd_map;
     uhandle_t* uhandle;
-    uhandle = (uhandle_t*)ctx->cmd->udata;
+    uhandle = (uhandle_t*)(is_observer_cb ? ctx->observer_udata : ctx->cmd->udata);
     vm = uhandle->uscript->vm;
     if (!(cmd_map = _uscript_make_cmd_map(uhandle->uscript, ctx))) {
         return MLE_ERR;
@@ -168,59 +178,6 @@ static int wrenInterpretFile(WrenVM* vm, char* path) {
     return rv;
 }
 
-static void _uscript_bview_pop_kmap(WrenVM* vm) {
-    // TODO
-}
-
-static void _uscript_bview_push_kmap(WrenVM* vm) {
-    // TODO
-}
-
-static void _uscript_editor_get_input(WrenVM* vm) {
-    // TODO
-}
-
-static void _uscript_editor_menu(WrenVM* vm) {
-    // TODO
-}
-
-static void _uscript_editor_prompt(WrenVM* vm) {
-    int rv;
-    editor_t* editor;
-    char* prompt;
-    editor_prompt_params_t* params;
-    char* optret_answer = NULL;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    prompt = (char*)wrenGetSlotNullableString(vm, 2);
-    params = NULL;
-    rv = editor_prompt(editor, prompt, params, &optret_answer);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotNullableString(vm, 2, (char*)optret_answer);
-    wrenInsertInList(vm, 0, -1, 2);
-    free(optret_answer);
-}
-
-static void _uscript_editor_register_cmd(WrenVM* vm) {
-    uscript_t* uscript;
-    cmd_t cmd = {0};
-    uscript = (uscript_t*)wrenGetUserData(vm);
-    uhandle_t* uhandle;
-    int rv;
-    uhandle = calloc(1, sizeof(uhandle_t));
-    uhandle->uscript = uscript;
-    uhandle->receiver = wrenGetSlotHandle(vm, 2);
-    uhandle->method = wrenMakeCallHandle(vm, "call(_)");
-    DL_APPEND(uscript->uhandles, uhandle);
-    cmd.name = (char*)wrenGetSlotString(vm, 1); // strdup'd by editor_register_cmd
-    cmd.func = _uscript_cmd;
-    cmd.udata = (void*)uhandle;
-    rv = editor_register_cmd(uscript->editor, &cmd);
-    wrenSetSlotBool(vm, 0, rv == MLE_OK ? 1 : 0);
-}
-
 static WrenHandle* _uscript_make_cmd_map(uscript_t* uscript, cmd_context_t* ctx) {
     // TODO Refactor when wrenSetSlotNewMap is available
     WrenVM* vm;
@@ -253,4 +210,88 @@ static WrenHandle* _uscript_make_cmd_map(uscript_t* uscript, cmd_context_t* ctx)
         return NULL;
     }
     return wrenGetSlotHandle(vm, 0);
+}
+
+// foreign static editor_prompt(editor, prompt)
+static void _uscript_editor_prompt(WrenVM* vm) {
+    int rv;
+    editor_t* editor;
+    char* prompt;
+    editor_prompt_params_t* params;
+    char* optret_answer = NULL;
+    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
+    prompt = (char*)wrenGetSlotNullableString(vm, 2);
+    params = NULL;
+    rv = editor_prompt(editor, prompt, params, &optret_answer);
+    wrenEnsureSlots(vm, 3);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, (double)rv);
+    wrenInsertInList(vm, 0, -1, 1);
+    wrenSetSlotNullableString(vm, 2, (char*)optret_answer);
+    wrenInsertInList(vm, 0, -1, 2);
+    free(optret_answer);
+}
+
+// foreign static editor_register_cmd(cmd_name, cmd_fn)
+static void _uscript_editor_register_cmd(WrenVM* vm) {
+    uscript_t* uscript;
+    uhandle_t* uhandle;
+    int rv;
+    cmd_t cmd = {0};
+    uscript = (uscript_t*)wrenGetUserData(vm);
+    uhandle = calloc(1, sizeof(uhandle_t));
+    uhandle->uscript = uscript;
+    uhandle->receiver = wrenGetSlotHandle(vm, 2);
+    uhandle->method = wrenMakeCallHandle(vm, "call(_)");
+    DL_APPEND(uscript->uhandles, uhandle);
+    cmd.name = (char*)wrenGetSlotString(vm, 1); // strdup'd by editor_register_cmd
+    cmd.func = _uscript_cmd;
+    cmd.udata = (void*)uhandle;
+    rv = editor_register_cmd(uscript->editor, &cmd);
+    wrenEnsureSlots(vm, 2);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, rv == MLE_OK ? 1 : 0);
+    wrenInsertInList(vm, 0, -1, 1);
+}
+
+// foreign static editor_register_observer(cmd_name, is_before, notify_fn)
+static void _uscript_editor_register_observer(WrenVM* vm) {
+    uscript_t* uscript;
+    uhandle_t* uhandle;
+    int rv;
+    char* cmd_name;
+    int is_before;
+    uscript = (uscript_t*)wrenGetUserData(vm);
+    uhandle = calloc(1, sizeof(uhandle_t));
+    uhandle->uscript = uscript;
+    uhandle->receiver = wrenGetSlotHandle(vm, 3);
+    uhandle->method = wrenMakeCallHandle(vm, "call(_)");
+    DL_APPEND(uscript->uhandles, uhandle);
+    cmd_name = (char*)wrenGetSlotString(vm, 1); // strdup'd by editor_register_observer
+    is_before = (int)wrenGetSlotDouble(vm, 2);
+    rv = editor_register_observer(uscript->editor, cmd_name, (void*)uhandle, is_before, _uscript_observer_cb, NULL);
+    wrenEnsureSlots(vm, 2);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, rv == MLE_OK ? 1 : 0);
+    wrenInsertInList(vm, 0, -1, 1);
+}
+
+// foreign static editor_get_input(editor)
+static void _uscript_editor_get_input(WrenVM* vm) {
+    // TODO
+}
+
+// foreign static editor_menu(editor)
+static void _uscript_editor_menu(WrenVM* vm) {
+    // TODO
+}
+
+// foreign static bview_pop_kmap(editor, kmap_name)
+static void _uscript_bview_pop_kmap(WrenVM* vm) {
+    // TODO
+}
+
+// foreign static bview_push_kmap(editor, kmap)
+static void _uscript_bview_push_kmap(WrenVM* vm) {
+    // TODO
 }
