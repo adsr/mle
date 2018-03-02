@@ -235,9 +235,6 @@ struct kmacro_s {
 struct cmd_s {
     char* name;
     cmd_func_t func;
-    int (*func_viewport)(cmd_t* self);
-    int (*func_init)(cmd_t* self, int is_deinit);
-    int (*func_display)(cmd_t* self);
     void* udata;
     int is_resolved;
     int is_dead;

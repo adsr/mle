@@ -71,7 +71,6 @@ static void _editor_init_status(editor_t* editor);
 static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
 static int _editor_init_headless_mode(editor_t* editor);
 static int _editor_init_startup_macro(editor_t* editor);
-static int _editor_init_or_deinit_commands(editor_t* editor, int is_deinit);
 
 // Init editor from args
 int editor_init(editor_t* editor, int argc, char** argv) {
@@ -137,9 +136,6 @@ int editor_init(editor_t* editor, int argc, char** argv) {
         // Init bviews
         _editor_init_bviews(editor, argc, argv);
 
-        // Init commands
-        _editor_init_or_deinit_commands(editor, 0);
-
         // Init startup macro
         _editor_init_headless_mode(editor);
 
@@ -176,7 +172,6 @@ int editor_deinit(editor_t* editor) {
     prompt_hnode_t* prompt_hnode;
     prompt_hnode_t* prompt_hnode_tmp1;
     prompt_hnode_t* prompt_hnode_tmp2;
-    _editor_init_or_deinit_commands(editor, 1);
     cmd_observer_t* observer;
     cmd_observer_t* observer_tmp;
     if (editor->status) bview_destroy(editor->status);
@@ -2279,17 +2274,5 @@ static int _editor_init_startup_macro(editor_t* editor) {
     if (!macro) return MLE_ERR;
     editor->macro_apply = macro;
     editor->macro_apply_input_index = 0;
-    return MLE_OK;
-}
-
-// Init/deinit commands
-static int _editor_init_or_deinit_commands(editor_t* editor, int is_deinit) {
-    cmd_t* cmd;
-    cmd_t* tmp;
-    HASH_ITER(hh, editor->cmd_map, cmd, tmp) {
-        if (cmd->func_init) {
-            cmd->func_init(cmd, is_deinit);
-        }
-    }
     return MLE_OK;
 }
