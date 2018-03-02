@@ -1,11 +1,12 @@
 <?php
 
 class CodeGen {
-    public $hardcode_re = '@(editor_(menu|register_cmd|get_input|prompt)|kmap|fn_)@';
     public $blacklist_re = '@(editor_(init|deinit|run|debug_dump)|cre|listener)@';
 
     function run() {
-        $protos = $this->getProtos();
+        $protos = $this->getProtoMap();
+        $hardcoded = $this->getHardcodedProtoMap();
+        $protos = array_merge($protos, $hardcoded);
         usort($protos, function ($a, $b) {
             return strcmp($a->name, $b->name);
         });
@@ -14,7 +15,7 @@ class CodeGen {
         $this->printBindCallback($protos);
     }
 
-    function getProtos() {
+    function getProtoMap() {
         $mlbuf_h = __DIR__ . '/mlbuf/mlbuf.h';
         $mle_h = __DIR__ . '/mle.h';
         $grep_re = '^\S+ (editor|bview|cursor|mark)_.*\);$';
@@ -34,9 +35,44 @@ class CodeGen {
             }
             return true;
         });
-        return array_map(function($proto_str) {
+        $protos = array_map(function($proto_str) {
             return new Proto($proto_str);
         }, $proto_strs);
+        return array_combine(
+            array_column($protos, 'name'),
+            $protos
+        );
+    }
+
+    function getHardcodedProtoMap() {
+        $uscript_c = __DIR__ . '/uscript.c';
+        $grep_re = '^// foreign static (?<name>[^\(]+)\((?<params>[^\)]*)\)$';
+        $grep_cmd = sprintf(
+            'grep -hP %s %s',
+            escapeshellarg($grep_re),
+            escapeshellarg($uscript_c)
+        );
+        $hardcoded_strs = explode("\n", shell_exec($grep_cmd));
+        $hardcoded_strs = array_filter($hardcoded_strs);
+        $protos = array_map(function($hardcoded_str) use ($grep_re) {
+            $m = null;
+            if (!preg_match("@{$grep_re}@", $hardcoded_str, $m)) {
+                throw new RuntimeException("Failed to parse hardcoded proto: $hardcoded_str");
+            }
+            $params = preg_split('@\s*,\s*@', $m['params']);
+            $params = array_map(function($param) {
+                return sprintf("void* %s", $param);
+            }, $params);
+            $params_str = implode(', ', $params);
+            $proto_str = sprintf("void %s(%s);", $m['name'], $params_str);
+            $proto = new Proto($proto_str);
+            $proto->is_hardcoded = true;
+            return $proto;
+        }, $hardcoded_strs);
+        return array_combine(
+            array_column($protos, 'name'),
+            $protos
+        );
     }
 
     function printForeignClass($protos) {
@@ -87,7 +123,7 @@ class CodeGen {
     }
 
     function printFunc($proto) {
-        $is_hardcoded = preg_match($this->hardcode_re, $proto->name);
+        $is_hardcoded = $proto->is_hardcoded;
         printf(
             "%sstatic void _uscript_%s(WrenVM* vm) {\n",
             $is_hardcoded ? '// ' : '',
@@ -164,6 +200,7 @@ class Proto {
         $this->params = [];
         $this->ret_count = 1;
         $this->has_funcs = false;
+        $this->is_hardcoded = false;
         $param_strs = preg_split('@\s*,\s*@', $match['params']);
         foreach ($param_strs as $param_str) {
             $param = new Param($param_str);
