@@ -18,6 +18,7 @@ typedef struct cursor_s cursor_t; // A cursor (insertion mark + selection bound 
 typedef struct loop_context_s loop_context_t; // Context for a single _editor_loop
 typedef struct cmd_s cmd_t; // A command definition
 typedef struct cmd_context_s cmd_context_t; // Context for a single command invocation
+typedef struct cmd_observer_s cmd_observer_t; // Observer of a cmd
 typedef struct kinput_s kinput_t; // A single key input (similar to a tb_event from termbox)
 typedef struct kmacro_s kmacro_t; // A sequence of kinputs and a name
 typedef struct kmap_s kmap_t; // A map of keychords to functions
@@ -92,6 +93,7 @@ struct editor_s {
     kmap_t* kmap_init;
     aproc_t* aprocs;
     uscript_t* uscripts;
+    cmd_observer_t* cmd_observers;
     FILE* tty;
     int ttyfd;
     char* syntax_override;
@@ -293,11 +295,22 @@ struct cmd_context_s {
     kinput_t input;
     char* static_param;
     int is_user_input;
+    void* observer_udata;
     kinput_t* pastebuf;
     size_t pastebuf_len;
     size_t pastebuf_size;
     int has_pastebuf_leftover;
     kinput_t pastebuf_leftover;
+};
+
+// cmd_observer_t
+struct cmd_observer_s {
+    char* cmd_name;
+    cmd_func_t callback;
+    void* udata;
+    int is_before;
+    cmd_observer_t* next;
+    cmd_observer_t* prev;
 };
 
 // loop_context_t
@@ -398,6 +411,8 @@ int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);
 int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer);
 int editor_register_cmd(editor_t* editor, cmd_t* cmd);
+int editor_register_observer(editor_t* editor, char* cmd_name, void* udata, int is_before, cmd_func_t fn_callback, cmd_observer_t** optret_observer);
+int editor_destroy_observer(editor_t* editor, cmd_observer_t* observer);
 int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* ctx);
 int editor_display(editor_t* editor);
 int editor_debug_dump(editor_t* editor, FILE* fp);

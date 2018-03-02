@@ -32,6 +32,10 @@ static int _editor_prompt_isearch_next(cmd_context_t* ctx);
 static int _editor_prompt_isearch_prev(cmd_context_t* ctx);
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
+static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* ctx);
+static int _editor_notify_cmd_observers_before(cmd_context_t* ctx);
+static int _editor_notify_cmd_observers_after(cmd_context_t* ctx);
+static int _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
 static void _editor_resize(editor_t* editor, int w, int h);
 static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
@@ -173,6 +177,8 @@ int editor_deinit(editor_t* editor) {
     prompt_hnode_t* prompt_hnode_tmp1;
     prompt_hnode_t* prompt_hnode_tmp2;
     _editor_init_or_deinit_commands(editor, 1);
+    cmd_observer_t* observer;
+    cmd_observer_t* observer_tmp;
     if (editor->status) bview_destroy(editor->status);
     CDL_FOREACH_SAFE2(editor->all_bviews, bview, bview_tmp1, bview_tmp2, all_prev, all_next) {
         CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
@@ -205,6 +211,9 @@ int editor_deinit(editor_t* editor) {
             free(prompt_hnode);
         }
         free(prompt_history);
+    }
+    DL_FOREACH_SAFE(editor->cmd_observers, observer, observer_tmp) {
+        editor_destroy_observer(editor, observer);
     }
     if (editor->macro_record) {
         if (editor->macro_record->inputs) free(editor->macro_record->inputs);
@@ -532,6 +541,27 @@ int editor_display(editor_t* editor) {
         _editor_draw_cursors(editor, bview);
     }
     tb_present();
+    return MLE_OK;
+}
+
+// Register a cmd observer
+int editor_register_observer(editor_t* editor, char* cmd_name, void* udata, int is_before, cmd_func_t fn_callback, cmd_observer_t** optret_observer) {
+    cmd_observer_t* observer;
+    observer = calloc(1, sizeof(cmd_observer_t));
+    observer->cmd_name = strdup(cmd_name);
+    observer->callback = fn_callback;
+    observer->udata = udata;
+    observer->is_before = is_before ? 1 : 0;
+    DL_APPEND(editor->cmd_observers, observer);
+    if (optret_observer) *optret_observer = observer;
+    return MLE_OK;
+}
+
+// Register a cmd observer
+int editor_destroy_observer(editor_t* editor, cmd_observer_t* observer) {
+    DL_DELETE(editor->cmd_observers, observer);
+    free(observer->cmd_name);
+    free(observer);
     return MLE_OK;
 }
 
@@ -892,10 +922,19 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
                 _editor_ingest_paste(editor, &cmd_ctx);
             }
             cmd_ctx.cmd = cmd;
-            cmd_ctx.cursor = editor->active ? editor->active->active_cursor : NULL;
-            cmd_ctx.bview = cmd_ctx.cursor ? cmd_ctx.cursor->bview : NULL;
-            cmd_ctx.buffer = cmd_ctx.bview->buffer;
+
+            // Notify 'before' observers
+            _editor_refresh_cmd_context(editor, &cmd_ctx);
+            _editor_notify_cmd_observers_before(&cmd_ctx);
+
+            // Execute cmd
+            _editor_refresh_cmd_context(editor, &cmd_ctx);
             cmd->func(&cmd_ctx);
+
+            // Notify 'after' observers
+            _editor_refresh_cmd_context(editor, &cmd_ctx);
+            _editor_notify_cmd_observers_after(&cmd_ctx);
+
             loop_ctx->binding_node = NULL;
             loop_ctx->wildcard_params_len = 0;
             loop_ctx->numeric_params_len = 0;
@@ -916,6 +955,37 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
 
     // Decrement loop_depth
     editor->loop_depth -= 1;
+}
+
+// Set fresh values on cmd_context
+static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* cmd_ctx) {
+    cmd_ctx->cursor = editor->active->active_cursor;
+    cmd_ctx->bview = cmd_ctx->cursor->bview;
+    cmd_ctx->buffer = cmd_ctx->bview->buffer;
+    cmd_ctx->observer_udata = NULL;
+}
+
+// Notify observers before cmd executes
+static int _editor_notify_cmd_observers_before(cmd_context_t* ctx) {
+    return _editor_notify_cmd_observers(ctx, 1);
+}
+
+// Notify observers after cmd executes
+static int _editor_notify_cmd_observers_after(cmd_context_t* ctx) {
+    return _editor_notify_cmd_observers(ctx, 0);
+}
+// Notify cmd observers
+static int _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before) {
+    cmd_observer_t* observer;
+    DL_FOREACH(ctx->editor->cmd_observers, observer) {
+        if (is_before == observer->is_before
+            && strcmp(ctx->cmd->name, observer->cmd_name) == 0
+        ) {
+            ctx->observer_udata = observer->udata;
+            (observer->callback)(ctx);
+        }
+    }
+    return MLE_OK;
 }
 
 // If input == editor->macro_toggle_key, toggle macro mode and return 1. Else
