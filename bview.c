@@ -393,7 +393,7 @@ int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata)
 
 // Remove and free a listener
 int bview_destroy_listener(bview_t* self, bview_listener_t* listener) {
-    DL_APPEND(self->listeners, listener);
+    DL_DELETE(self->listeners, listener);
     free(listener);
     return MLE_OK;
 }
