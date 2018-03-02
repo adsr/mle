@@ -237,7 +237,6 @@ struct cmd_s {
     cmd_func_t func;
     void* udata;
     int is_resolved;
-    int is_dead;
     UT_hash_handle hh;
 };
 

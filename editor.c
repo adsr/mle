@@ -1294,11 +1294,11 @@ static cmd_t* _editor_resolve_cmd(editor_t* editor, cmd_t** rcmd, char* cmd_name
     cmd_t* tcmd;
     cmd_t* cmd;
     cmd = NULL;
-    if ((*rcmd) && !(*rcmd)->is_dead) {
+    if ((*rcmd)) {
         cmd = *rcmd;
     } else if (cmd_name) {
         HASH_FIND_STR(editor->cmd_map, cmd_name, tcmd);
-        if (tcmd && !tcmd->is_dead) {
+        if (tcmd) {
             *rcmd = tcmd;
             cmd = tcmd;
         }
