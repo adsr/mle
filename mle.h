@@ -651,6 +651,9 @@ extern editor_t _editor;
 
 /*
 TODO PRIORITY
+[ ] replace wren with lua or something else
+[ ] add cmd_tabulate
+[ ] after search/replace, restore previous viewport
 [ ] add `_free_` hint to (opt)ret vars that need to be freed
 [ ] finish uscript callbacks
 [ ] add hooks/event bus

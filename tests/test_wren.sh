@@ -65,3 +65,29 @@ EOD
 declare -A expected
 expected[prompt_data]='^hello$'
 source 'test.sh'
+
+# mle.editor_register_observer
+set -x
+macro='F11'
+cat >$wren_script <<"EOD"
+var mark = null
+var in_callback = false
+mle.editor_register_cmd("cmd_wren_test", Fn.new {|ctx|
+    if (!mark) {
+        var bview = mle.bview_new(ctx["editor"], null, 0, null)
+        var cursor_ret = mle.bview_add_cursor(bview, null, 0)
+        var cursor = cursor_ret[1]
+        mark = mle.cursor_get_mark(cursor)
+    }
+})
+mle.editor_register_observer("buffer:baction", Fn.new {|baction|
+    if (in_callback) {
+        return
+    }
+    in_callback = true
+    mle.mark_insert_before("byte_delta was %(baction["byte_delta"])\n")
+})
+EOD
+declare -A expected
+expected[prompt_data]='^hello$'
+source 'test.sh' # TODO Wren not re-entrant :(
