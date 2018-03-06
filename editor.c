@@ -538,7 +538,7 @@ int editor_display(editor_t* editor) {
 }
 
 // Register a cmd observer
-int editor_register_observer(editor_t* editor, char* event_name, void* udata, cmd_func_t fn_callback, observer_t** optret_observer) {
+int editor_register_observer(editor_t* editor, char* event_name, void* udata, observer_func_t fn_callback, observer_t** optret_observer) {
     observer_t* observer;
     observer = calloc(1, sizeof(observer_t));
     observer->event_name = strdup(event_name);
@@ -952,25 +952,24 @@ static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* cmd_ctx
     cmd_ctx->cursor = editor->active->active_cursor;
     cmd_ctx->bview = cmd_ctx->cursor->bview;
     cmd_ctx->buffer = cmd_ctx->bview->buffer;
-    cmd_ctx->observer_udata = NULL;
 }
 
 // Notify cmd observers
 static void _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before) {
     char* event_name;
     asprintf(&event_name, "cmd:%s:%s", ctx->cmd->name, is_before ? "before" : "after");
-    editor_notify_observers(ctx->editor, event_name, ctx);
+    _editor_refresh_cmd_context(ctx->editor, ctx);
+    editor_notify_observers(ctx->editor, event_name, (void*)ctx);
     free(event_name);
 }
 
 // Notify observers
-int editor_notify_observers(editor_t* editor, char* event_name, cmd_context_t* ctx) {
+int editor_notify_observers(editor_t* editor, char* event_name, void* event_data) {
     observer_t* observer;
+    // TODO implement as hash lookup
     DL_FOREACH(editor->observers, observer) {
         if (strcmp(event_name, observer->event_name) == 0) {
-            _editor_refresh_cmd_context(editor, ctx);
-            ctx->observer_udata = observer->udata;
-            (observer->callback)(ctx);
+            (observer->callback)(event_name, event_data, observer->udata);
         }
     }
     return MLE_OK;

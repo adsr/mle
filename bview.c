@@ -518,6 +518,9 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
     DL_FOREACH(self->listeners, listener) {
         listener->callback(self, action, listener->udata);
     }
+
+    // Notify event observers
+    editor_notify_observers(editor, "buffer:baction", (void*)action);
 }
 
 // Set linenum_width and return 1 if changed
