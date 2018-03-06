@@ -1,4 +1,3 @@
-SHELL=/bin/bash
 DESTDIR?=/usr/local/bin/
 mle_cflags:=$(CFLAGS) -D_GNU_SOURCE -Wall -Wno-missing-braces -g -I./mlbuf/ -I./termbox/src/ -I./uthash/src/ -I./wren/src/include/
 mle_ldlibs:=$(LDLIBS) -lm -lpcre

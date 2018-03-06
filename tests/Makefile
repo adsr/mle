@@ -1,4 +1,3 @@
-SHELL=/bin/bash
 test_scripts:=$(wildcard test_*.sh)
 MLE?=../mle
 
