@@ -51,10 +51,11 @@ const char* mle_wren = "class mle {   \n\
     foreign static editor_get_input(editor) \n\
     foreign static editor_input_to_key(editor, input, keybuf) \n\
     foreign static editor_menu(editor) \n\
+    foreign static editor_notify_observers(editor, event_name, ctx) \n\
     foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer) \n\
     foreign static editor_prompt(editor, prompt) \n\
     foreign static editor_register_cmd(cmd_name, cmd_fn) \n\
-    foreign static editor_register_observer(cmd_name, is_before, notify_fn) \n\
+    foreign static editor_register_observer(event_name, callback_fn) \n\
     foreign static editor_set_active(editor, bview) \n\
     foreign static mark_clone(self) \n\
     foreign static mark_clone_w_letter(self, letter) \n\
@@ -630,9 +631,9 @@ static void _uscript_editor_count_bviews_by_buffer(WrenVM* vm) {
 static void _uscript_editor_destroy_observer(WrenVM* vm) {
     int rv;
     editor_t* editor;
-    cmd_observer_t* observer;
+    observer_t* observer;
     editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    observer = (cmd_observer_t*)wrenGetSlotPointer(vm, 2);
+    observer = (observer_t*)wrenGetSlotPointer(vm, 2);
     rv = editor_destroy_observer(editor, observer);
     wrenEnsureSlots(vm, 2);
     wrenSetSlotNewList(vm, 0);
@@ -671,6 +672,21 @@ static void _uscript_editor_input_to_key(WrenVM* vm) {
 
 // static void _uscript_editor_menu(WrenVM* vm) {
 // }
+
+static void _uscript_editor_notify_observers(WrenVM* vm) {
+    int rv;
+    editor_t* editor;
+    char* event_name;
+    cmd_context_t* ctx;
+    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
+    event_name = (char*)wrenGetSlotNullableString(vm, 2);
+    ctx = (cmd_context_t*)wrenGetSlotPointer(vm, 3);
+    rv = editor_notify_observers(editor, event_name, ctx);
+    wrenEnsureSlots(vm, 2);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, (double)rv);
+    wrenInsertInList(vm, 0, -1, 1);
+}
 
 static void _uscript_editor_open_bview(WrenVM* vm) {
     int rv;
@@ -1688,6 +1704,8 @@ static WrenForeignMethodFn _uscript_bind_method(WrenVM* vm, const char* module, 
         return _uscript_editor_input_to_key;
     } else if (strncmp(sig, "editor_menu(", 12) == 0) {
         return _uscript_editor_menu;
+    } else if (strncmp(sig, "editor_notify_observers(", 24) == 0) {
+        return _uscript_editor_notify_observers;
     } else if (strncmp(sig, "editor_open_bview(", 18) == 0) {
         return _uscript_editor_open_bview;
     } else if (strncmp(sig, "editor_prompt(", 14) == 0) {

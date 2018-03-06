@@ -33,9 +33,7 @@ static int _editor_prompt_isearch_prev(cmd_context_t* ctx);
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* ctx);
-static int _editor_notify_cmd_observers_before(cmd_context_t* ctx);
-static int _editor_notify_cmd_observers_after(cmd_context_t* ctx);
-static int _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before);
+static void _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before);
 static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
 static void _editor_resize(editor_t* editor, int w, int h);
 static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
@@ -172,8 +170,8 @@ int editor_deinit(editor_t* editor) {
     prompt_hnode_t* prompt_hnode;
     prompt_hnode_t* prompt_hnode_tmp1;
     prompt_hnode_t* prompt_hnode_tmp2;
-    cmd_observer_t* observer;
-    cmd_observer_t* observer_tmp;
+    observer_t* observer;
+    observer_t* observer_tmp;
     if (editor->status) bview_destroy(editor->status);
     CDL_FOREACH_SAFE2(editor->all_bviews, bview, bview_tmp1, bview_tmp2, all_prev, all_next) {
         CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
@@ -207,7 +205,7 @@ int editor_deinit(editor_t* editor) {
         }
         free(prompt_history);
     }
-    DL_FOREACH_SAFE(editor->cmd_observers, observer, observer_tmp) {
+    DL_FOREACH_SAFE(editor->observers, observer, observer_tmp) {
         editor_destroy_observer(editor, observer);
     }
     if (editor->macro_record) {
@@ -540,22 +538,21 @@ int editor_display(editor_t* editor) {
 }
 
 // Register a cmd observer
-int editor_register_observer(editor_t* editor, char* cmd_name, void* udata, int is_before, cmd_func_t fn_callback, cmd_observer_t** optret_observer) {
-    cmd_observer_t* observer;
-    observer = calloc(1, sizeof(cmd_observer_t));
-    observer->cmd_name = strdup(cmd_name);
+int editor_register_observer(editor_t* editor, char* event_name, void* udata, cmd_func_t fn_callback, observer_t** optret_observer) {
+    observer_t* observer;
+    observer = calloc(1, sizeof(observer_t));
+    observer->event_name = strdup(event_name);
     observer->callback = fn_callback;
     observer->udata = udata;
-    observer->is_before = is_before ? 1 : 0;
-    DL_APPEND(editor->cmd_observers, observer);
+    DL_APPEND(editor->observers, observer);
     if (optret_observer) *optret_observer = observer;
     return MLE_OK;
 }
 
 // Register a cmd observer
-int editor_destroy_observer(editor_t* editor, cmd_observer_t* observer) {
-    DL_DELETE(editor->cmd_observers, observer);
-    free(observer->cmd_name);
+int editor_destroy_observer(editor_t* editor, observer_t* observer) {
+    DL_DELETE(editor->observers, observer);
+    free(observer->event_name);
     free(observer);
     return MLE_OK;
 }
@@ -918,17 +915,15 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
             }
             cmd_ctx.cmd = cmd;
 
-            // Notify 'before' observers
-            _editor_refresh_cmd_context(editor, &cmd_ctx);
-            _editor_notify_cmd_observers_before(&cmd_ctx);
+            // Notify cmd:*:before observers
+            _editor_notify_cmd_observers(&cmd_ctx, 1);
 
             // Execute cmd
             _editor_refresh_cmd_context(editor, &cmd_ctx);
             cmd->func(&cmd_ctx);
 
-            // Notify 'after' observers
-            _editor_refresh_cmd_context(editor, &cmd_ctx);
-            _editor_notify_cmd_observers_after(&cmd_ctx);
+            // Notify cmd:*:after observers
+            _editor_notify_cmd_observers(&cmd_ctx, 0);
 
             loop_ctx->binding_node = NULL;
             loop_ctx->wildcard_params_len = 0;
@@ -960,22 +955,20 @@ static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* cmd_ctx
     cmd_ctx->observer_udata = NULL;
 }
 
-// Notify observers before cmd executes
-static int _editor_notify_cmd_observers_before(cmd_context_t* ctx) {
-    return _editor_notify_cmd_observers(ctx, 1);
+// Notify cmd observers
+static void _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before) {
+    char* event_name;
+    asprintf(&event_name, "cmd:%s:%s", ctx->cmd->name, is_before ? "before" : "after");
+    editor_notify_observers(ctx->editor, event_name, ctx);
+    free(event_name);
 }
 
-// Notify observers after cmd executes
-static int _editor_notify_cmd_observers_after(cmd_context_t* ctx) {
-    return _editor_notify_cmd_observers(ctx, 0);
-}
-// Notify cmd observers
-static int _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before) {
-    cmd_observer_t* observer;
-    DL_FOREACH(ctx->editor->cmd_observers, observer) {
-        if (is_before == observer->is_before
-            && strcmp(ctx->cmd->name, observer->cmd_name) == 0
-        ) {
+// Notify observers
+int editor_notify_observers(editor_t* editor, char* event_name, cmd_context_t* ctx) {
+    observer_t* observer;
+    DL_FOREACH(editor->observers, observer) {
+        if (strcmp(event_name, observer->event_name) == 0) {
+            _editor_refresh_cmd_context(editor, ctx);
             ctx->observer_udata = observer->udata;
             (observer->callback)(ctx);
         }

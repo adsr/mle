@@ -55,10 +55,10 @@ cat >$wren_script <<"EOD"
 mle.editor_register_cmd("cmd_wren_test", Fn.new {|ctx|
     System.write("ell")
 })
-mle.editor_register_observer("cmd_wren_test", 1, Fn.new {|ctx|
+mle.editor_register_observer("cmd:cmd_wren_test:before", Fn.new {|ctx|
     System.write("h")
 })
-mle.editor_register_observer("cmd_wren_test", 0, Fn.new {|ctx|
+mle.editor_register_observer("cmd:cmd_wren_test:after", Fn.new {|ctx|
     System.write("o")
 })
 EOD

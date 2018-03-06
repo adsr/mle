@@ -254,22 +254,20 @@ static void _uscript_editor_register_cmd(WrenVM* vm) {
     wrenInsertInList(vm, 0, -1, 1);
 }
 
-// foreign static editor_register_observer(cmd_name, is_before, notify_fn)
+// foreign static editor_register_observer(event_name, callback_fn)
 static void _uscript_editor_register_observer(WrenVM* vm) {
     uscript_t* uscript;
     uhandle_t* uhandle;
     int rv;
-    char* cmd_name;
-    int is_before;
+    char* event_name;
     uscript = (uscript_t*)wrenGetUserData(vm);
     uhandle = calloc(1, sizeof(uhandle_t));
     uhandle->uscript = uscript;
-    uhandle->receiver = wrenGetSlotHandle(vm, 3);
+    uhandle->receiver = wrenGetSlotHandle(vm, 2);
     uhandle->method = wrenMakeCallHandle(vm, "call(_)");
     DL_APPEND(uscript->uhandles, uhandle);
-    cmd_name = (char*)wrenGetSlotString(vm, 1); // strdup'd by editor_register_observer
-    is_before = (int)wrenGetSlotDouble(vm, 2);
-    rv = editor_register_observer(uscript->editor, cmd_name, (void*)uhandle, is_before, _uscript_observer_cb, NULL);
+    event_name = (char*)wrenGetSlotString(vm, 1); // strdup'd by editor_register_observer
+    rv = editor_register_observer(uscript->editor, event_name, (void*)uhandle, _uscript_observer_cb, NULL);
     wrenEnsureSlots(vm, 2);
     wrenSetSlotNewList(vm, 0);
     wrenSetSlotDouble(vm, 1, rv == MLE_OK ? 1 : 0);
