@@ -18,7 +18,7 @@ typedef struct cursor_s cursor_t; // A cursor (insertion mark + selection bound 
 typedef struct loop_context_s loop_context_t; // Context for a single _editor_loop
 typedef struct cmd_s cmd_t; // A command definition
 typedef struct cmd_context_s cmd_context_t; // Context for a single command invocation
-typedef struct observer_s observer_t; // Observer of a cmd or event
+typedef struct observer_s observer_t; // An observer of a cmd or event
 typedef struct kinput_s kinput_t; // A single key input (similar to a tb_event from termbox)
 typedef struct kmacro_s kmacro_t; // A sequence of kinputs and a name
 typedef struct kmap_s kmap_t; // A map of keychords to functions
@@ -35,6 +35,7 @@ typedef struct tb_event tb_event_t; // A termbox event
 typedef struct prompt_history_s prompt_history_t; // A map of prompt histories keyed by prompt_str
 typedef struct prompt_hnode_s prompt_hnode_t; // A node in a linked list of prompt history
 typedef int (*cmd_func_t)(cmd_context_t* ctx); // A command function
+typedef int (*observer_func_t)(char* event_name, void* event_data, void* udata); // An event callback function
 typedef struct uscript_s uscript_t; // A userscript
 typedef struct uhandle_s uhandle_t; // A method handle in a uscript
 
@@ -291,7 +292,6 @@ struct cmd_context_s {
     kinput_t input;
     char* static_param;
     int is_user_input;
-    void* observer_udata;
     kinput_t* pastebuf;
     size_t pastebuf_len;
     size_t pastebuf_size;
@@ -302,7 +302,7 @@ struct cmd_context_s {
 // observer_t
 struct observer_s {
     char* event_name;
-    cmd_func_t callback;
+    observer_func_t callback;
     void* udata;
     observer_t* next;
     observer_t* prev;
@@ -406,8 +406,8 @@ int editor_set_active(editor_t* editor, bview_t* bview);
 int editor_bview_edit_count(editor_t* editor);
 int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer);
 int editor_register_cmd(editor_t* editor, cmd_t* cmd);
-int editor_register_observer(editor_t* editor, char* event_name, void* udata, cmd_func_t fn_callback, observer_t** optret_observer);
-int editor_notify_observers(editor_t* editor, char* event_name, cmd_context_t* ctx);
+int editor_register_observer(editor_t* editor, char* event_name, void* udata, observer_func_t fn_callback, observer_t** optret_observer);
+int editor_notify_observers(editor_t* editor, char* event_name, void* event_data);
 int editor_destroy_observer(editor_t* editor, observer_t* observer);
 int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* ctx);
 int editor_display(editor_t* editor);
