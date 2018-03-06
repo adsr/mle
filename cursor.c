@@ -80,6 +80,18 @@ int cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
     return MLE_OK;
 }
 
+// Get mark
+int cursor_get_mark(cursor_t* cursor, mark_t** ret_mark) {
+    *ret_mark = cursor->mark;
+    return MLE_OK;
+}
+
+// Get anchor if anchored
+int cursor_get_anchor(cursor_t* cursor, mark_t** ret_anchor) {
+    *ret_anchor = cursor->is_anchored ? cursor->anchor : NULL;
+    return MLE_OK;
+}
+
 // Make selection by strat
 int cursor_select_by(cursor_t* cursor, const char* strat) {
     if (cursor->is_anchored) {
