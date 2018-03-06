@@ -31,7 +31,9 @@ const char* mle_wren = "class mle {   \n\
     foreign static cursor_cut_copy(cursor, is_cut, use_srules, append) \n\
     foreign static cursor_destroy(cursor) \n\
     foreign static cursor_drop_anchor(cursor, use_srules) \n\
+    foreign static cursor_get_anchor(cursor) \n\
     foreign static cursor_get_lo_hi(cursor) \n\
+    foreign static cursor_get_mark(cursor) \n\
     foreign static cursor_lift_anchor(cursor) \n\
     foreign static cursor_replace(cursor, interactive, opt_regex, opt_replacement) \n\
     foreign static cursor_select_between(cursor, a, b, use_srules) \n\
@@ -51,7 +53,7 @@ const char* mle_wren = "class mle {   \n\
     foreign static editor_get_input(editor) \n\
     foreign static editor_input_to_key(editor, input, keybuf) \n\
     foreign static editor_menu(editor) \n\
-    foreign static editor_notify_observers(editor, event_name, ctx) \n\
+    foreign static editor_notify_observers(editor, event_name, event_data) \n\
     foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer) \n\
     foreign static editor_prompt(editor, prompt) \n\
     foreign static editor_register_cmd(cmd_name, cmd_fn) \n\
@@ -434,6 +436,20 @@ static void _uscript_cursor_drop_anchor(WrenVM* vm) {
     wrenInsertInList(vm, 0, -1, 1);
 }
 
+static void _uscript_cursor_get_anchor(WrenVM* vm) {
+    int rv;
+    cursor_t* cursor;
+    mark_t* ret_anchor = NULL;
+    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    rv = cursor_get_anchor(cursor, &ret_anchor);
+    wrenEnsureSlots(vm, 3);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, (double)rv);
+    wrenInsertInList(vm, 0, -1, 1);
+    wrenSetSlotPointer(vm, 2, (void*)ret_anchor);
+    wrenInsertInList(vm, 0, -1, 2);
+}
+
 static void _uscript_cursor_get_lo_hi(WrenVM* vm) {
     int rv;
     cursor_t* cursor;
@@ -449,6 +465,20 @@ static void _uscript_cursor_get_lo_hi(WrenVM* vm) {
     wrenInsertInList(vm, 0, -1, 2);
     wrenSetSlotPointer(vm, 3, (void*)ret_hi);
     wrenInsertInList(vm, 0, -1, 3);
+}
+
+static void _uscript_cursor_get_mark(WrenVM* vm) {
+    int rv;
+    cursor_t* cursor;
+    mark_t* ret_mark = NULL;
+    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    rv = cursor_get_mark(cursor, &ret_mark);
+    wrenEnsureSlots(vm, 3);
+    wrenSetSlotNewList(vm, 0);
+    wrenSetSlotDouble(vm, 1, (double)rv);
+    wrenInsertInList(vm, 0, -1, 1);
+    wrenSetSlotPointer(vm, 2, (void*)ret_mark);
+    wrenInsertInList(vm, 0, -1, 2);
 }
 
 static void _uscript_cursor_lift_anchor(WrenVM* vm) {
@@ -677,11 +707,11 @@ static void _uscript_editor_notify_observers(WrenVM* vm) {
     int rv;
     editor_t* editor;
     char* event_name;
-    cmd_context_t* ctx;
+    void* event_data;
     editor = (editor_t*)wrenGetSlotPointer(vm, 1);
     event_name = (char*)wrenGetSlotNullableString(vm, 2);
-    ctx = (cmd_context_t*)wrenGetSlotPointer(vm, 3);
-    rv = editor_notify_observers(editor, event_name, ctx);
+    event_data = (void*)wrenGetSlotPointer(vm, 3);
+    rv = editor_notify_observers(editor, event_name, event_data);
     wrenEnsureSlots(vm, 2);
     wrenSetSlotNewList(vm, 0);
     wrenSetSlotDouble(vm, 1, (double)rv);
@@ -1664,8 +1694,12 @@ static WrenForeignMethodFn _uscript_bind_method(WrenVM* vm, const char* module, 
         return _uscript_cursor_destroy;
     } else if (strncmp(sig, "cursor_drop_anchor(", 19) == 0) {
         return _uscript_cursor_drop_anchor;
+    } else if (strncmp(sig, "cursor_get_anchor(", 18) == 0) {
+        return _uscript_cursor_get_anchor;
     } else if (strncmp(sig, "cursor_get_lo_hi(", 17) == 0) {
         return _uscript_cursor_get_lo_hi;
+    } else if (strncmp(sig, "cursor_get_mark(", 16) == 0) {
+        return _uscript_cursor_get_mark;
     } else if (strncmp(sig, "cursor_lift_anchor(", 19) == 0) {
         return _uscript_cursor_lift_anchor;
     } else if (strncmp(sig, "cursor_replace(", 15) == 0) {
