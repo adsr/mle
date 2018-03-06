@@ -7,6 +7,6 @@
 [submodule "uthash"]
 	path = uthash
 	url = https://github.com/troydhanson/uthash.git
-[submodule "wren"]
-	path = wren
-	url = https://github.com/munificent/wren.git
+[submodule "lua"]
+	path = lua
+	url = https://github.com/lua/lua.git

@@ -58,7 +58,7 @@ int cmd_insert_data(cmd_context_t* ctx) {
     // Fill insertbuf... i=-1: ctx->input, i>=0: ctx->pastebuf
     insertbuf_len = 0;
     insertbuf_cur = ctx->editor->insertbuf;
-    for (i = -1; i == -1 || i < ctx->pastebuf_len; i++) {
+    for (i = -1; i == -1 || (size_t)i < ctx->pastebuf_len; i++) {
         input = i == -1 ? &ctx->input : &ctx->pastebuf[i];
         if (input->ch) {
             len = utf8_unicode_to_char(insertbuf_cur, input->ch);
@@ -1185,7 +1185,7 @@ static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {
     if (outdent) {
         num_to_del = 0;
         for (i = 0; i < num_chars; i++) {
-            if (bline->char_count > i && bline->chars[i].ch == tab_char) {
+            if (bline->char_count > i && (char)bline->chars[i].ch == tab_char) {
                 num_to_del += 1;
             } else {
                 break;

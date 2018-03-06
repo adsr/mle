@@ -27,7 +27,7 @@ mle is a small, flexible, terminal-based text editor written in C.
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
-* Extensible via [Wren](http://wren.io)
+* Extensible via [Lua](https://www.lua.org)
 * Scriptable rc file
 * Key macros
 * Multiple splittable windows
@@ -96,9 +96,9 @@ current working directory.
 
 ### Advanced usage: Scripting
 
-mle is extensible via the [Wren](http://wren.io) programming language. Scripts
-are loaded via the `-x` cli option. Commands registered by scripts can be mapped
-to keys as normal via `-k`. See `uscript.wren` for a simple example.
+mle is extensible via the [Lua](https://www.lua.org) programming language.
+Scripts are loaded via the `-x` cli option. Commands registered by scripts can
+be mapped to keys as normal via `-k`. See `uscript.lua` for a simple example.
 
 ### Advanced usage: Headless mode
 

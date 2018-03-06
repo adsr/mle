@@ -6,7 +6,7 @@
 #include "termbox.h"
 #include "uthash.h"
 #include "mlbuf.h"
-#include "wren.h"
+#include "lua.h"
 
 // Typedefs
 typedef struct editor_s editor_t; // A container for editor-wide globals
@@ -377,9 +377,9 @@ struct prompt_hnode_s {
 // uscript_t
 struct uscript_s {
     editor_t* editor;
-    WrenVM* vm;
-    WrenHandle* class_mle;
-    WrenHandle* func_list2map;
+    //WrenVM* vm;
+    //WrenHandle* class_mle;
+    //WrenHandle* func_list2map;
     uhandle_t* uhandles;
     uscript_t* prev;
     uscript_t* next;
@@ -388,8 +388,8 @@ struct uscript_s {
 // uhandle_t
 struct uhandle_s {
     uscript_t* uscript;
-    WrenHandle* receiver;
-    WrenHandle* method;
+    //WrenHandle* receiver;
+    //WrenHandle* method;
     uhandle_t* next;
     uhandle_t* prev;
 };
@@ -546,8 +546,8 @@ int aproc_destroy(aproc_t* aproc, int preempt);
 int aproc_drain_all(aproc_t* aprocs, int* ttyfd);
 
 // uscript functions
-uscript_t* uscript_run(editor_t* editor, char* path);
-int uscript_destroy(uscript_t* uscript);
+//uscript_t* uscript_run(editor_t* editor, char* path); TODO
+//int uscript_destroy(uscript_t* uscript); TODO
 
 // util functions
 int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, int setsid, char* opt_shell, char** optret_output, size_t* optret_output_len);
@@ -651,6 +651,7 @@ extern editor_t _editor;
 
 /*
 TODO PRIORITY
+[ ] reduce compiler warnings
 [ ] replace wren with lua or something else
 [ ] add cmd_tabulate
 [ ] after search/replace, restore previous viewport
