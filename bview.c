@@ -264,11 +264,13 @@ int bview_get_active_cursor_count(bview_t* self) {
 }
 
 // Add a cursor to a bview
-int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor) {
+int bview_add_cursor(bview_t* self, bline_t* opt_bline, bint_t opt_col, cursor_t** optret_cursor) {
     cursor_t* cursor;
     cursor = calloc(1, sizeof(cursor_t));
     cursor->bview = self;
-    cursor->mark = buffer_add_mark(self->buffer, bline, col);
+    if (!opt_bline) opt_bline = self->buffer->first_line;
+    if (opt_col < 0) opt_col = 0;
+    cursor->mark = buffer_add_mark(self->buffer, opt_bline, opt_col);
     DL_APPEND(self->cursors, cursor);
     if (!self->active_cursor) {
         self->active_cursor = cursor;
@@ -280,9 +282,9 @@ int bview_add_cursor(bview_t* self, bline_t* bline, bint_t col, cursor_t** optre
 }
 
 // Add sleeping cursor
-int bview_add_cursor_asleep(bview_t* self, bline_t* bline, bint_t col, cursor_t** optret_cursor) {
+int bview_add_cursor_asleep(bview_t* self, bline_t* opt_bline, bint_t opt_col, cursor_t** optret_cursor) {
     cursor_t* cursor;
-    bview_add_cursor(self, bline, col, &cursor);
+    bview_add_cursor(self, opt_bline, opt_col, &cursor);
     cursor->is_asleep = 1;
     if (optret_cursor) *optret_cursor = cursor;
     return MLE_OK;
