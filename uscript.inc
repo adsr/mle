@@ -1,727 +1,1251 @@
-const char* mle_wren = "class mle {   \n\
-    static list2map(ks, vs) {         \n\
-        var m = {}                    \n\
-        for (i in 0...ks.count) {     \n\
-            m[ks[i]] = vs[i]          \n\
-        }                             \n\
-        return m                      \n\
-    }                                 \n\
-    foreign static bview_add_cursor(self, bline, col) \n\
-    foreign static bview_add_cursor_asleep(self, bline, col) \n\
-    foreign static bview_center_viewport_y(self) \n\
-    foreign static bview_destroy(self) \n\
-    foreign static bview_draw(self) \n\
-    foreign static bview_draw_cursor(self, set_real_cursor) \n\
-    foreign static bview_get_active_cursor_count(self) \n\
-    foreign static bview_get_split_root(self) \n\
-    foreign static bview_max_viewport_y(self) \n\
-    foreign static bview_new(editor, opt_path, opt_path_len, opt_buffer) \n\
-    foreign static bview_open(self, path, path_len) \n\
-    foreign static bview_pop_kmap(editor, kmap_name) \n\
-    foreign static bview_push_kmap(editor, kmap) \n\
-    foreign static bview_rectify_viewport(self) \n\
-    foreign static bview_remove_cursor(self, cursor) \n\
-    foreign static bview_remove_cursors_except(self, one) \n\
-    foreign static bview_resize(self, x, y, w, h) \n\
-    foreign static bview_set_syntax(self, opt_syntax) \n\
-    foreign static bview_split(self, is_vertical, factor) \n\
-    foreign static bview_wake_sleeping_cursors(self) \n\
-    foreign static bview_zero_viewport_y(self) \n\
-    foreign static cursor_clone(cursor, use_srules) \n\
-    foreign static cursor_cut_copy(cursor, is_cut, use_srules, append) \n\
-    foreign static cursor_destroy(cursor) \n\
-    foreign static cursor_drop_anchor(cursor, use_srules) \n\
-    foreign static cursor_get_anchor(cursor) \n\
-    foreign static cursor_get_lo_hi(cursor) \n\
-    foreign static cursor_get_mark(cursor) \n\
-    foreign static cursor_lift_anchor(cursor) \n\
-    foreign static cursor_replace(cursor, interactive, opt_regex, opt_replacement) \n\
-    foreign static cursor_select_between(cursor, a, b, use_srules) \n\
-    foreign static cursor_select_by(cursor, strat) \n\
-    foreign static cursor_select_by_bracket(cursor) \n\
-    foreign static cursor_select_by_string(cursor) \n\
-    foreign static cursor_select_by_word(cursor) \n\
-    foreign static cursor_select_by_word_back(cursor) \n\
-    foreign static cursor_select_by_word_forward(cursor) \n\
-    foreign static cursor_toggle_anchor(cursor, use_srules) \n\
-    foreign static cursor_uncut(cursor) \n\
-    foreign static editor_bview_edit_count(editor) \n\
-    foreign static editor_close_bview(editor, bview) \n\
-    foreign static editor_count_bviews_by_buffer(editor, buffer) \n\
-    foreign static editor_destroy_observer(editor, observer) \n\
-    foreign static editor_display(editor) \n\
-    foreign static editor_get_input(editor) \n\
-    foreign static editor_input_to_key(editor, input, keybuf) \n\
-    foreign static editor_menu(editor) \n\
-    foreign static editor_notify_observers(editor, event_name, event_data) \n\
-    foreign static editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer) \n\
-    foreign static editor_prompt(editor, prompt) \n\
-    foreign static editor_register_cmd(cmd_name, cmd_fn) \n\
-    foreign static editor_register_observer(event_name, callback_fn) \n\
-    foreign static editor_set_active(editor, bview) \n\
-    foreign static mark_clone(self) \n\
-    foreign static mark_clone_w_letter(self, letter) \n\
-    foreign static mark_delete_after(self, num_chars) \n\
-    foreign static mark_delete_before(self, num_chars) \n\
-    foreign static mark_delete_between_mark(self, other) \n\
-    foreign static mark_destroy(self) \n\
-    foreign static mark_find_bracket_pair(self, max_chars) \n\
-    foreign static mark_find_bracket_top(self, max_chars) \n\
-    foreign static mark_find_next_re(self, re, re_len) \n\
-    foreign static mark_find_next_str(self, str, str_len) \n\
-    foreign static mark_find_prev_re(self, re, re_len) \n\
-    foreign static mark_find_prev_str(self, str, str_len) \n\
-    foreign static mark_get_between_mark(self, other) \n\
-    foreign static mark_get_char_after(self) \n\
-    foreign static mark_get_char_before(self) \n\
-    foreign static mark_get_offset(self) \n\
-    foreign static mark_insert_after(self, data, data_len) \n\
-    foreign static mark_insert_before(self, data, data_len) \n\
-    foreign static mark_is_after_col_minus_lefties(self, col) \n\
-    foreign static mark_is_at_bol(self) \n\
-    foreign static mark_is_at_eol(self) \n\
-    foreign static mark_is_at_word_bound(self, side) \n\
-    foreign static mark_is_eq(self, other) \n\
-    foreign static mark_is_gt(self, other) \n\
-    foreign static mark_is_gte(self, other) \n\
-    foreign static mark_is_lt(self, other) \n\
-    foreign static mark_is_lte(self, other) \n\
-    foreign static mark_join(self, other) \n\
-    foreign static mark_move_beginning(self) \n\
-    foreign static mark_move_bol(self) \n\
-    foreign static mark_move_bracket_pair(self, max_chars) \n\
-    foreign static mark_move_bracket_pair_ex(self, max_chars) \n\
-    foreign static mark_move_bracket_top(self, max_chars) \n\
-    foreign static mark_move_bracket_top_ex(self, max_chars) \n\
-    foreign static mark_move_by(self, char_delta) \n\
-    foreign static mark_move_col(self, col) \n\
-    foreign static mark_move_end(self) \n\
-    foreign static mark_move_eol(self) \n\
-    foreign static mark_move_next_re(self, re, re_len) \n\
-    foreign static mark_move_next_re_ex(self, re, re_len) \n\
-    foreign static mark_move_next_re_nudge(self, re, re_len) \n\
-    foreign static mark_move_next_str(self, str, str_len) \n\
-    foreign static mark_move_next_str_ex(self, str, str_len) \n\
-    foreign static mark_move_next_str_nudge(self, str, str_len) \n\
-    foreign static mark_move_offset(self, offset) \n\
-    foreign static mark_move_prev_re(self, re, re_len) \n\
-    foreign static mark_move_prev_re_ex(self, re, re_len) \n\
-    foreign static mark_move_prev_str(self, str, str_len) \n\
-    foreign static mark_move_prev_str_ex(self, str, str_len) \n\
-    foreign static mark_move_to(self, line_index, col) \n\
-    foreign static mark_move_to_w_bline(self, bline, col) \n\
-    foreign static mark_move_vert(self, line_delta) \n\
-    foreign static mark_replace(self, num_chars, data, data_len) \n\
-    foreign static mark_replace_between_mark(self, other, data, data_len) \n\
-    foreign static mark_swap_with_mark(self, other) \n\
-} \
-";
-
-static void _uscript_bview_add_cursor(WrenVM* vm) {
-    int rv;
-    bview_t* self;
-    bline_t* bline;
-    bint_t col;
-    cursor_t* optret_cursor = NULL;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    bline = (bline_t*)wrenGetSlotPointer(vm, 2);
-    col = (bint_t)wrenGetSlotDouble(vm, 3);
-    rv = bview_add_cursor(self, bline, col, &optret_cursor);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_cursor);
-    wrenInsertInList(vm, 0, -1, 2);
+static int _uscript_func_buffer_add_mark(lua_State* L) {
+    mark_t* rv;
+    buffer_t* self;
+    bline_t* maybe_line;
+    bint_t maybe_col;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    maybe_line = (bline_t*)luaL_checkpointer(L, 2);
+    maybe_col = (bint_t)luaL_checkinteger(L, 3);
+    rv = buffer_add_mark(self, maybe_line, maybe_col);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushpointer(L, (void*)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_add_cursor_asleep(WrenVM* vm) {
-    int rv;
-    bview_t* self;
-    bline_t* bline;
-    bint_t col;
-    cursor_t* optret_cursor = NULL;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    bline = (bline_t*)wrenGetSlotPointer(vm, 2);
-    col = (bint_t)wrenGetSlotDouble(vm, 3);
-    rv = bview_add_cursor_asleep(self, bline, col, &optret_cursor);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_cursor);
-    wrenInsertInList(vm, 0, -1, 2);
+static int _uscript_func_buffer_add_mark_ex(lua_State* L) {
+    mark_t* rv;
+    buffer_t* self;
+    char letter;
+    bline_t* maybe_line;
+    bint_t maybe_col;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    letter = (char)luaL_checkinteger(L, 2);
+    maybe_line = (bline_t*)luaL_checkpointer(L, 3);
+    maybe_col = (bint_t)luaL_checkinteger(L, 4);
+    rv = buffer_add_mark_ex(self, letter, maybe_line, maybe_col);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushpointer(L, (void*)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_center_viewport_y(WrenVM* vm) {
+// static int _uscript_func_buffer_add_srule(lua_State* L) {
+// }
+
+static int _uscript_func_buffer_apply_styles(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bline_t* start_line;
+    bint_t line_delta;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    line_delta = (bint_t)luaL_checkinteger(L, 3);
+    rv = buffer_apply_styles(self, start_line, line_delta);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_clear(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    rv = buffer_clear(self);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_delete(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bint_t offset;
+    bint_t num_chars;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    offset = (bint_t)luaL_checkinteger(L, 2);
+    num_chars = (bint_t)luaL_checkinteger(L, 3);
+    rv = buffer_delete(self, offset, num_chars);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_delete_w_bline(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bline_t* start_line;
+    bint_t start_col;
+    bint_t num_chars;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    start_col = (bint_t)luaL_checkinteger(L, 3);
+    num_chars = (bint_t)luaL_checkinteger(L, 4);
+    rv = buffer_delete_w_bline(self, start_line, start_col, num_chars);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_destroy(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    rv = buffer_destroy(self);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_destroy_mark(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    mark_t* mark;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    mark = (mark_t*)luaL_checkpointer(L, 2);
+    rv = buffer_destroy_mark(self, mark);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_get(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char* ret_data = NULL;
+    bint_t ret_data_len = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    rv = buffer_get(self, &ret_data, &ret_data_len);
+    lua_createtable(L, 0, 3);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_data");
+    lua_pushpointer(L, (void*)ret_data);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_data_len");
+    lua_pushinteger(L, (lua_Integer)ret_data_len);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_get_bline(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bint_t line_index;
+    bline_t* ret_bline = NULL;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    line_index = (bint_t)luaL_checkinteger(L, 2);
+    rv = buffer_get_bline(self, line_index, &ret_bline);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_bline");
+    lua_pushpointer(L, (void*)ret_bline);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_get_bline_col(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bint_t offset;
+    bline_t* ret_bline = NULL;
+    bint_t ret_col = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    offset = (bint_t)luaL_checkinteger(L, 2);
+    rv = buffer_get_bline_col(self, offset, &ret_bline, &ret_col);
+    lua_createtable(L, 0, 3);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_bline");
+    lua_pushpointer(L, (void*)ret_bline);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_col");
+    lua_pushinteger(L, (lua_Integer)ret_col);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_get_lettered_mark(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char letter;
+    mark_t* ret_mark = NULL;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    letter = (char)luaL_checkinteger(L, 2);
+    rv = buffer_get_lettered_mark(self, letter, &ret_mark);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_mark");
+    lua_pushpointer(L, (void*)ret_mark);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_get_offset(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bline_t* bline;
+    bint_t col;
+    bint_t ret_offset = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    bline = (bline_t*)luaL_checkpointer(L, 2);
+    col = (bint_t)luaL_checkinteger(L, 3);
+    rv = buffer_get_offset(self, bline, col, &ret_offset);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_offset");
+    lua_pushinteger(L, (lua_Integer)ret_offset);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_insert(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bint_t offset;
+    char* data;
+    bint_t data_len;
+    bint_t optret_num_chars = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    offset = (bint_t)luaL_checkinteger(L, 2);
+    data = (char*)luaL_checkstring(L, 3);
+    data_len = (bint_t)luaL_checkinteger(L, 4);
+    rv = buffer_insert(self, offset, data, data_len, &optret_num_chars);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_insert_w_bline(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bline_t* start_line;
+    bint_t start_col;
+    char* data;
+    bint_t data_len;
+    bint_t optret_num_chars = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    start_col = (bint_t)luaL_checkinteger(L, 3);
+    data = (char*)luaL_checkstring(L, 4);
+    data_len = (bint_t)luaL_checkinteger(L, 5);
+    rv = buffer_insert_w_bline(self, start_line, start_col, data, data_len, &optret_num_chars);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_new(lua_State* L) {
+    buffer_t* rv;
+    rv = buffer_new();
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushpointer(L, (void*)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_new_open(lua_State* L) {
+    buffer_t* rv;
+    char* path;
+    path = (char*)luaL_checkstring(L, 1);
+    rv = buffer_new_open(path);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushpointer(L, (void*)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_open(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char* path;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    path = (char*)luaL_checkstring(L, 2);
+    rv = buffer_open(self, path);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_redo(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    rv = buffer_redo(self);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_register_append(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char reg;
+    char* data;
+    size_t data_len;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    reg = (char)luaL_checkinteger(L, 2);
+    data = (char*)luaL_checkstring(L, 3);
+    data_len = (size_t)luaL_checkinteger(L, 4);
+    rv = buffer_register_append(self, reg, data, data_len);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_register_clear(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char reg;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    reg = (char)luaL_checkinteger(L, 2);
+    rv = buffer_register_clear(self, reg);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_register_get(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char reg;
+    int dup;
+    char* ret_data = NULL;
+    size_t ret_data_len = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    reg = (char)luaL_checkinteger(L, 2);
+    dup = (int)luaL_checkinteger(L, 3);
+    rv = buffer_register_get(self, reg, dup, &ret_data, &ret_data_len);
+    lua_createtable(L, 0, 3);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_data");
+    lua_pushpointer(L, (void*)ret_data);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_data_len");
+    lua_pushpointer(L, (void*)ret_data_len);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_register_prepend(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char reg;
+    char* data;
+    size_t data_len;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    reg = (char)luaL_checkinteger(L, 2);
+    data = (char*)luaL_checkstring(L, 3);
+    data_len = (size_t)luaL_checkinteger(L, 4);
+    rv = buffer_register_prepend(self, reg, data, data_len);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_register_set(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char reg;
+    char* data;
+    size_t data_len;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    reg = (char)luaL_checkinteger(L, 2);
+    data = (char*)luaL_checkstring(L, 3);
+    data_len = (size_t)luaL_checkinteger(L, 4);
+    rv = buffer_register_set(self, reg, data, data_len);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+// static int _uscript_func_buffer_remove_srule(lua_State* L) {
+// }
+
+static int _uscript_func_buffer_replace(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bint_t offset;
+    bint_t num_chars;
+    char* data;
+    bint_t data_len;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    offset = (bint_t)luaL_checkinteger(L, 2);
+    num_chars = (bint_t)luaL_checkinteger(L, 3);
+    data = (char*)luaL_checkstring(L, 4);
+    data_len = (bint_t)luaL_checkinteger(L, 5);
+    rv = buffer_replace(self, offset, num_chars, data, data_len);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_replace_w_bline(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bline_t* start_line;
+    bint_t start_col;
+    bint_t num_chars;
+    char* data;
+    bint_t data_len;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    start_col = (bint_t)luaL_checkinteger(L, 3);
+    num_chars = (bint_t)luaL_checkinteger(L, 4);
+    data = (char*)luaL_checkstring(L, 5);
+    data_len = (bint_t)luaL_checkinteger(L, 6);
+    rv = buffer_replace_w_bline(self, start_line, start_col, num_chars, data, data_len);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_save(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    rv = buffer_save(self);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_save_as(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char* path;
+    bint_t optret_nbytes = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    path = (char*)luaL_checkstring(L, 2);
+    rv = buffer_save_as(self, path, &optret_nbytes);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_nbytes");
+    lua_pushinteger(L, (lua_Integer)optret_nbytes);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_set(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char* data;
+    bint_t data_len;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    data = (char*)luaL_checkstring(L, 2);
+    data_len = (bint_t)luaL_checkinteger(L, 3);
+    rv = buffer_set(self, data, data_len);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+// static int _uscript_func_buffer_set_callback(lua_State* L) {
+// }
+
+static int _uscript_func_buffer_set_mmapped(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    char* data;
+    bint_t data_len;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    data = (char*)luaL_checkstring(L, 2);
+    data_len = (bint_t)luaL_checkinteger(L, 3);
+    rv = buffer_set_mmapped(self, data, data_len);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_set_styles_enabled(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    int is_enabled;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    is_enabled = (int)luaL_checkinteger(L, 2);
+    rv = buffer_set_styles_enabled(self, is_enabled);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_set_tab_width(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    int tab_width;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    tab_width = (int)luaL_checkinteger(L, 2);
+    rv = buffer_set_tab_width(self, tab_width);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_substr(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    bline_t* start_line;
+    bint_t start_col;
+    bline_t* end_line;
+    bint_t end_col;
+    char* ret_data = NULL;
+    bint_t ret_data_len = 0;
+    bint_t ret_nchars = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    start_col = (bint_t)luaL_checkinteger(L, 3);
+    end_line = (bline_t*)luaL_checkpointer(L, 4);
+    end_col = (bint_t)luaL_checkinteger(L, 5);
+    rv = buffer_substr(self, start_line, start_col, end_line, end_col, &ret_data, &ret_data_len, &ret_nchars);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_data");
+    lua_pushpointer(L, (void*)ret_data);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_data_len");
+    lua_pushinteger(L, (lua_Integer)ret_data_len);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_nchars");
+    lua_pushinteger(L, (lua_Integer)ret_nchars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_undo(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    rv = buffer_undo(self);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_write_to_fd(lua_State* L) {
+    int rv;
+    buffer_t* self;
+    int fd;
+    size_t optret_nbytes = 0;
+    self = (buffer_t*)luaL_checkpointer(L, 1);
+    fd = (int)luaL_checkinteger(L, 2);
+    rv = buffer_write_to_fd(self, fd, &optret_nbytes);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_nbytes");
+    lua_pushpointer(L, (void*)optret_nbytes);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+// static int _uscript_func_buffer_write_to_file(lua_State* L) {
+// }
+
+static int _uscript_func_bview_add_cursor(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    bline_t* opt_bline;
+    bint_t opt_col;
+    cursor_t* optret_cursor = NULL;
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    opt_bline = (bline_t*)luaL_optpointer(L, 2, NULL);
+    opt_col = (bint_t)luaL_optinteger(L, 3, 0);
+    rv = bview_add_cursor(self, opt_bline, opt_col, &optret_cursor);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_cursor");
+    lua_pushpointer(L, (void*)optret_cursor);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_bview_add_cursor_asleep(lua_State* L) {
+    int rv;
+    bview_t* self;
+    bline_t* opt_bline;
+    bint_t opt_col;
+    cursor_t* optret_cursor = NULL;
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    opt_bline = (bline_t*)luaL_optpointer(L, 2, NULL);
+    opt_col = (bint_t)luaL_optinteger(L, 3, 0);
+    rv = bview_add_cursor_asleep(self, opt_bline, opt_col, &optret_cursor);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_cursor");
+    lua_pushpointer(L, (void*)optret_cursor);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_bview_center_viewport_y(lua_State* L) {
+    int rv;
+    bview_t* self;
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_center_viewport_y(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_destroy(WrenVM* vm) {
+static int _uscript_func_bview_destroy(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_destroy(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_draw(WrenVM* vm) {
+static int _uscript_func_bview_draw(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_draw(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_draw_cursor(WrenVM* vm) {
+static int _uscript_func_bview_draw_cursor(lua_State* L) {
     int rv;
     bview_t* self;
     int set_real_cursor;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    set_real_cursor = (int)wrenGetSlotDouble(vm, 2);
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    set_real_cursor = (int)luaL_checkinteger(L, 2);
     rv = bview_draw_cursor(self, set_real_cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_get_active_cursor_count(WrenVM* vm) {
+static int _uscript_func_bview_get_active_cursor_count(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_get_active_cursor_count(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_get_split_root(WrenVM* vm) {
+static int _uscript_func_bview_get_split_root(lua_State* L) {
     bview_t* rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_get_split_root(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotPointer(vm, 1, (void*)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushpointer(L, (void*)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_max_viewport_y(WrenVM* vm) {
+static int _uscript_func_bview_max_viewport_y(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_max_viewport_y(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_new(WrenVM* vm) {
+static int _uscript_func_bview_new(lua_State* L) {
     bview_t* rv;
     editor_t* editor;
     char* opt_path;
     int opt_path_len;
     buffer_t* opt_buffer;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    opt_path = (char*)wrenGetSlotNullableString(vm, 2);
-    opt_path_len = (int)wrenGetSlotDouble(vm, 3);
-    opt_buffer = (buffer_t*)wrenGetSlotPointer(vm, 4);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
+    opt_path = (char*)luaL_optstring(L, 2, NULL);
+    opt_path_len = (int)luaL_optinteger(L, 3, 0);
+    opt_buffer = (buffer_t*)luaL_optpointer(L, 4, NULL);
     rv = bview_new(editor, opt_path, opt_path_len, opt_buffer);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotPointer(vm, 1, (void*)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushpointer(L, (void*)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_open(WrenVM* vm) {
+static int _uscript_func_bview_open(lua_State* L) {
     int rv;
     bview_t* self;
     char* path;
     int path_len;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    path = (char*)wrenGetSlotNullableString(vm, 2);
-    path_len = (int)wrenGetSlotDouble(vm, 3);
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    path = (char*)luaL_checkstring(L, 2);
+    path_len = (int)luaL_checkinteger(L, 3);
     rv = bview_open(self, path, path_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-// static void _uscript_bview_pop_kmap(WrenVM* vm) {
+// static int _uscript_func_bview_pop_kmap(lua_State* L) {
 // }
 
-// static void _uscript_bview_push_kmap(WrenVM* vm) {
+// static int _uscript_func_bview_push_kmap(lua_State* L) {
 // }
 
-static void _uscript_bview_rectify_viewport(WrenVM* vm) {
+static int _uscript_func_bview_rectify_viewport(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_rectify_viewport(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_remove_cursor(WrenVM* vm) {
+static int _uscript_func_bview_remove_cursor(lua_State* L) {
     int rv;
     bview_t* self;
     cursor_t* cursor;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 2);
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 2);
     rv = bview_remove_cursor(self, cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_remove_cursors_except(WrenVM* vm) {
+static int _uscript_func_bview_remove_cursors_except(lua_State* L) {
     int rv;
     bview_t* self;
     cursor_t* one;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    one = (cursor_t*)wrenGetSlotPointer(vm, 2);
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    one = (cursor_t*)luaL_checkpointer(L, 2);
     rv = bview_remove_cursors_except(self, one);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_resize(WrenVM* vm) {
+static int _uscript_func_bview_resize(lua_State* L) {
     int rv;
     bview_t* self;
     int x;
     int y;
     int w;
     int h;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    x = (int)wrenGetSlotDouble(vm, 2);
-    y = (int)wrenGetSlotDouble(vm, 3);
-    w = (int)wrenGetSlotDouble(vm, 4);
-    h = (int)wrenGetSlotDouble(vm, 5);
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    x = (int)luaL_checkinteger(L, 2);
+    y = (int)luaL_checkinteger(L, 3);
+    w = (int)luaL_checkinteger(L, 4);
+    h = (int)luaL_checkinteger(L, 5);
     rv = bview_resize(self, x, y, w, h);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_set_syntax(WrenVM* vm) {
+static int _uscript_func_bview_set_syntax(lua_State* L) {
     int rv;
     bview_t* self;
     char* opt_syntax;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    opt_syntax = (char*)wrenGetSlotNullableString(vm, 2);
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    opt_syntax = (char*)luaL_optstring(L, 2, NULL);
     rv = bview_set_syntax(self, opt_syntax);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_split(WrenVM* vm) {
+static int _uscript_func_bview_split(lua_State* L) {
     int rv;
     bview_t* self;
     int is_vertical;
     float factor;
     bview_t* optret_bview = NULL;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
-    is_vertical = (int)wrenGetSlotDouble(vm, 2);
-    factor = (float)wrenGetSlotDouble(vm, 3);
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    is_vertical = (int)luaL_checkinteger(L, 2);
+    factor = (float)luaL_checknumber(L, 3);
     rv = bview_split(self, is_vertical, factor, &optret_bview);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_bview);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_bview");
+    lua_pushpointer(L, (void*)optret_bview);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_wake_sleeping_cursors(WrenVM* vm) {
+static int _uscript_func_bview_wake_sleeping_cursors(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_wake_sleeping_cursors(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_bview_zero_viewport_y(WrenVM* vm) {
+static int _uscript_func_bview_zero_viewport_y(lua_State* L) {
     int rv;
     bview_t* self;
-    self = (bview_t*)wrenGetSlotPointer(vm, 1);
+    self = (bview_t*)luaL_checkpointer(L, 1);
     rv = bview_zero_viewport_y(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_clone(WrenVM* vm) {
+static int _uscript_func_cursor_destroy(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    int use_srules;
-    cursor_t* ret_clone = NULL;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    use_srules = (int)wrenGetSlotDouble(vm, 2);
-    rv = cursor_clone(cursor, use_srules, &ret_clone);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_clone);
-    wrenInsertInList(vm, 0, -1, 2);
-}
-
-static void _uscript_cursor_cut_copy(WrenVM* vm) {
-    int rv;
-    cursor_t* cursor;
-    int is_cut;
-    int use_srules;
-    int append;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    is_cut = (int)wrenGetSlotDouble(vm, 2);
-    use_srules = (int)wrenGetSlotDouble(vm, 3);
-    append = (int)wrenGetSlotDouble(vm, 4);
-    rv = cursor_cut_copy(cursor, is_cut, use_srules, append);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-}
-
-static void _uscript_cursor_destroy(WrenVM* vm) {
-    int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_destroy(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_drop_anchor(WrenVM* vm) {
-    int rv;
-    cursor_t* cursor;
-    int use_srules;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    use_srules = (int)wrenGetSlotDouble(vm, 2);
-    rv = cursor_drop_anchor(cursor, use_srules);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-}
-
-static void _uscript_cursor_get_anchor(WrenVM* vm) {
+static int _uscript_func_cursor_get_anchor(lua_State* L) {
     int rv;
     cursor_t* cursor;
     mark_t* ret_anchor = NULL;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_get_anchor(cursor, &ret_anchor);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_anchor);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_anchor");
+    lua_pushpointer(L, (void*)ret_anchor);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_get_lo_hi(WrenVM* vm) {
+static int _uscript_func_cursor_get_lo_hi(lua_State* L) {
     int rv;
     cursor_t* cursor;
     mark_t* ret_lo = NULL;
     mark_t* ret_hi = NULL;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_get_lo_hi(cursor, &ret_lo, &ret_hi);
-    wrenEnsureSlots(vm, 4);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_lo);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotPointer(vm, 3, (void*)ret_hi);
-    wrenInsertInList(vm, 0, -1, 3);
+    lua_createtable(L, 0, 3);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_lo");
+    lua_pushpointer(L, (void*)ret_lo);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_hi");
+    lua_pushpointer(L, (void*)ret_hi);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_get_mark(WrenVM* vm) {
+static int _uscript_func_cursor_get_mark(lua_State* L) {
     int rv;
     cursor_t* cursor;
     mark_t* ret_mark = NULL;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_get_mark(cursor, &ret_mark);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_mark);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_mark");
+    lua_pushpointer(L, (void*)ret_mark);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_lift_anchor(WrenVM* vm) {
+static int _uscript_func_cursor_lift_anchor(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_lift_anchor(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_replace(WrenVM* vm) {
+static int _uscript_func_cursor_replace(lua_State* L) {
     int rv;
     cursor_t* cursor;
     int interactive;
     char* opt_regex;
     char* opt_replacement;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    interactive = (int)wrenGetSlotDouble(vm, 2);
-    opt_regex = (char*)wrenGetSlotNullableString(vm, 3);
-    opt_replacement = (char*)wrenGetSlotNullableString(vm, 4);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    interactive = (int)luaL_checkinteger(L, 2);
+    opt_regex = (char*)luaL_optstring(L, 3, NULL);
+    opt_replacement = (char*)luaL_optstring(L, 4, NULL);
     rv = cursor_replace(cursor, interactive, opt_regex, opt_replacement);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_select_between(WrenVM* vm) {
-    int rv;
-    cursor_t* cursor;
-    mark_t* a;
-    mark_t* b;
-    int use_srules;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    a = (mark_t*)wrenGetSlotPointer(vm, 2);
-    b = (mark_t*)wrenGetSlotPointer(vm, 3);
-    use_srules = (int)wrenGetSlotDouble(vm, 4);
-    rv = cursor_select_between(cursor, a, b, use_srules);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-}
-
-static void _uscript_cursor_select_by(WrenVM* vm) {
+static int _uscript_func_cursor_select_by(lua_State* L) {
     int rv;
     cursor_t* cursor;
     const char* strat;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    strat = (const char*)wrenGetSlotNullableString(vm, 2);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    strat = (const char*)luaL_checkstring(L, 2);
     rv = cursor_select_by(cursor, strat);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_select_by_bracket(WrenVM* vm) {
+static int _uscript_func_cursor_select_by_bracket(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_select_by_bracket(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_select_by_string(WrenVM* vm) {
+static int _uscript_func_cursor_select_by_string(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_select_by_string(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_select_by_word(WrenVM* vm) {
+static int _uscript_func_cursor_select_by_word(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_select_by_word(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_select_by_word_back(WrenVM* vm) {
+static int _uscript_func_cursor_select_by_word_back(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_select_by_word_back(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_select_by_word_forward(WrenVM* vm) {
+static int _uscript_func_cursor_select_by_word_forward(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_select_by_word_forward(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_cursor_toggle_anchor(WrenVM* vm) {
+static int _uscript_func_cursor_uncut(lua_State* L) {
     int rv;
     cursor_t* cursor;
-    int use_srules;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
-    use_srules = (int)wrenGetSlotDouble(vm, 2);
-    rv = cursor_toggle_anchor(cursor, use_srules);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-}
-
-static void _uscript_cursor_uncut(WrenVM* vm) {
-    int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)wrenGetSlotPointer(vm, 1);
+    cursor = (cursor_t*)luaL_checkpointer(L, 1);
     rv = cursor_uncut(cursor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_editor_bview_edit_count(WrenVM* vm) {
+static int _uscript_func_editor_bview_edit_count(lua_State* L) {
     int rv;
     editor_t* editor;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
     rv = editor_bview_edit_count(editor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_editor_close_bview(WrenVM* vm) {
+static int _uscript_func_editor_close_bview(lua_State* L) {
     int rv;
     editor_t* editor;
     bview_t* bview;
     int optret_num_closed = 0;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    bview = (bview_t*)wrenGetSlotPointer(vm, 2);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
+    bview = (bview_t*)luaL_checkpointer(L, 2);
     rv = editor_close_bview(editor, bview, &optret_num_closed);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotDouble(vm, 2, (double)optret_num_closed);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_closed");
+    lua_pushinteger(L, (lua_Integer)optret_num_closed);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_editor_count_bviews_by_buffer(WrenVM* vm) {
+static int _uscript_func_editor_count_bviews_by_buffer(lua_State* L) {
     int rv;
     editor_t* editor;
     buffer_t* buffer;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    buffer = (buffer_t*)wrenGetSlotPointer(vm, 2);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
+    buffer = (buffer_t*)luaL_checkpointer(L, 2);
     rv = editor_count_bviews_by_buffer(editor, buffer);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_editor_destroy_observer(WrenVM* vm) {
+static int _uscript_func_editor_destroy_observer(lua_State* L) {
     int rv;
     editor_t* editor;
     observer_t* observer;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    observer = (observer_t*)wrenGetSlotPointer(vm, 2);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
+    observer = (observer_t*)luaL_checkpointer(L, 2);
     rv = editor_destroy_observer(editor, observer);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_editor_display(WrenVM* vm) {
+static int _uscript_func_editor_display(lua_State* L) {
     int rv;
     editor_t* editor;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
     rv = editor_display(editor);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-// static void _uscript_editor_get_input(WrenVM* vm) {
+// static int _uscript_func_editor_get_input(lua_State* L) {
 // }
 
-static void _uscript_editor_input_to_key(WrenVM* vm) {
-    int rv;
-    editor_t* editor;
-    kinput_t* input;
-    char* keybuf;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    input = (kinput_t*)wrenGetSlotPointer(vm, 2);
-    keybuf = (char*)wrenGetSlotNullableString(vm, 3);
-    rv = editor_input_to_key(editor, input, keybuf);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-}
-
-// static void _uscript_editor_menu(WrenVM* vm) {
+// static int _uscript_func_editor_input_to_key(lua_State* L) {
 // }
 
-static void _uscript_editor_notify_observers(WrenVM* vm) {
+// static int _uscript_func_editor_menu(lua_State* L) {
+// }
+
+static int _uscript_func_editor_notify_observers(lua_State* L) {
     int rv;
     editor_t* editor;
     char* event_name;
     void* event_data;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    event_name = (char*)wrenGetSlotNullableString(vm, 2);
-    event_data = (void*)wrenGetSlotPointer(vm, 3);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
+    event_name = (char*)luaL_checkstring(L, 2);
+    event_data = (void*)luaL_checkpointer(L, 3);
     rv = editor_notify_observers(editor, event_name, event_data);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_editor_open_bview(WrenVM* vm) {
+static int _uscript_func_editor_open_bview(lua_State* L) {
     int rv;
     editor_t* editor;
-    bview_t* parent;
+    bview_t* opt_parent;
     int type;
     char* opt_path;
     int opt_path_len;
@@ -730,171 +1254,200 @@ static void _uscript_editor_open_bview(WrenVM* vm) {
     int skip_resize;
     buffer_t* opt_buffer;
     bview_t* optret_bview = NULL;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    parent = (bview_t*)wrenGetSlotPointer(vm, 2);
-    type = (int)wrenGetSlotDouble(vm, 3);
-    opt_path = (char*)wrenGetSlotNullableString(vm, 4);
-    opt_path_len = (int)wrenGetSlotDouble(vm, 5);
-    make_active = (int)wrenGetSlotDouble(vm, 6);
-    linenum = (bint_t)wrenGetSlotDouble(vm, 7);
-    skip_resize = (int)wrenGetSlotDouble(vm, 8);
-    opt_buffer = (buffer_t*)wrenGetSlotPointer(vm, 9);
-    rv = editor_open_bview(editor, parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer, &optret_bview);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_bview);
-    wrenInsertInList(vm, 0, -1, 2);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
+    opt_parent = (bview_t*)luaL_optpointer(L, 2, NULL);
+    type = (int)luaL_checkinteger(L, 3);
+    opt_path = (char*)luaL_optstring(L, 4, NULL);
+    opt_path_len = (int)luaL_optinteger(L, 5, 0);
+    make_active = (int)luaL_checkinteger(L, 6);
+    linenum = (bint_t)luaL_checkinteger(L, 7);
+    skip_resize = (int)luaL_checkinteger(L, 8);
+    opt_buffer = (buffer_t*)luaL_optpointer(L, 9, NULL);
+    rv = editor_open_bview(editor, opt_parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer, &optret_bview);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_bview");
+    lua_pushpointer(L, (void*)optret_bview);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-// static void _uscript_editor_prompt(WrenVM* vm) {
+// static int _uscript_func_editor_prompt(lua_State* L) {
 // }
 
-// static void _uscript_editor_register_cmd(WrenVM* vm) {
+// static int _uscript_func_editor_register_cmd(lua_State* L) {
 // }
 
-// static void _uscript_editor_register_observer(WrenVM* vm) {
+// static int _uscript_func_editor_register_observer(lua_State* L) {
 // }
 
-static void _uscript_editor_set_active(WrenVM* vm) {
+static int _uscript_func_editor_set_active(lua_State* L) {
     int rv;
     editor_t* editor;
     bview_t* bview;
-    editor = (editor_t*)wrenGetSlotPointer(vm, 1);
-    bview = (bview_t*)wrenGetSlotPointer(vm, 2);
+    editor = (editor_t*)luaL_checkpointer(L, 1);
+    bview = (bview_t*)luaL_checkpointer(L, 2);
     rv = editor_set_active(editor, bview);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_clone(WrenVM* vm) {
+static int _uscript_func_mark_clone(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* ret_mark = NULL;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_clone(self, &ret_mark);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_mark);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_mark");
+    lua_pushpointer(L, (void*)ret_mark);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_clone_w_letter(WrenVM* vm) {
+static int _uscript_func_mark_clone_w_letter(lua_State* L) {
     int rv;
     mark_t* self;
     char letter;
     mark_t* ret_mark = NULL;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    letter = (char)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    letter = (char)luaL_checkinteger(L, 2);
     rv = mark_clone_w_letter(self, letter, &ret_mark);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_mark);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_mark");
+    lua_pushpointer(L, (void*)ret_mark);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_delete_after(WrenVM* vm) {
+static int _uscript_func_mark_delete_after(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t num_chars;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    num_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    num_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_delete_after(self, num_chars);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_delete_before(WrenVM* vm) {
+static int _uscript_func_mark_delete_before(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t num_chars;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    num_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    num_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_delete_before(self, num_chars);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_delete_between_mark(WrenVM* vm) {
+static int _uscript_func_mark_delete_between_mark(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_delete_between_mark(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_destroy(WrenVM* vm) {
+static int _uscript_func_mark_destroy(lua_State* L) {
     int rv;
     mark_t* self;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_destroy(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_find_bracket_pair(WrenVM* vm) {
+static int _uscript_func_mark_find_bracket_pair(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t max_chars;
     bline_t* ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_brkt = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    max_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_find_bracket_pair(self, max_chars, &ret_line, &ret_col, &ret_brkt);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)ret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)ret_brkt);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_line");
+    lua_pushpointer(L, (void*)ret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_col");
+    lua_pushinteger(L, (lua_Integer)ret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_brkt");
+    lua_pushinteger(L, (lua_Integer)ret_brkt);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_find_bracket_top(WrenVM* vm) {
+static int _uscript_func_mark_find_bracket_top(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t max_chars;
     bline_t* ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_brkt = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    max_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_find_bracket_top(self, max_chars, &ret_line, &ret_col, &ret_brkt);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)ret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)ret_brkt);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_line");
+    lua_pushpointer(L, (void*)ret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_col");
+    lua_pushinteger(L, (lua_Integer)ret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_brkt");
+    lua_pushinteger(L, (lua_Integer)ret_brkt);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_find_next_re(WrenVM* vm) {
+static int _uscript_func_mark_find_next_re(lua_State* L) {
     int rv;
     mark_t* self;
     char* re;
@@ -902,23 +1455,28 @@ static void _uscript_mark_find_next_re(WrenVM* vm) {
     bline_t* ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotNullableString(vm, 2);
-    re_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    re = (char*)luaL_checkstring(L, 2);
+    re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_next_re(self, re, re_len, &ret_line, &ret_col, &ret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)ret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)ret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_line");
+    lua_pushpointer(L, (void*)ret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_col");
+    lua_pushinteger(L, (lua_Integer)ret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_num_chars");
+    lua_pushinteger(L, (lua_Integer)ret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_find_next_str(WrenVM* vm) {
+static int _uscript_func_mark_find_next_str(lua_State* L) {
     int rv;
     mark_t* self;
     char* str;
@@ -926,23 +1484,28 @@ static void _uscript_mark_find_next_str(WrenVM* vm) {
     bline_t* ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotNullableString(vm, 2);
-    str_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    str = (char*)luaL_checkstring(L, 2);
+    str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_next_str(self, str, str_len, &ret_line, &ret_col, &ret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)ret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)ret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_line");
+    lua_pushpointer(L, (void*)ret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_col");
+    lua_pushinteger(L, (lua_Integer)ret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_num_chars");
+    lua_pushinteger(L, (lua_Integer)ret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_find_prev_re(WrenVM* vm) {
+static int _uscript_func_mark_find_prev_re(lua_State* L) {
     int rv;
     mark_t* self;
     char* re;
@@ -950,23 +1513,28 @@ static void _uscript_mark_find_prev_re(WrenVM* vm) {
     bline_t* ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotNullableString(vm, 2);
-    re_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    re = (char*)luaL_checkstring(L, 2);
+    re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_prev_re(self, re, re_len, &ret_line, &ret_col, &ret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)ret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)ret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_line");
+    lua_pushpointer(L, (void*)ret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_col");
+    lua_pushinteger(L, (lua_Integer)ret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_num_chars");
+    lua_pushinteger(L, (lua_Integer)ret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_find_prev_str(WrenVM* vm) {
+static int _uscript_func_mark_find_prev_str(lua_State* L) {
     int rv;
     mark_t* self;
     char* str;
@@ -974,395 +1542,465 @@ static void _uscript_mark_find_prev_str(WrenVM* vm) {
     bline_t* ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotNullableString(vm, 2);
-    str_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    str = (char*)luaL_checkstring(L, 2);
+    str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_prev_str(self, str, str_len, &ret_line, &ret_col, &ret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)ret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)ret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_line");
+    lua_pushpointer(L, (void*)ret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_col");
+    lua_pushinteger(L, (lua_Integer)ret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_num_chars");
+    lua_pushinteger(L, (lua_Integer)ret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_get_between_mark(WrenVM* vm) {
+static int _uscript_func_mark_get_between_mark(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
     char* ret_str = NULL;
     bint_t ret_str_len = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_get_between_mark(self, other, &ret_str, &ret_str_len);
-    wrenEnsureSlots(vm, 4);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)ret_str);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)ret_str_len);
-    wrenInsertInList(vm, 0, -1, 3);
+    lua_createtable(L, 0, 3);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_str");
+    lua_pushpointer(L, (void*)ret_str);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_str_len");
+    lua_pushinteger(L, (lua_Integer)ret_str_len);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_get_char_after(WrenVM* vm) {
+static int _uscript_func_mark_get_char_after(lua_State* L) {
     int rv;
     mark_t* self;
     uint32_t ret_char = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_get_char_after(self, &ret_char);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotDouble(vm, 2, (double)ret_char);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_char");
+    lua_pushinteger(L, (lua_Integer)ret_char);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_get_char_before(WrenVM* vm) {
+static int _uscript_func_mark_get_char_before(lua_State* L) {
     int rv;
     mark_t* self;
     uint32_t ret_char = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_get_char_before(self, &ret_char);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotDouble(vm, 2, (double)ret_char);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_char");
+    lua_pushinteger(L, (lua_Integer)ret_char);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_get_offset(WrenVM* vm) {
+static int _uscript_func_mark_get_offset(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t ret_offset = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_get_offset(self, &ret_offset);
-    wrenEnsureSlots(vm, 3);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotDouble(vm, 2, (double)ret_offset);
-    wrenInsertInList(vm, 0, -1, 2);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_offset");
+    lua_pushinteger(L, (lua_Integer)ret_offset);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_insert_after(WrenVM* vm) {
+static int _uscript_func_mark_insert_after(lua_State* L) {
     int rv;
     mark_t* self;
     char* data;
     bint_t data_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    data = (char*)wrenGetSlotNullableString(vm, 2);
-    data_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    data = (char*)luaL_checkstring(L, 2);
+    data_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_insert_after(self, data, data_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_insert_before(WrenVM* vm) {
+static int _uscript_func_mark_insert_before(lua_State* L) {
     int rv;
     mark_t* self;
     char* data;
     bint_t data_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    data = (char*)wrenGetSlotNullableString(vm, 2);
-    data_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    data = (char*)luaL_checkstring(L, 2);
+    data_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_insert_before(self, data, data_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_after_col_minus_lefties(WrenVM* vm) {
+static int _uscript_func_mark_is_after_col_minus_lefties(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t col;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    col = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    col = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_is_after_col_minus_lefties(self, col);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_at_bol(WrenVM* vm) {
+static int _uscript_func_mark_is_at_bol(lua_State* L) {
     int rv;
     mark_t* self;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_is_at_bol(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_at_eol(WrenVM* vm) {
+static int _uscript_func_mark_is_at_eol(lua_State* L) {
     int rv;
     mark_t* self;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_is_at_eol(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_at_word_bound(WrenVM* vm) {
+static int _uscript_func_mark_is_at_word_bound(lua_State* L) {
     int rv;
     mark_t* self;
     int side;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    side = (int)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    side = (int)luaL_checkinteger(L, 2);
     rv = mark_is_at_word_bound(self, side);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_eq(WrenVM* vm) {
+static int _uscript_func_mark_is_eq(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_is_eq(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_gt(WrenVM* vm) {
+static int _uscript_func_mark_is_gt(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_is_gt(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_gte(WrenVM* vm) {
+static int _uscript_func_mark_is_gte(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_is_gte(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_lt(WrenVM* vm) {
+static int _uscript_func_mark_is_lt(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_is_lt(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_is_lte(WrenVM* vm) {
+static int _uscript_func_mark_is_lte(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_is_lte(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_join(WrenVM* vm) {
+static int _uscript_func_mark_join(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_join(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_beginning(WrenVM* vm) {
+static int _uscript_func_mark_move_beginning(lua_State* L) {
     int rv;
     mark_t* self;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_move_beginning(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_bol(WrenVM* vm) {
+static int _uscript_func_mark_move_bol(lua_State* L) {
     int rv;
     mark_t* self;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_move_bol(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_bracket_pair(WrenVM* vm) {
+static int _uscript_func_mark_move_bracket_pair(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t max_chars;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    max_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_pair(self, max_chars);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_bracket_pair_ex(WrenVM* vm) {
+static int _uscript_func_mark_move_bracket_pair_ex(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t max_chars;
     bline_t* optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    max_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_pair_ex(self, max_chars, &optret_line, &optret_col, &optret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)optret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)optret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_line");
+    lua_pushpointer(L, (void*)optret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_col");
+    lua_pushinteger(L, (lua_Integer)optret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_bracket_top(WrenVM* vm) {
+static int _uscript_func_mark_move_bracket_top(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t max_chars;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    max_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_top(self, max_chars);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_bracket_top_ex(WrenVM* vm) {
+static int _uscript_func_mark_move_bracket_top_ex(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t max_chars;
     bline_t* optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    max_chars = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_top_ex(self, max_chars, &optret_line, &optret_col, &optret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)optret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)optret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_line");
+    lua_pushpointer(L, (void*)optret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_col");
+    lua_pushinteger(L, (lua_Integer)optret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_by(WrenVM* vm) {
+static int _uscript_func_mark_move_by(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t char_delta;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    char_delta = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    char_delta = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_by(self, char_delta);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_col(WrenVM* vm) {
+static int _uscript_func_mark_move_col(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t col;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    col = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    col = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_col(self, col);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_end(WrenVM* vm) {
+static int _uscript_func_mark_move_end(lua_State* L) {
     int rv;
     mark_t* self;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_move_end(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_eol(WrenVM* vm) {
+static int _uscript_func_mark_move_eol(lua_State* L) {
     int rv;
     mark_t* self;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
+    self = (mark_t*)luaL_checkpointer(L, 1);
     rv = mark_move_eol(self);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_next_re(WrenVM* vm) {
+static int _uscript_func_mark_move_next_re(lua_State* L) {
     int rv;
     mark_t* self;
     char* re;
     bint_t re_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotNullableString(vm, 2);
-    re_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    re = (char*)luaL_checkstring(L, 2);
+    re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_re(self, re, re_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_next_re_ex(WrenVM* vm) {
+static int _uscript_func_mark_move_next_re_ex(lua_State* L) {
     int rv;
     mark_t* self;
     char* re;
@@ -1370,53 +2008,62 @@ static void _uscript_mark_move_next_re_ex(WrenVM* vm) {
     bline_t* optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotNullableString(vm, 2);
-    re_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    re = (char*)luaL_checkstring(L, 2);
+    re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_re_ex(self, re, re_len, &optret_line, &optret_col, &optret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)optret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)optret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_line");
+    lua_pushpointer(L, (void*)optret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_col");
+    lua_pushinteger(L, (lua_Integer)optret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_next_re_nudge(WrenVM* vm) {
+static int _uscript_func_mark_move_next_re_nudge(lua_State* L) {
     int rv;
     mark_t* self;
     char* re;
     bint_t re_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotNullableString(vm, 2);
-    re_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    re = (char*)luaL_checkstring(L, 2);
+    re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_re_nudge(self, re, re_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_next_str(WrenVM* vm) {
+static int _uscript_func_mark_move_next_str(lua_State* L) {
     int rv;
     mark_t* self;
     char* str;
     bint_t str_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotNullableString(vm, 2);
-    str_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    str = (char*)luaL_checkstring(L, 2);
+    str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_str(self, str, str_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_next_str_ex(WrenVM* vm) {
+static int _uscript_func_mark_move_next_str_ex(lua_State* L) {
     int rv;
     mark_t* self;
     char* str;
@@ -1424,66 +2071,77 @@ static void _uscript_mark_move_next_str_ex(WrenVM* vm) {
     bline_t* optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotNullableString(vm, 2);
-    str_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    str = (char*)luaL_checkstring(L, 2);
+    str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_str_ex(self, str, str_len, &optret_line, &optret_col, &optret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)optret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)optret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_line");
+    lua_pushpointer(L, (void*)optret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_col");
+    lua_pushinteger(L, (lua_Integer)optret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_next_str_nudge(WrenVM* vm) {
+static int _uscript_func_mark_move_next_str_nudge(lua_State* L) {
     int rv;
     mark_t* self;
     char* str;
     bint_t str_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotNullableString(vm, 2);
-    str_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    str = (char*)luaL_checkstring(L, 2);
+    str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_str_nudge(self, str, str_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_offset(WrenVM* vm) {
+static int _uscript_func_mark_move_offset(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t offset;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    offset = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    offset = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_offset(self, offset);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_prev_re(WrenVM* vm) {
+static int _uscript_func_mark_move_prev_re(lua_State* L) {
     int rv;
     mark_t* self;
     char* re;
     bint_t re_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotNullableString(vm, 2);
-    re_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    re = (char*)luaL_checkstring(L, 2);
+    re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_re(self, re, re_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_prev_re_ex(WrenVM* vm) {
+static int _uscript_func_mark_move_prev_re_ex(lua_State* L) {
     int rv;
     mark_t* self;
     char* re;
@@ -1491,38 +2149,45 @@ static void _uscript_mark_move_prev_re_ex(WrenVM* vm) {
     bline_t* optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    re = (char*)wrenGetSlotNullableString(vm, 2);
-    re_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    re = (char*)luaL_checkstring(L, 2);
+    re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_re_ex(self, re, re_len, &optret_line, &optret_col, &optret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)optret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)optret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_line");
+    lua_pushpointer(L, (void*)optret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_col");
+    lua_pushinteger(L, (lua_Integer)optret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_prev_str(WrenVM* vm) {
+static int _uscript_func_mark_move_prev_str(lua_State* L) {
     int rv;
     mark_t* self;
     char* str;
     bint_t str_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotNullableString(vm, 2);
-    str_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    str = (char*)luaL_checkstring(L, 2);
+    str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_str(self, str, str_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_prev_str_ex(WrenVM* vm) {
+static int _uscript_func_mark_move_prev_str_ex(lua_State* L) {
     int rv;
     mark_t* self;
     char* str;
@@ -1530,337 +2195,272 @@ static void _uscript_mark_move_prev_str_ex(WrenVM* vm) {
     bline_t* optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    str = (char*)wrenGetSlotNullableString(vm, 2);
-    str_len = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    str = (char*)luaL_checkstring(L, 2);
+    str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_str_ex(self, str, str_len, &optret_line, &optret_col, &optret_num_chars);
-    wrenEnsureSlots(vm, 5);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
-    wrenSetSlotPointer(vm, 2, (void*)optret_line);
-    wrenInsertInList(vm, 0, -1, 2);
-    wrenSetSlotDouble(vm, 3, (double)optret_col);
-    wrenInsertInList(vm, 0, -1, 3);
-    wrenSetSlotDouble(vm, 4, (double)optret_num_chars);
-    wrenInsertInList(vm, 0, -1, 4);
+    lua_createtable(L, 0, 4);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_line");
+    lua_pushpointer(L, (void*)optret_line);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_col");
+    lua_pushinteger(L, (lua_Integer)optret_col);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_num_chars");
+    lua_pushinteger(L, (lua_Integer)optret_num_chars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_to(WrenVM* vm) {
+static int _uscript_func_mark_move_to(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t line_index;
     bint_t col;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    line_index = (bint_t)wrenGetSlotDouble(vm, 2);
-    col = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    line_index = (bint_t)luaL_checkinteger(L, 2);
+    col = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_to(self, line_index, col);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_to_w_bline(WrenVM* vm) {
+static int _uscript_func_mark_move_to_w_bline(lua_State* L) {
     int rv;
     mark_t* self;
     bline_t* bline;
     bint_t col;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    bline = (bline_t*)wrenGetSlotPointer(vm, 2);
-    col = (bint_t)wrenGetSlotDouble(vm, 3);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    bline = (bline_t*)luaL_checkpointer(L, 2);
+    col = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_to_w_bline(self, bline, col);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_move_vert(WrenVM* vm) {
+static int _uscript_func_mark_move_vert(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t line_delta;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    line_delta = (bint_t)wrenGetSlotDouble(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    line_delta = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_vert(self, line_delta);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_replace(WrenVM* vm) {
+static int _uscript_func_mark_replace(lua_State* L) {
     int rv;
     mark_t* self;
     bint_t num_chars;
     char* data;
     bint_t data_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    num_chars = (bint_t)wrenGetSlotDouble(vm, 2);
-    data = (char*)wrenGetSlotNullableString(vm, 3);
-    data_len = (bint_t)wrenGetSlotDouble(vm, 4);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    num_chars = (bint_t)luaL_checkinteger(L, 2);
+    data = (char*)luaL_checkstring(L, 3);
+    data_len = (bint_t)luaL_checkinteger(L, 4);
     rv = mark_replace(self, num_chars, data, data_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_replace_between_mark(WrenVM* vm) {
+static int _uscript_func_mark_replace_between_mark(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
     char* data;
     bint_t data_len;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
-    data = (char*)wrenGetSlotNullableString(vm, 3);
-    data_len = (bint_t)wrenGetSlotDouble(vm, 4);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
+    data = (char*)luaL_checkstring(L, 3);
+    data_len = (bint_t)luaL_checkinteger(L, 4);
     rv = mark_replace_between_mark(self, other, data, data_len);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static void _uscript_mark_swap_with_mark(WrenVM* vm) {
+static int _uscript_func_mark_swap_with_mark(lua_State* L) {
     int rv;
     mark_t* self;
     mark_t* other;
-    self = (mark_t*)wrenGetSlotPointer(vm, 1);
-    other = (mark_t*)wrenGetSlotPointer(vm, 2);
+    self = (mark_t*)luaL_checkpointer(L, 1);
+    other = (mark_t*)luaL_checkpointer(L, 2);
     rv = mark_swap_with_mark(self, other);
-    wrenEnsureSlots(vm, 2);
-    wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, (double)rv);
-    wrenInsertInList(vm, 0, -1, 1);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
 }
 
-static WrenForeignMethodFn _uscript_bind_method(WrenVM* vm, const char* module, const char* class, bool is_static, const char* sig) {
-    if (!is_static
-        || strcmp(module, "main") != 0
-        || strcmp(class, "mle") != 0
-    ) {
-        return NULL;
-    }
-    if (0) {
-    } else if (strncmp(sig, "bview_add_cursor(", 17) == 0) {
-        return _uscript_bview_add_cursor;
-    } else if (strncmp(sig, "bview_add_cursor_asleep(", 24) == 0) {
-        return _uscript_bview_add_cursor_asleep;
-    } else if (strncmp(sig, "bview_center_viewport_y(", 24) == 0) {
-        return _uscript_bview_center_viewport_y;
-    } else if (strncmp(sig, "bview_destroy(", 14) == 0) {
-        return _uscript_bview_destroy;
-    } else if (strncmp(sig, "bview_draw(", 11) == 0) {
-        return _uscript_bview_draw;
-    } else if (strncmp(sig, "bview_draw_cursor(", 18) == 0) {
-        return _uscript_bview_draw_cursor;
-    } else if (strncmp(sig, "bview_get_active_cursor_count(", 30) == 0) {
-        return _uscript_bview_get_active_cursor_count;
-    } else if (strncmp(sig, "bview_get_split_root(", 21) == 0) {
-        return _uscript_bview_get_split_root;
-    } else if (strncmp(sig, "bview_max_viewport_y(", 21) == 0) {
-        return _uscript_bview_max_viewport_y;
-    } else if (strncmp(sig, "bview_new(", 10) == 0) {
-        return _uscript_bview_new;
-    } else if (strncmp(sig, "bview_open(", 11) == 0) {
-        return _uscript_bview_open;
-    } else if (strncmp(sig, "bview_pop_kmap(", 15) == 0) {
-        return _uscript_bview_pop_kmap;
-    } else if (strncmp(sig, "bview_push_kmap(", 16) == 0) {
-        return _uscript_bview_push_kmap;
-    } else if (strncmp(sig, "bview_rectify_viewport(", 23) == 0) {
-        return _uscript_bview_rectify_viewport;
-    } else if (strncmp(sig, "bview_remove_cursor(", 20) == 0) {
-        return _uscript_bview_remove_cursor;
-    } else if (strncmp(sig, "bview_remove_cursors_except(", 28) == 0) {
-        return _uscript_bview_remove_cursors_except;
-    } else if (strncmp(sig, "bview_resize(", 13) == 0) {
-        return _uscript_bview_resize;
-    } else if (strncmp(sig, "bview_set_syntax(", 17) == 0) {
-        return _uscript_bview_set_syntax;
-    } else if (strncmp(sig, "bview_split(", 12) == 0) {
-        return _uscript_bview_split;
-    } else if (strncmp(sig, "bview_wake_sleeping_cursors(", 28) == 0) {
-        return _uscript_bview_wake_sleeping_cursors;
-    } else if (strncmp(sig, "bview_zero_viewport_y(", 22) == 0) {
-        return _uscript_bview_zero_viewport_y;
-    } else if (strncmp(sig, "cursor_clone(", 13) == 0) {
-        return _uscript_cursor_clone;
-    } else if (strncmp(sig, "cursor_cut_copy(", 16) == 0) {
-        return _uscript_cursor_cut_copy;
-    } else if (strncmp(sig, "cursor_destroy(", 15) == 0) {
-        return _uscript_cursor_destroy;
-    } else if (strncmp(sig, "cursor_drop_anchor(", 19) == 0) {
-        return _uscript_cursor_drop_anchor;
-    } else if (strncmp(sig, "cursor_get_anchor(", 18) == 0) {
-        return _uscript_cursor_get_anchor;
-    } else if (strncmp(sig, "cursor_get_lo_hi(", 17) == 0) {
-        return _uscript_cursor_get_lo_hi;
-    } else if (strncmp(sig, "cursor_get_mark(", 16) == 0) {
-        return _uscript_cursor_get_mark;
-    } else if (strncmp(sig, "cursor_lift_anchor(", 19) == 0) {
-        return _uscript_cursor_lift_anchor;
-    } else if (strncmp(sig, "cursor_replace(", 15) == 0) {
-        return _uscript_cursor_replace;
-    } else if (strncmp(sig, "cursor_select_between(", 22) == 0) {
-        return _uscript_cursor_select_between;
-    } else if (strncmp(sig, "cursor_select_by(", 17) == 0) {
-        return _uscript_cursor_select_by;
-    } else if (strncmp(sig, "cursor_select_by_bracket(", 25) == 0) {
-        return _uscript_cursor_select_by_bracket;
-    } else if (strncmp(sig, "cursor_select_by_string(", 24) == 0) {
-        return _uscript_cursor_select_by_string;
-    } else if (strncmp(sig, "cursor_select_by_word(", 22) == 0) {
-        return _uscript_cursor_select_by_word;
-    } else if (strncmp(sig, "cursor_select_by_word_back(", 27) == 0) {
-        return _uscript_cursor_select_by_word_back;
-    } else if (strncmp(sig, "cursor_select_by_word_forward(", 30) == 0) {
-        return _uscript_cursor_select_by_word_forward;
-    } else if (strncmp(sig, "cursor_toggle_anchor(", 21) == 0) {
-        return _uscript_cursor_toggle_anchor;
-    } else if (strncmp(sig, "cursor_uncut(", 13) == 0) {
-        return _uscript_cursor_uncut;
-    } else if (strncmp(sig, "editor_bview_edit_count(", 24) == 0) {
-        return _uscript_editor_bview_edit_count;
-    } else if (strncmp(sig, "editor_close_bview(", 19) == 0) {
-        return _uscript_editor_close_bview;
-    } else if (strncmp(sig, "editor_count_bviews_by_buffer(", 30) == 0) {
-        return _uscript_editor_count_bviews_by_buffer;
-    } else if (strncmp(sig, "editor_destroy_observer(", 24) == 0) {
-        return _uscript_editor_destroy_observer;
-    } else if (strncmp(sig, "editor_display(", 15) == 0) {
-        return _uscript_editor_display;
-    } else if (strncmp(sig, "editor_get_input(", 17) == 0) {
-        return _uscript_editor_get_input;
-    } else if (strncmp(sig, "editor_input_to_key(", 20) == 0) {
-        return _uscript_editor_input_to_key;
-    } else if (strncmp(sig, "editor_menu(", 12) == 0) {
-        return _uscript_editor_menu;
-    } else if (strncmp(sig, "editor_notify_observers(", 24) == 0) {
-        return _uscript_editor_notify_observers;
-    } else if (strncmp(sig, "editor_open_bview(", 18) == 0) {
-        return _uscript_editor_open_bview;
-    } else if (strncmp(sig, "editor_prompt(", 14) == 0) {
-        return _uscript_editor_prompt;
-    } else if (strncmp(sig, "editor_register_cmd(", 20) == 0) {
-        return _uscript_editor_register_cmd;
-    } else if (strncmp(sig, "editor_register_observer(", 25) == 0) {
-        return _uscript_editor_register_observer;
-    } else if (strncmp(sig, "editor_set_active(", 18) == 0) {
-        return _uscript_editor_set_active;
-    } else if (strncmp(sig, "mark_clone(", 11) == 0) {
-        return _uscript_mark_clone;
-    } else if (strncmp(sig, "mark_clone_w_letter(", 20) == 0) {
-        return _uscript_mark_clone_w_letter;
-    } else if (strncmp(sig, "mark_delete_after(", 18) == 0) {
-        return _uscript_mark_delete_after;
-    } else if (strncmp(sig, "mark_delete_before(", 19) == 0) {
-        return _uscript_mark_delete_before;
-    } else if (strncmp(sig, "mark_delete_between_mark(", 25) == 0) {
-        return _uscript_mark_delete_between_mark;
-    } else if (strncmp(sig, "mark_destroy(", 13) == 0) {
-        return _uscript_mark_destroy;
-    } else if (strncmp(sig, "mark_find_bracket_pair(", 23) == 0) {
-        return _uscript_mark_find_bracket_pair;
-    } else if (strncmp(sig, "mark_find_bracket_top(", 22) == 0) {
-        return _uscript_mark_find_bracket_top;
-    } else if (strncmp(sig, "mark_find_next_re(", 18) == 0) {
-        return _uscript_mark_find_next_re;
-    } else if (strncmp(sig, "mark_find_next_str(", 19) == 0) {
-        return _uscript_mark_find_next_str;
-    } else if (strncmp(sig, "mark_find_prev_re(", 18) == 0) {
-        return _uscript_mark_find_prev_re;
-    } else if (strncmp(sig, "mark_find_prev_str(", 19) == 0) {
-        return _uscript_mark_find_prev_str;
-    } else if (strncmp(sig, "mark_get_between_mark(", 22) == 0) {
-        return _uscript_mark_get_between_mark;
-    } else if (strncmp(sig, "mark_get_char_after(", 20) == 0) {
-        return _uscript_mark_get_char_after;
-    } else if (strncmp(sig, "mark_get_char_before(", 21) == 0) {
-        return _uscript_mark_get_char_before;
-    } else if (strncmp(sig, "mark_get_offset(", 16) == 0) {
-        return _uscript_mark_get_offset;
-    } else if (strncmp(sig, "mark_insert_after(", 18) == 0) {
-        return _uscript_mark_insert_after;
-    } else if (strncmp(sig, "mark_insert_before(", 19) == 0) {
-        return _uscript_mark_insert_before;
-    } else if (strncmp(sig, "mark_is_after_col_minus_lefties(", 32) == 0) {
-        return _uscript_mark_is_after_col_minus_lefties;
-    } else if (strncmp(sig, "mark_is_at_bol(", 15) == 0) {
-        return _uscript_mark_is_at_bol;
-    } else if (strncmp(sig, "mark_is_at_eol(", 15) == 0) {
-        return _uscript_mark_is_at_eol;
-    } else if (strncmp(sig, "mark_is_at_word_bound(", 22) == 0) {
-        return _uscript_mark_is_at_word_bound;
-    } else if (strncmp(sig, "mark_is_eq(", 11) == 0) {
-        return _uscript_mark_is_eq;
-    } else if (strncmp(sig, "mark_is_gt(", 11) == 0) {
-        return _uscript_mark_is_gt;
-    } else if (strncmp(sig, "mark_is_gte(", 12) == 0) {
-        return _uscript_mark_is_gte;
-    } else if (strncmp(sig, "mark_is_lt(", 11) == 0) {
-        return _uscript_mark_is_lt;
-    } else if (strncmp(sig, "mark_is_lte(", 12) == 0) {
-        return _uscript_mark_is_lte;
-    } else if (strncmp(sig, "mark_join(", 10) == 0) {
-        return _uscript_mark_join;
-    } else if (strncmp(sig, "mark_move_beginning(", 20) == 0) {
-        return _uscript_mark_move_beginning;
-    } else if (strncmp(sig, "mark_move_bol(", 14) == 0) {
-        return _uscript_mark_move_bol;
-    } else if (strncmp(sig, "mark_move_bracket_pair(", 23) == 0) {
-        return _uscript_mark_move_bracket_pair;
-    } else if (strncmp(sig, "mark_move_bracket_pair_ex(", 26) == 0) {
-        return _uscript_mark_move_bracket_pair_ex;
-    } else if (strncmp(sig, "mark_move_bracket_top(", 22) == 0) {
-        return _uscript_mark_move_bracket_top;
-    } else if (strncmp(sig, "mark_move_bracket_top_ex(", 25) == 0) {
-        return _uscript_mark_move_bracket_top_ex;
-    } else if (strncmp(sig, "mark_move_by(", 13) == 0) {
-        return _uscript_mark_move_by;
-    } else if (strncmp(sig, "mark_move_col(", 14) == 0) {
-        return _uscript_mark_move_col;
-    } else if (strncmp(sig, "mark_move_end(", 14) == 0) {
-        return _uscript_mark_move_end;
-    } else if (strncmp(sig, "mark_move_eol(", 14) == 0) {
-        return _uscript_mark_move_eol;
-    } else if (strncmp(sig, "mark_move_next_re(", 18) == 0) {
-        return _uscript_mark_move_next_re;
-    } else if (strncmp(sig, "mark_move_next_re_ex(", 21) == 0) {
-        return _uscript_mark_move_next_re_ex;
-    } else if (strncmp(sig, "mark_move_next_re_nudge(", 24) == 0) {
-        return _uscript_mark_move_next_re_nudge;
-    } else if (strncmp(sig, "mark_move_next_str(", 19) == 0) {
-        return _uscript_mark_move_next_str;
-    } else if (strncmp(sig, "mark_move_next_str_ex(", 22) == 0) {
-        return _uscript_mark_move_next_str_ex;
-    } else if (strncmp(sig, "mark_move_next_str_nudge(", 25) == 0) {
-        return _uscript_mark_move_next_str_nudge;
-    } else if (strncmp(sig, "mark_move_offset(", 17) == 0) {
-        return _uscript_mark_move_offset;
-    } else if (strncmp(sig, "mark_move_prev_re(", 18) == 0) {
-        return _uscript_mark_move_prev_re;
-    } else if (strncmp(sig, "mark_move_prev_re_ex(", 21) == 0) {
-        return _uscript_mark_move_prev_re_ex;
-    } else if (strncmp(sig, "mark_move_prev_str(", 19) == 0) {
-        return _uscript_mark_move_prev_str;
-    } else if (strncmp(sig, "mark_move_prev_str_ex(", 22) == 0) {
-        return _uscript_mark_move_prev_str_ex;
-    } else if (strncmp(sig, "mark_move_to(", 13) == 0) {
-        return _uscript_mark_move_to;
-    } else if (strncmp(sig, "mark_move_to_w_bline(", 21) == 0) {
-        return _uscript_mark_move_to_w_bline;
-    } else if (strncmp(sig, "mark_move_vert(", 15) == 0) {
-        return _uscript_mark_move_vert;
-    } else if (strncmp(sig, "mark_replace(", 13) == 0) {
-        return _uscript_mark_replace;
-    } else if (strncmp(sig, "mark_replace_between_mark(", 26) == 0) {
-        return _uscript_mark_replace_between_mark;
-    } else if (strncmp(sig, "mark_swap_with_mark(", 20) == 0) {
-        return _uscript_mark_swap_with_mark;
-    };
-    return NULL;
-}
+static const struct luaL_Reg mle_lib[] = {
+    { "buffer_add_mark", _uscript_func_buffer_add_mark },
+    { "buffer_add_mark_ex", _uscript_func_buffer_add_mark_ex },
+    { "buffer_add_srule", _uscript_func_buffer_add_srule },
+    { "buffer_apply_styles", _uscript_func_buffer_apply_styles },
+    { "buffer_clear", _uscript_func_buffer_clear },
+    { "buffer_delete", _uscript_func_buffer_delete },
+    { "buffer_delete_w_bline", _uscript_func_buffer_delete_w_bline },
+    { "buffer_destroy", _uscript_func_buffer_destroy },
+    { "buffer_destroy_mark", _uscript_func_buffer_destroy_mark },
+    { "buffer_get", _uscript_func_buffer_get },
+    { "buffer_get_bline", _uscript_func_buffer_get_bline },
+    { "buffer_get_bline_col", _uscript_func_buffer_get_bline_col },
+    { "buffer_get_lettered_mark", _uscript_func_buffer_get_lettered_mark },
+    { "buffer_get_offset", _uscript_func_buffer_get_offset },
+    { "buffer_insert", _uscript_func_buffer_insert },
+    { "buffer_insert_w_bline", _uscript_func_buffer_insert_w_bline },
+    { "buffer_new", _uscript_func_buffer_new },
+    { "buffer_new_open", _uscript_func_buffer_new_open },
+    { "buffer_open", _uscript_func_buffer_open },
+    { "buffer_redo", _uscript_func_buffer_redo },
+    { "buffer_register_append", _uscript_func_buffer_register_append },
+    { "buffer_register_clear", _uscript_func_buffer_register_clear },
+    { "buffer_register_get", _uscript_func_buffer_register_get },
+    { "buffer_register_prepend", _uscript_func_buffer_register_prepend },
+    { "buffer_register_set", _uscript_func_buffer_register_set },
+    { "buffer_remove_srule", _uscript_func_buffer_remove_srule },
+    { "buffer_replace", _uscript_func_buffer_replace },
+    { "buffer_replace_w_bline", _uscript_func_buffer_replace_w_bline },
+    { "buffer_save", _uscript_func_buffer_save },
+    { "buffer_save_as", _uscript_func_buffer_save_as },
+    { "buffer_set", _uscript_func_buffer_set },
+    { "buffer_set_callback", _uscript_func_buffer_set_callback },
+    { "buffer_set_mmapped", _uscript_func_buffer_set_mmapped },
+    { "buffer_set_styles_enabled", _uscript_func_buffer_set_styles_enabled },
+    { "buffer_set_tab_width", _uscript_func_buffer_set_tab_width },
+    { "buffer_substr", _uscript_func_buffer_substr },
+    { "buffer_undo", _uscript_func_buffer_undo },
+    { "buffer_write_to_fd", _uscript_func_buffer_write_to_fd },
+    { "buffer_write_to_file", _uscript_func_buffer_write_to_file },
+    { "bview_add_cursor", _uscript_func_bview_add_cursor },
+    { "bview_add_cursor_asleep", _uscript_func_bview_add_cursor_asleep },
+    { "bview_center_viewport_y", _uscript_func_bview_center_viewport_y },
+    { "bview_destroy", _uscript_func_bview_destroy },
+    { "bview_draw", _uscript_func_bview_draw },
+    { "bview_draw_cursor", _uscript_func_bview_draw_cursor },
+    { "bview_get_active_cursor_count", _uscript_func_bview_get_active_cursor_count },
+    { "bview_get_split_root", _uscript_func_bview_get_split_root },
+    { "bview_max_viewport_y", _uscript_func_bview_max_viewport_y },
+    { "bview_new", _uscript_func_bview_new },
+    { "bview_open", _uscript_func_bview_open },
+    { "bview_pop_kmap", _uscript_func_bview_pop_kmap },
+    { "bview_push_kmap", _uscript_func_bview_push_kmap },
+    { "bview_rectify_viewport", _uscript_func_bview_rectify_viewport },
+    { "bview_remove_cursor", _uscript_func_bview_remove_cursor },
+    { "bview_remove_cursors_except", _uscript_func_bview_remove_cursors_except },
+    { "bview_resize", _uscript_func_bview_resize },
+    { "bview_set_syntax", _uscript_func_bview_set_syntax },
+    { "bview_split", _uscript_func_bview_split },
+    { "bview_wake_sleeping_cursors", _uscript_func_bview_wake_sleeping_cursors },
+    { "bview_zero_viewport_y", _uscript_func_bview_zero_viewport_y },
+    { "cursor_destroy", _uscript_func_cursor_destroy },
+    { "cursor_get_anchor", _uscript_func_cursor_get_anchor },
+    { "cursor_get_lo_hi", _uscript_func_cursor_get_lo_hi },
+    { "cursor_get_mark", _uscript_func_cursor_get_mark },
+    { "cursor_lift_anchor", _uscript_func_cursor_lift_anchor },
+    { "cursor_replace", _uscript_func_cursor_replace },
+    { "cursor_select_by", _uscript_func_cursor_select_by },
+    { "cursor_select_by_bracket", _uscript_func_cursor_select_by_bracket },
+    { "cursor_select_by_string", _uscript_func_cursor_select_by_string },
+    { "cursor_select_by_word", _uscript_func_cursor_select_by_word },
+    { "cursor_select_by_word_back", _uscript_func_cursor_select_by_word_back },
+    { "cursor_select_by_word_forward", _uscript_func_cursor_select_by_word_forward },
+    { "cursor_uncut", _uscript_func_cursor_uncut },
+    { "editor_bview_edit_count", _uscript_func_editor_bview_edit_count },
+    { "editor_close_bview", _uscript_func_editor_close_bview },
+    { "editor_count_bviews_by_buffer", _uscript_func_editor_count_bviews_by_buffer },
+    { "editor_destroy_observer", _uscript_func_editor_destroy_observer },
+    { "editor_display", _uscript_func_editor_display },
+    { "editor_get_input", _uscript_func_editor_get_input },
+    { "editor_input_to_key", _uscript_func_editor_input_to_key },
+    { "editor_menu", _uscript_func_editor_menu },
+    { "editor_notify_observers", _uscript_func_editor_notify_observers },
+    { "editor_open_bview", _uscript_func_editor_open_bview },
+    { "editor_prompt", _uscript_func_editor_prompt },
+    { "editor_register_cmd", _uscript_func_editor_register_cmd },
+    { "editor_register_observer", _uscript_func_editor_register_observer },
+    { "editor_set_active", _uscript_func_editor_set_active },
+    { "mark_clone", _uscript_func_mark_clone },
+    { "mark_clone_w_letter", _uscript_func_mark_clone_w_letter },
+    { "mark_delete_after", _uscript_func_mark_delete_after },
+    { "mark_delete_before", _uscript_func_mark_delete_before },
+    { "mark_delete_between_mark", _uscript_func_mark_delete_between_mark },
+    { "mark_destroy", _uscript_func_mark_destroy },
+    { "mark_find_bracket_pair", _uscript_func_mark_find_bracket_pair },
+    { "mark_find_bracket_top", _uscript_func_mark_find_bracket_top },
+    { "mark_find_next_re", _uscript_func_mark_find_next_re },
+    { "mark_find_next_str", _uscript_func_mark_find_next_str },
+    { "mark_find_prev_re", _uscript_func_mark_find_prev_re },
+    { "mark_find_prev_str", _uscript_func_mark_find_prev_str },
+    { "mark_get_between_mark", _uscript_func_mark_get_between_mark },
+    { "mark_get_char_after", _uscript_func_mark_get_char_after },
+    { "mark_get_char_before", _uscript_func_mark_get_char_before },
+    { "mark_get_offset", _uscript_func_mark_get_offset },
+    { "mark_insert_after", _uscript_func_mark_insert_after },
+    { "mark_insert_before", _uscript_func_mark_insert_before },
+    { "mark_is_after_col_minus_lefties", _uscript_func_mark_is_after_col_minus_lefties },
+    { "mark_is_at_bol", _uscript_func_mark_is_at_bol },
+    { "mark_is_at_eol", _uscript_func_mark_is_at_eol },
+    { "mark_is_at_word_bound", _uscript_func_mark_is_at_word_bound },
+    { "mark_is_eq", _uscript_func_mark_is_eq },
+    { "mark_is_gt", _uscript_func_mark_is_gt },
+    { "mark_is_gte", _uscript_func_mark_is_gte },
+    { "mark_is_lt", _uscript_func_mark_is_lt },
+    { "mark_is_lte", _uscript_func_mark_is_lte },
+    { "mark_join", _uscript_func_mark_join },
+    { "mark_move_beginning", _uscript_func_mark_move_beginning },
+    { "mark_move_bol", _uscript_func_mark_move_bol },
+    { "mark_move_bracket_pair", _uscript_func_mark_move_bracket_pair },
+    { "mark_move_bracket_pair_ex", _uscript_func_mark_move_bracket_pair_ex },
+    { "mark_move_bracket_top", _uscript_func_mark_move_bracket_top },
+    { "mark_move_bracket_top_ex", _uscript_func_mark_move_bracket_top_ex },
+    { "mark_move_by", _uscript_func_mark_move_by },
+    { "mark_move_col", _uscript_func_mark_move_col },
+    { "mark_move_end", _uscript_func_mark_move_end },
+    { "mark_move_eol", _uscript_func_mark_move_eol },
+    { "mark_move_next_re", _uscript_func_mark_move_next_re },
+    { "mark_move_next_re_ex", _uscript_func_mark_move_next_re_ex },
+    { "mark_move_next_re_nudge", _uscript_func_mark_move_next_re_nudge },
+    { "mark_move_next_str", _uscript_func_mark_move_next_str },
+    { "mark_move_next_str_ex", _uscript_func_mark_move_next_str_ex },
+    { "mark_move_next_str_nudge", _uscript_func_mark_move_next_str_nudge },
+    { "mark_move_offset", _uscript_func_mark_move_offset },
+    { "mark_move_prev_re", _uscript_func_mark_move_prev_re },
+    { "mark_move_prev_re_ex", _uscript_func_mark_move_prev_re_ex },
+    { "mark_move_prev_str", _uscript_func_mark_move_prev_str },
+    { "mark_move_prev_str_ex", _uscript_func_mark_move_prev_str_ex },
+    { "mark_move_to", _uscript_func_mark_move_to },
+    { "mark_move_to_w_bline", _uscript_func_mark_move_to_w_bline },
+    { "mark_move_vert", _uscript_func_mark_move_vert },
+    { "mark_replace", _uscript_func_mark_replace },
+    { "mark_replace_between_mark", _uscript_func_mark_replace_between_mark },
+    { "mark_swap_with_mark", _uscript_func_mark_swap_with_mark },
+    { NULL, NULL }
+};
 

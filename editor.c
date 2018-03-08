@@ -287,7 +287,7 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
 }
 
 // Open a bview
-int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, int skip_resize, buffer_t* opt_buffer, bview_t** optret_bview) {
+int editor_open_bview(editor_t* editor, bview_t* opt_parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, int skip_resize, buffer_t* opt_buffer, bview_t** optret_bview) {
     bview_t* bview;
     bview_rect_t* rect;
     int found;
@@ -310,10 +310,10 @@ int editor_open_bview(editor_t* editor, bview_t* parent, int type, char* opt_pat
         bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
         bview->type = type;
         CDL_APPEND2(editor->all_bviews, bview, all_prev, all_next);
-        if (!parent) {
+        if (!opt_parent) {
             DL_APPEND2(editor->top_bviews, bview, top_prev, top_next);
         } else {
-            parent->split_child = bview;
+            opt_parent->split_child = bview;
         }
     }
     if (make_active) {
@@ -2027,7 +2027,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
     int rv;
     kmap_t* cur_kmap;
     syntax_t* cur_syntax;
-    // uscript_t* uscript;
+    uscript_t* uscript;
     int c;
     rv = MLE_OK;
 
@@ -2159,13 +2159,13 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'x':
                 // TODO
-                //if (!(uscript = uscript_run(editor, optarg))) {
-                //    MLE_LOG_ERR("Failed to run uscript: %s\n", optarg);
-                //    editor->exit_code = EXIT_FAILURE;
-                //    rv = MLE_ERR;
-                //} else {
-                //    DL_APPEND(editor->uscripts, uscript);
-                //}
+                if (!(uscript = uscript_run(editor, optarg))) {
+                    MLE_LOG_ERR("Failed to run uscript: %s\n", optarg);
+                    editor->exit_code = EXIT_FAILURE;
+                    rv = MLE_ERR;
+                } else {
+                    DL_APPEND(editor->uscripts, uscript);
+                }
                 break;
             case 'y':
                 editor->syntax_override = optarg;

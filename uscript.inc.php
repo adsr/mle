@@ -1,7 +1,8 @@
 <?php
 
 class CodeGen {
-    public $blacklist_re = '@(editor_(init|deinit|run|debug_dump)|cre|listener)@';
+    public $blacklist_re = '@(editor_(init|deinit|run|debug_dump)|cre|srule|listener)@';
+    public $valid_pointer_re = '@(bline_t|buffer_t|bview_t|cursor_t|editor_t|mark_t|observer_t|void|char|size_t|int)@';
 
     function run() {
         $protos = $this->getProtoMap();
@@ -10,15 +11,14 @@ class CodeGen {
         usort($protos, function ($a, $b) {
             return strcmp($a->name, $b->name);
         });
-        $this->printForeignClass($protos);
         $this->printFuncs($protos);
-        $this->printBindCallback($protos);
+        $this->printLibTable($protos);
     }
 
     function getProtoMap() {
         $mlbuf_h = __DIR__ . '/mlbuf/mlbuf.h';
         $mle_h = __DIR__ . '/mle.h';
-        $grep_re = '^\S+ (editor|bview|cursor|mark)_.*\);$';
+        $grep_re = '^\S+ (editor|bview|buffer|cursor|mark)_.*\);$';
         $grep_cmd = sprintf(
             'grep -hP %s %s %s',
             escapeshellarg($grep_re),
@@ -46,7 +46,7 @@ class CodeGen {
 
     function getHardcodedProtoMap() {
         $uscript_c = __DIR__ . '/uscript.c';
-        $grep_re = '^// foreign static (?<name>[^\(]+)\((?<params>[^\)]*)\)$';
+        $grep_re = '^// foreign static (?<ret_type>\S+) _uscript_func_(?<name>[^\(]+)\((?<params>[^\)]*)\)$';
         $grep_cmd = sprintf(
             'grep -hP %s %s',
             escapeshellarg($grep_re),
@@ -75,45 +75,13 @@ class CodeGen {
         );
     }
 
-    function printForeignClass($protos) {
-        echo 'const char* mle_wren = "class mle {   \n\\' . "\n";
-        echo '    static list2map(ks, vs) {         \n\\' . "\n";
-        echo '        var m = {}                    \n\\' . "\n";
-        echo '        for (i in 0...ks.count) {     \n\\' . "\n";
-        echo '            m[ks[i]] = vs[i]          \n\\' . "\n";
-        echo '        }                             \n\\' . "\n";
-        echo '        return m                      \n\\' . "\n";
-        echo '    }                                 \n\\' . "\n";
+    function printLibTable($protos) {
+        echo 'static const struct luaL_Reg mle_lib[] = {' . "\n";
         foreach ($protos as $proto) {
-            $non_ret_params = array_filter($proto->params, function($param) {
-                return !$param->is_ret;
-            });
-            printf(
-                "    foreign static %s(%s) \\n\\\n",
-                $proto->name,
-                implode(', ', array_column($non_ret_params, 'name'))
-            );
+            printf('    { "%s", %s },' . "\n", $proto->name, $proto->c_func);
         }
-        echo '} \\' . "\n";
-        echo '";' . "\n\n";
-    }
-
-    function printBindCallback($protos) {
-        echo "static WrenForeignMethodFn _uscript_bind_method(WrenVM* vm, const char* module, const char* class, bool is_static, const char* sig) {\n";
-        echo '    if (!is_static' . "\n";
-        echo '        || strcmp(module, "main") != 0' . "\n";
-        echo '        || strcmp(class, "mle") != 0' . "\n";
-        echo "    ) {\n";
-        echo "        return NULL;\n";
-        echo "    }\n";
-        echo "    if (0) {\n";
-        foreach ($protos as $proto) {
-            printf("    } else if (strncmp(sig, \"%s(\", %d) == 0) {\n", $proto->name, strlen($proto->name)+1);
-            printf("        return _uscript_%s;\n", $proto->name);
-        }
-        echo "    };\n";
-        echo "    return NULL;\n";
-        echo "}\n\n";
+        echo "    { NULL, NULL }\n";
+        echo "};\n\n";
     }
 
     function printFuncs($protos) {
@@ -125,9 +93,9 @@ class CodeGen {
     function printFunc($proto) {
         $is_hardcoded = $proto->is_hardcoded;
         printf(
-            "%sstatic void _uscript_%s(WrenVM* vm) {\n",
+            "%sstatic int %s(lua_State* L) {\n",
             $is_hardcoded ? '// ' : '',
-            $proto->name
+            $proto->c_func
         );
         if (!$is_hardcoded) {
             printf("    %s rv;\n", $proto->ret_type);
@@ -141,47 +109,65 @@ class CodeGen {
             $param_num = 1;
             foreach ($proto->params as $param) {
                 if ($param->is_ret) continue;
-                $this->fromWren($param, $param_num++);
+                $this->fromLua($param, $param_num++);
             }
             $call_names = array_map(function($param) {
                 return $param->call_name;
             }, $proto->params);
             printf("    rv = %s(%s);\n", $proto->name, implode(', ', $call_names));
-            printf("    wrenEnsureSlots(vm, %d);\n", $proto->ret_count + 1);
-            printf("    wrenSetSlotNewList(vm, 0);\n");
-            $slot = 1;
-            $this->toWren('rv', $proto->ret_type, $slot++, 0);
+            printf("    lua_createtable(L, 0, %d);\n", $proto->ret_count);
+            $this->toLua('rv', $proto->ret_type);
             foreach ($proto->params as $param) {
                 if (!$param->is_ret) continue;
-                $this->toWren($param->name, $param->type, $slot, 0);
-                $slot += 1;
+                $this->toLua($param->name, $param->type);
             }
+            printf("    lua_pushvalue(L, -1);\n");
+            printf("    return 1;\n");
         }
         printf("%s}\n\n", $is_hardcoded ? '// ' : '');
     }
 
-    function toWren($name, $type, $slot, $list_slot) {
+    function toLua($name, $type) {
+        printf('    lua_pushstring(L, "%s");' . "\n", $name);
         if (strpos($type, 'int') !== false || $type === 'char') {
-            printf("    wrenSetSlotDouble(vm, %d, (double)%s);\n", $slot, $name);
+            printf("    lua_pushinteger(L, (lua_Integer)%s);\n", $name);
         } else if ($type === 'char*' || $type === 'const char*') {
-            printf("    wrenSetSlotString(vm, %d, (const char*)%s);\n", $slot, $name);
-        } else if (strpos($type, '*') !== false) {
-            printf("    wrenSetSlotPointer(vm, %d, (void*)%s);\n", $slot, $name);
+            printf("    lua_pushstring(L, (const char*)%s);\n", $name);
+        } else if (preg_match($this->valid_pointer_re, $type)) {
+            printf("    lua_pushpointer(L, (void*)%s);\n", $name);
         } else {
             throw new RuntimeException("Unhandled type: $type");
         }
-        printf("    wrenInsertInList(vm, %d, -1, %d);\n", $list_slot, $slot);
+        printf("    lua_settable(L, -3);\n");
     }
 
-    function fromWren($param, $slot) {
+    function fromLua($param, $slot) {
         $type = $param->type;
         $name = $param->name;
-        if (strpos($type, 'int') !== false || $type === 'char' || $type === 'float') {
-            printf("    %s = (%s)wrenGetSlotDouble(vm, %d);\n", $name, $type, $slot);
+        if (strpos($type, 'int') !== false || $type === 'char' || $type === 'size_t') {
+            if ($param->is_opt) {
+                printf("    %s = (%s)luaL_optinteger(L, %d, 0);\n", $name, $type, $slot);
+            } else {
+                printf("    %s = (%s)luaL_checkinteger(L, %d);\n", $name, $type, $slot);
+            }
+        } else if ($type === 'float' || $type === 'double') {
+            if ($param->is_opt) {
+                printf("    %s = (%s)luaL_optnumber(L, %d, 0);\n", $name, $type, $slot);
+            } else {
+                printf("    %s = (%s)luaL_checknumber(L, %d);\n", $name, $type, $slot);
+            }
         } else if ($type === 'char*' || $type === 'const char*') {
-            printf("    %s = (%s)wrenGetSlotNullableString(vm, %d);\n", $name, $type, $slot);
-        } else if (strpos($type, '*') !== false) {
-            printf("    %s = (%s)wrenGetSlotPointer(vm, %d);\n", $name, $type, $slot);
+            if ($param->is_opt) {
+                printf("    %s = (%s)luaL_optstring(L, %d, NULL);\n", $name, $type, $slot);
+            } else {
+                printf("    %s = (%s)luaL_checkstring(L, %d);\n", $name, $type, $slot);
+            }
+        } else if (preg_match($this->valid_pointer_re, $type)) {
+            if ($param->is_opt) {
+                printf("    %s = (%s)luaL_optpointer(L, %d, NULL);\n", $name, $type, $slot);
+            } else {
+                printf("    %s = (%s)luaL_checkpointer(L, %d);\n", $name, $type, $slot);
+            }
         } else {
             throw new RuntimeException("Unhandled type: $type");
         }
@@ -196,11 +182,15 @@ class Proto {
             throw new RuntimeException("Could not parse proto: $proto_str");
         }
         $this->name = $match['name'];
+        $this->c_func = '_uscript_func_' . $this->name;
         $this->ret_type = $match['ret_type'];
         $this->params = [];
         $this->ret_count = 1;
         $this->has_funcs = false;
         $this->is_hardcoded = false;
+        if (empty($match['params'])) {
+            return;
+        }
         $param_strs = preg_split('@\s*,\s*@', $match['params']);
         foreach ($param_strs as $param_str) {
             $param = new Param($param_str);

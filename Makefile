@@ -1,14 +1,14 @@
 DESTDIR?=/usr/local/bin/
 
-mle_cflags:=$(CFLAGS) -D_GNU_SOURCE -Wall -Wextra -Wno-missing-braces -Wno-unused-parameter -Wno-unused-result -g -O2 -I./mlbuf/ -I./termbox/src/ -I./uthash/src/ -I./lua
+mle_cflags:=$(CFLAGS) -D_GNU_SOURCE -Wall -Wextra -Wno-missing-braces -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -g -O0 -I./mlbuf/ -I./termbox/src/ -I./uthash/src/ -I./lua
 mle_ldlibs:=$(LDLIBS) -lm -lpcre
 mle_ldflags:=$(LDFLAGS)
 mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
 mle_static:=
-termbox_cflags:=$(CFLAGS) -D_XOPEN_SOURCE -Wall -Wextra -Wno-unused-result -std=gnu99 -g -O2
+termbox_cflags:=$(CFLAGS) -D_XOPEN_SOURCE -Wall -Wextra -Wno-unused-result -std=gnu99 -g -O0
 termbox_objects:=$(patsubst termbox/src/%.c,termbox/src/%.o,$(wildcard termbox/src/*.c))
 lua_objects:=$(patsubst lua/%.c,lua/%.o,$(wildcard lua/*.c))
-lua_cflags:=$(CFLAGS) -DLUA_USER_H='"ltests.h"' -DLUA_USE_POSIX -DLUA_USE_DLOPEN -DLUA_COMPAT_5_2 -Wall -Wextra -std=gnu99 -g -O2
+lua_cflags:=$(CFLAGS) -DLUA_USE_POSIX -Wall -Wextra -std=gnu99 -g -O0
 
 all: mle
 
