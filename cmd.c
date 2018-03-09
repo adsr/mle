@@ -400,21 +400,36 @@ int cmd_redraw(cmd_context_t* ctx) {
 // Zero viewport y
 int cmd_viewport_top(cmd_context_t* ctx) {
     bview_zero_viewport_y(ctx->bview);
-    //bview_draw(ctx->bview);
     return MLE_OK;
 }
 
 // Center viewport y
 int cmd_viewport_mid(cmd_context_t* ctx) {
     bview_center_viewport_y(ctx->bview);
-    //bview_draw(ctx->bview);
     return MLE_OK;
 }
 
-// Center viewport y
+// Max viewport y
 int cmd_viewport_bot(cmd_context_t* ctx) {
     bview_max_viewport_y(ctx->bview);
-    //bview_draw(ctx->bview);
+    return MLE_OK;
+}
+
+// Toggle between top and mid viewport y
+int cmd_viewport_toggle(cmd_context_t* ctx) {
+    bline_t* orig;
+    bline_t* mid;
+    bline_t* top;
+    orig = ctx->bview->viewport_bline;
+    cmd_viewport_mid(ctx); mid = ctx->bview->viewport_bline;
+    cmd_viewport_top(ctx); top = ctx->bview->viewport_bline;
+    if (mid == orig) {
+        cmd_viewport_top(ctx);
+    } else if (top == orig) {
+        cmd_viewport_bot(ctx);
+    } else {
+        cmd_viewport_mid(ctx);
+    }
     return MLE_OK;
 }
 

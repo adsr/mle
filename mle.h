@@ -535,6 +535,7 @@ int cmd_uncut(cmd_context_t* ctx);
 int cmd_undo(cmd_context_t* ctx);
 int cmd_viewport_bot(cmd_context_t* ctx);
 int cmd_viewport_mid(cmd_context_t* ctx);
+int cmd_viewport_toggle(cmd_context_t* ctx);
 int cmd_viewport_top(cmd_context_t* ctx);
 int cmd_wake_sleeping_cursors(cmd_context_t* ctx);
 
@@ -651,7 +652,6 @@ extern editor_t _editor;
 /*
 TODO PRIORITY
 [ ] reduce compiler warnings
-[ ] replace wren with lua or something else
 [ ] add cmd_tabulate
 [ ] after search/replace, restore previous viewport
 [ ] add `_free_` hint to (opt)ret vars that need to be freed

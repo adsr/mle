@@ -1367,15 +1367,15 @@ static void _editor_graceful_exit(int signum) {
 
 // Register built-in commands
 static void _editor_register_cmds(editor_t* editor) {
-    _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
     _editor_register_cmd_fn(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
+    _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
     _editor_register_cmd_fn(editor, "cmd_browse", cmd_browse);
     _editor_register_cmd_fn(editor, "cmd_close", cmd_close);
-    _editor_register_cmd_fn(editor, "cmd_copy", cmd_copy);
     _editor_register_cmd_fn(editor, "cmd_copy_by", cmd_copy_by);
+    _editor_register_cmd_fn(editor, "cmd_copy", cmd_copy);
     _editor_register_cmd_fn(editor, "cmd_ctag", cmd_ctag);
-    _editor_register_cmd_fn(editor, "cmd_cut", cmd_cut);
     _editor_register_cmd_fn(editor, "cmd_cut_by", cmd_cut_by);
+    _editor_register_cmd_fn(editor, "cmd_cut", cmd_cut);
     _editor_register_cmd_fn(editor, "cmd_delete_after", cmd_delete_after);
     _editor_register_cmd_fn(editor, "cmd_delete_before", cmd_delete_before);
     _editor_register_cmd_fn(editor, "cmd_delete_word_after", cmd_delete_word_after);
@@ -1425,8 +1425,8 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_redraw", cmd_redraw);
     _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
     _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
-    _editor_register_cmd_fn(editor, "cmd_save", cmd_save);
     _editor_register_cmd_fn(editor, "cmd_save_as", cmd_save_as);
+    _editor_register_cmd_fn(editor, "cmd_save", cmd_save);
     _editor_register_cmd_fn(editor, "cmd_search", cmd_search);
     _editor_register_cmd_fn(editor, "cmd_search_next", cmd_search_next);
     _editor_register_cmd_fn(editor, "cmd_set_opt", cmd_set_opt);
@@ -1437,9 +1437,10 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
     _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
     _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
-    _editor_register_cmd_fn(editor, "cmd_viewport_top", cmd_viewport_top);
-    _editor_register_cmd_fn(editor, "cmd_viewport_mid", cmd_viewport_mid);
     _editor_register_cmd_fn(editor, "cmd_viewport_bot", cmd_viewport_bot);
+    _editor_register_cmd_fn(editor, "cmd_viewport_mid", cmd_viewport_mid);
+    _editor_register_cmd_fn(editor, "cmd_viewport_toggle", cmd_viewport_toggle);
+    _editor_register_cmd_fn(editor, "cmd_viewport_top", cmd_viewport_top);
     _editor_register_cmd_fn(editor, "cmd_wake_sleeping_cursors", cmd_wake_sleeping_cursors);
     _editor_register_cmd_fn(editor, "_editor_menu_cancel", _editor_menu_cancel);
     _editor_register_cmd_fn(editor, "_editor_menu_submit", _editor_menu_submit);
@@ -1500,7 +1501,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_redraw", "M-x l"),
         MLE_KBINDING_DEF("cmd_less", "M-l"),
         MLE_KBINDING_DEF("cmd_viewport_top", "M--"),
-        MLE_KBINDING_DEF("cmd_viewport_mid", "C-l"),
+        MLE_KBINDING_DEF("cmd_viewport_toggle", "C-l"),
         MLE_KBINDING_DEF("cmd_viewport_bot", "M-="),
         MLE_KBINDING_DEF("cmd_push_kmap", "M-x p"),
         MLE_KBINDING_DEF("cmd_pop_kmap", "M-x P"),
