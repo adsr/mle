@@ -28,9 +28,11 @@ static int _editor_prompt_menu_up(cmd_context_t* ctx);
 static int _editor_prompt_menu_down(cmd_context_t* ctx);
 static int _editor_prompt_menu_page_up(cmd_context_t* ctx);
 static int _editor_prompt_menu_page_down(cmd_context_t* ctx);
+static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx);
 static int _editor_prompt_isearch_next(cmd_context_t* ctx);
 static int _editor_prompt_isearch_prev(cmd_context_t* ctx);
-static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx);
+static int _editor_prompt_isearch_viewport_down(cmd_context_t* ctx);
+static int _editor_prompt_isearch_viewport_up(cmd_context_t* ctx);
 static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
 static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* ctx);
 static void _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before);
@@ -834,6 +836,16 @@ static int _editor_prompt_isearch_prev(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Invoked when user hits up in a prompt_isearch
+static int _editor_prompt_isearch_viewport_up(cmd_context_t* ctx) {
+    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_y - 5, 0);
+}
+
+// Invoked when user hits up in a prompt_isearch
+static int _editor_prompt_isearch_viewport_down(cmd_context_t* ctx) {
+    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_y + 5, 0);
+}
+
 // Drops a cursor on each isearch match
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
     bview_t* bview;
@@ -1452,6 +1464,8 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_drop_cursors", _editor_prompt_isearch_drop_cursors);
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_next", _editor_prompt_isearch_next);
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_prev", _editor_prompt_isearch_prev);
+    _editor_register_cmd_fn(editor, "_editor_prompt_isearch_viewport_up", _editor_prompt_isearch_viewport_up);
+    _editor_register_cmd_fn(editor, "_editor_prompt_isearch_viewport_down", _editor_prompt_isearch_viewport_down);
     _editor_register_cmd_fn(editor, "_editor_prompt_menu_down", _editor_prompt_menu_down);
     _editor_register_cmd_fn(editor, "_editor_prompt_menu_page_down", _editor_prompt_menu_page_down);
     _editor_register_cmd_fn(editor, "_editor_prompt_menu_page_up", _editor_prompt_menu_page_up);
@@ -1609,6 +1623,8 @@ static void _editor_init_kmaps(editor_t* editor) {
     _editor_init_kmap(editor, &editor->kmap_prompt_isearch, "mle_prompt_isearch", NULL, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF("_editor_prompt_isearch_prev", "up"),
         MLE_KBINDING_DEF("_editor_prompt_isearch_next", "down"),
+        MLE_KBINDING_DEF("_editor_prompt_isearch_viewport_up", "page-up"),
+        MLE_KBINDING_DEF("_editor_prompt_isearch_viewport_down", "page-down"),
         MLE_KBINDING_DEF("_editor_prompt_isearch_drop_cursors", "C-/"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "enter"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "C-c"),

@@ -435,6 +435,7 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor);
 int bview_remove_cursors_except(bview_t* self, cursor_t* one);
 int bview_resize(bview_t* self, int x, int y, int w, int h);
 int bview_set_syntax(bview_t* self, char* opt_syntax);
+int bview_set_viewport_y(bview_t* self, bint_t y, int do_rectify);
 int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview);
 int bview_wake_sleeping_cursors(bview_t* self);
 int bview_zero_viewport_y(bview_t* self);
@@ -656,7 +657,6 @@ TODO PRIORITY
 [ ] after search/replace, restore previous viewport
 [ ] add `_free_` hint to (opt)ret vars that need to be freed
 [ ] finish uscript callbacks
-[ ] add hooks/event bus
 [ ] add some sort of syntax checking via hooks
 [ ] add ## param to page_up/down (by half/third etc)
 [ ] fix alt/ctrl-enter in prompt inserts newline
@@ -664,7 +664,7 @@ TODO PRIORITY
 [ ] fix invalid cli switch should exit(1)
 [ ] use editor prompt history when bview prompt history is empty
 TODO BACKLOG
-[ ] improve isearch kmap (next/prev history, control viewport)
+[ ] improve isearch kmap (next/prev history)
 [ ] add option to undo bactions in same loop# as a group
 [ ] add buffer_repeat
 [ ] add block select/move

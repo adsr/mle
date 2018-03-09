@@ -334,23 +334,30 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
     return MLE_ERR;
 }
 
+// Set viewport y safely
+int bview_set_viewport_y(bview_t* self, bint_t y, int do_rectify) {
+    if (y < 0) {
+        y = 0;
+    } else if (y >= self->buffer->line_count) {
+        y = self->buffer->line_count - 1;
+    }
+    self->viewport_y = y;
+    if (do_rectify) bview_rectify_viewport(self);
+    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+    return MLE_OK;
+}
+
 // Center the viewport vertically
 int bview_center_viewport_y(bview_t* self) {
     bint_t center;
     center = self->active_cursor->mark->bline->line_index - self->rect_buffer.h/2;
     if (center < 0) center = 0;
-    self->viewport_y = center;
-    bview_rectify_viewport(self);
-    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
-    return MLE_OK;
+    return bview_set_viewport_y(self, center, 1);
 }
 
 // Zero the viewport vertically
 int bview_zero_viewport_y(bview_t* self) {
-    self->viewport_y = self->active_cursor->mark->bline->line_index;
-    bview_rectify_viewport(self);
-    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
-    return MLE_OK;
+    return bview_set_viewport_y(self, self->active_cursor->mark->bline->line_index, 1);
 }
 
 // Maximize the viewport vertically
@@ -358,10 +365,7 @@ int bview_max_viewport_y(bview_t* self) {
     bint_t max;
     max = self->active_cursor->mark->bline->line_index - self->rect_buffer.h;
     if (max < 0) max = 0;
-    self->viewport_y = max;
-    bview_rectify_viewport(self);
-    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
-    return MLE_OK;
+    return bview_set_viewport_y(self, max, 1);
 }
 
 // Rectify the viewport
