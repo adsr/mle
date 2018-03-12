@@ -654,7 +654,6 @@ extern editor_t _editor;
 TODO PRIORITY
 [ ] reduce compiler warnings
 [ ] add cmd_tabulate
-[ ] after search/replace, restore previous viewport
 [ ] add `_free_` hint to (opt)ret vars that need to be freed
 [ ] finish uscript callbacks
 [ ] add some sort of syntax checking via hooks

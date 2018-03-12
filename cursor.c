@@ -255,6 +255,7 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
     bline_t* bline;
     bint_t col;
     bint_t char_count;
+    bint_t orig_viewport_y;
     int pcre_rc;
     int pcre_ovector[30];
     str_t repl_backref = {0};
@@ -276,6 +277,7 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
     all = interactive ? 0 : 1;
     num_replacements = 0;
     mark_set_pcre_capture(&pcre_rc, pcre_ovector, 30);
+    orig_viewport_y = -1;
 
     do {
         if (!interactive) {
@@ -294,6 +296,7 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
         search_mark_end = buffer_add_mark(cursor->bview->buffer, NULL, 0);
         mark_join(search_mark, cursor->mark);
         mark_join(orig_mark, cursor->mark);
+        orig_viewport_y = cursor->bview->viewport_y;
         orig_mark->lefty = 1; // lefty==1 avoids moving when text is inserted at mark
         lo_mark->lefty = 1;
         if (cursor->is_anchored) {
@@ -367,7 +370,11 @@ int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt
 
     if (interactive) {
         MLE_SET_INFO(cursor->bview->editor, "replace: Replaced %d instance(s)", num_replacements);
-        bview_rectify_viewport(cursor->bview);
+        if (orig_viewport_y >= 0) {
+            bview_set_viewport_y(cursor->bview, orig_viewport_y, 1);
+        } else {
+            bview_rectify_viewport(cursor->bview);
+        }
         bview_draw(cursor->bview);
     }
 
