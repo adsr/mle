@@ -54,6 +54,15 @@ declare -A expected
 expected[replace2_data]='^ax b2 c3 d4$'
 source 'test.sh'
 
+# cmd_replace 3
+set -x
+macro='a b c 1 2 3 C-t ( . . . ) ( . . . ) enter A $ 2 $ n B $ 1 $ n $ x 4 3 enter a'
+declare -A expected
+expected[replace3_data1]='^A123$'
+expected[replace3_data2]='^Babc$'
+expected[replace3_data3]='^C$'
+source 'test.sh'
+
 # cmd_search history
 macro='h e l l o enter h e l l o C-f h e l l o enter C-f up enter'
 declare -A expected
