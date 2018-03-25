@@ -1,16 +1,37 @@
 #include "mle.h"
 
-static int luaopen_mle(lua_State *L);
+#define MLE_USCRIPT_KEY "_uscript"
+
+#define MLE_USCRIPT_GET(pl, pu) do { \
+    lua_getglobal((pl), MLE_USCRIPT_KEY); \
+    (pu) = luaL_optpointer((pl), -1, NULL); \
+    if (!(pu)) return 0; \
+} while(0)
+
+#define luaL_pushkey(pL, pt, pk, pv) do { \
+    lua_pushstring((pL), (pk)); \
+    (lua_push ## pt) ((pL), (pv)); \
+    lua_settable((pL), -3); \
+} while (0)
+
+#define luaL_pushkey2(pL, pt, pk, pv1, pv2) do { \
+    lua_pushstring((pL), (pk)); \
+    (lua_push ## pt) ((pL), (pv1), (pv2)); \
+    lua_settable((pL), -3); \
+} while (0)
+
 static int _uscript_panic(lua_State* L);
 static int _uscript_cmd_cb(cmd_context_t* ctx);
 static int _uscript_observer_cb(char* event_name, void* event_data, void* udata);
 static int _uscript_write(lua_State* L);
-static void _uscript_push_cmd_map(uscript_t* uscript, cmd_context_t* ctx);
 static void _uscript_push_event_map(uscript_t* uscript, char* event_name, void* event_data);
-static void _uscript_push_baction_map(uscript_t* uscript, baction_t* baction);
+static void _uscript_push_cmd_map(lua_State* L, cmd_context_t* ctx);
+static void _uscript_push_baction_map(lua_State* L, baction_t* baction);
 static int _uscript_func_editor_prompt(lua_State* L);
 static int _uscript_func_editor_register_cmd(lua_State* L);
 static int _uscript_func_editor_register_observer(lua_State* L);
+static int _uscript_func_util_escape_shell_arg(lua_State* L);
+static int _uscript_func_util_shell_exec(lua_State* L);
 static int _uscript_func_editor_get_input(lua_State* L);
 static int _uscript_func_editor_menu(lua_State* L);
 static int _uscript_func_bview_pop_kmap(lua_State* L);
@@ -24,21 +45,9 @@ static void* luaL_checkpointer(lua_State* L, int arg);
 static void* luaL_optpointer(lua_State* L, int arg, void* def);
 static void lua_pushpointer(lua_State* L, void* ptr);
 static int luaL_checkfunction(lua_State* L, int arg);
+static int luaopen_mle(lua_State *L);
 
 #include "uscript.inc"
-
-static int luaopen_mle(lua_State *L) {
-    luaL_newlib(L, mle_lib);
-    return 1;
-}
-
-#define MLE_USCRIPT_KEY "_uscript"
-
-#define MLE_USCRIPT_GET(pl, pu) do { \
-    lua_getglobal((pl), MLE_USCRIPT_KEY); \
-    (pu) = luaL_optpointer((pl), -1, NULL); \
-    if (!(pu)) return 0; \
-} while(0)
 
 // Run uscript
 uscript_t* uscript_run(editor_t* editor, char* path) {
@@ -92,7 +101,7 @@ static int _uscript_cmd_cb(cmd_context_t* ctx) {
     L = uhandle->uscript->L;
     top = lua_gettop(L);
     lua_rawgeti(L, LUA_REGISTRYINDEX, uhandle->callback_ref);
-    _uscript_push_cmd_map(uhandle->uscript, ctx);
+    _uscript_push_cmd_map(L, ctx);
 
     if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
         printf("err[%s]\n", luaL_checkstring(L, -1));
@@ -150,47 +159,48 @@ static int _uscript_write(lua_State* L) {
     return 0;
 }
 
-static void _uscript_push_cmd_map(uscript_t* uscript, cmd_context_t* ctx) {
-    lua_State* L;
-    char input_str[16];
-    L = uscript->L;
-    editor_input_to_key(ctx->editor, &ctx->input, input_str);
-    lua_createtable(L, 0, 1);
-    lua_pushstring(L, "editor");       lua_pushpointer(L, (void*)ctx->editor);       lua_settable(L, -3);
-    lua_pushstring(L, "loop_ctx");     lua_pushpointer(L, (void*)ctx->loop_ctx);     lua_settable(L, -3);
-    lua_pushstring(L, "cmd");          lua_pushpointer(L, (void*)ctx->cmd);          lua_settable(L, -3);
-    lua_pushstring(L, "buffer");       lua_pushpointer(L, (void*)ctx->buffer);       lua_settable(L, -3);
-    lua_pushstring(L, "bview");        lua_pushpointer(L, (void*)ctx->bview);        lua_settable(L, -3);
-    lua_pushstring(L, "cursor");       lua_pushpointer(L, (void*)ctx->cursor);       lua_settable(L, -3);
-    lua_pushstring(L, "mark");         lua_pushpointer(L, (void*)ctx->cursor->mark); lua_settable(L, -3);
-    lua_pushstring(L, "static_param"); lua_pushstring(L,  (const char*)ctx->static_param); lua_settable(L, -3);
-    lua_pushstring(L, "input");        lua_pushstring(L,  (const char*)input_str);         lua_settable(L, -3);
-    //lua_pushvalue(L,  -1);
-}
-
 static void _uscript_push_event_map(uscript_t* uscript, char* event_name, void* event_data) {
+    lua_State* L;
+    L = uscript->L;
     if (strcmp(event_name, "buffer:baction") == 0) {
-        return _uscript_push_baction_map(uscript, (baction_t*)event_data);
-    } else if (strncmp(event_name, "cmd:", 4)) {
-        return _uscript_push_cmd_map(uscript, (cmd_context_t*)event_data);
+        return _uscript_push_baction_map(L, (baction_t*)event_data);
+    } else if (strcmp(event_name, "buffer:save") == 0) {
+        lua_createtable(L, 0, 1);
+        luaL_pushkey(L, pointer, "bview", event_data);
+        return;
+    } else if (strncmp(event_name, "cmd:", 4) == 0) {
+        return _uscript_push_cmd_map(L, (cmd_context_t*)event_data);
     }
     lua_pushnil(uscript->L); // TODO
 }
 
-static void _uscript_push_baction_map(uscript_t* uscript, baction_t* baction) {
-    lua_State* L;
-    L = uscript->L;
+static void _uscript_push_cmd_map(lua_State* L, cmd_context_t* ctx) {
+    char input_str[16];
+    editor_input_to_key(ctx->editor, &ctx->input, input_str);
     lua_createtable(L, 0, 1);
-    lua_pushstring(L, "type");                 lua_pushinteger(L, baction->type);                 lua_settable(L, -3);
-    lua_pushstring(L, "buffer");               lua_pushpointer(L, (void*)baction->buffer);        lua_settable(L, -3);
-    lua_pushstring(L, "start_line_index");     lua_pushinteger(L, baction->start_line_index);     lua_settable(L, -3);
-    lua_pushstring(L, "start_col");            lua_pushinteger(L, baction->start_col);            lua_settable(L, -3);
-    lua_pushstring(L, "maybe_end_line_index"); lua_pushinteger(L, baction->maybe_end_line_index); lua_settable(L, -3);
-    lua_pushstring(L, "maybe_end_col");        lua_pushinteger(L, baction->maybe_end_col);        lua_settable(L, -3);
-    lua_pushstring(L, "byte_delta");           lua_pushinteger(L, baction->byte_delta);           lua_settable(L, -3);
-    lua_pushstring(L, "char_delta");           lua_pushinteger(L, baction->char_delta);           lua_settable(L, -3);
-    lua_pushstring(L, "line_delta");           lua_pushinteger(L, baction->line_delta);           lua_settable(L, -3);
-    lua_pushstring(L, "data");                 lua_pushlstring(L,  (const char*)baction->data, baction->data_len); lua_settable(L, -3);
+    luaL_pushkey(L, pointer, "editor",       (void*)ctx->editor);
+    luaL_pushkey(L, pointer, "loop_ctx",     (void*)ctx->loop_ctx);
+    luaL_pushkey(L, pointer, "cmd",          (void*)ctx->cmd);
+    luaL_pushkey(L, pointer, "buffer",       (void*)ctx->buffer);
+    luaL_pushkey(L, pointer, "bview",        (void*)ctx->bview);
+    luaL_pushkey(L, pointer, "cursor",       (void*)ctx->cursor);
+    luaL_pushkey(L, pointer, "mark",         (void*)ctx->cursor->mark);
+    luaL_pushkey(L, string,  "static_param", (const char*)ctx->static_param);
+    luaL_pushkey(L, string,  "input",        (const char*)input_str);
+}
+
+static void _uscript_push_baction_map(lua_State* L, baction_t* baction) {
+    lua_createtable(L, 0, 1);
+    luaL_pushkey(L,  integer, "type",                 baction->type);
+    luaL_pushkey(L,  pointer, "buffer",               (void*)baction->buffer);
+    luaL_pushkey(L,  integer, "start_line_index",     baction->start_line_index);
+    luaL_pushkey(L,  integer, "start_col",            baction->start_col);
+    luaL_pushkey(L,  integer, "maybe_end_line_index", baction->maybe_end_line_index);
+    luaL_pushkey(L,  integer, "maybe_end_col",        baction->maybe_end_col);
+    luaL_pushkey(L,  integer, "byte_delta",           baction->byte_delta);
+    luaL_pushkey(L,  integer, "char_delta",           baction->char_delta);
+    luaL_pushkey(L,  integer, "line_delta",           baction->line_delta);
+    luaL_pushkey2(L, lstring, "data",                 (const char*)baction->data, baction->data_len);
 }
 
 // foreign static string _uscript_func_editor_prompt(prompt)
@@ -235,9 +245,7 @@ static int _uscript_func_editor_register_cmd(lua_State* L) {
     rv = editor_register_cmd(uscript->editor, &cmd);
 
     lua_createtable(L, 0, 1);
-    lua_pushstring(L, "rv");
-    lua_pushinteger(L, rv);
-    lua_settable(L, -3);
+    luaL_pushkey(L, integer, "rv", rv);
     lua_pushvalue(L, -1);
     return 1;
 }
@@ -262,10 +270,37 @@ static int _uscript_func_editor_register_observer(lua_State* L) {
     rv = editor_register_observer(uscript->editor, event_name, (void*)uhandle, _uscript_observer_cb, NULL);
 
     lua_createtable(L, 0, 1);
-    lua_pushstring(L, "rv");
-    lua_pushinteger(L, rv);
-    lua_settable(L, -3);
+    luaL_pushkey(L, integer, "rv", rv);
     lua_pushvalue(L, -1);
+    return 1;
+}
+
+// foreign static int _uscript_func_util_escape_shell_arg(arg)
+static int _uscript_func_util_escape_shell_arg(lua_State* L) {
+    return 0;
+}
+
+// foreign static int _uscript_func_util_shell_exec(cmd, timeout_s)
+static int _uscript_func_util_shell_exec(lua_State* L) {
+    int rv;
+    char* cmd;
+    long timeout_s;
+    uscript_t* uscript;
+    char* output;
+    size_t output_len;
+    MLE_USCRIPT_GET(L, uscript);
+
+    cmd = (char*)luaL_checkstring(L, 1);
+    timeout_s = (long)luaL_checkinteger(L, 2);
+    output = NULL;
+    output_len = 0;
+    rv = util_shell_exec(uscript->editor, cmd, timeout_s, NULL, 0, 0, NULL, &output, &output_len);
+
+    lua_createtable(L, 0, 1);
+    luaL_pushkey(L, integer, "rv", rv);
+    luaL_pushkey2(L, lstring, "output", (output ? output : ""), output_len);
+    lua_pushvalue(L, -1);
+    if (output) free(output);
     return 1;
 }
 
@@ -351,4 +386,9 @@ static int luaL_checkfunction(lua_State* L, int arg) {
     luaL_checktype(L, arg, LUA_TFUNCTION);
     lua_pushvalue(L, arg);
     return luaL_ref(L, LUA_REGISTRYINDEX);
+}
+
+static int luaopen_mle(lua_State *L) {
+    luaL_newlib(L, mle_lib);
+    return 1;
 }

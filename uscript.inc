@@ -901,6 +901,23 @@ static int _uscript_func_bview_set_syntax(lua_State* L) {
     return 1;
 }
 
+static int _uscript_func_bview_set_viewport_y(lua_State* L) {
+    int rv;
+    bview_t* self;
+    bint_t y;
+    int do_rectify;
+    self = (bview_t*)luaL_checkpointer(L, 1);
+    y = (bint_t)luaL_checkinteger(L, 2);
+    do_rectify = (int)luaL_checkinteger(L, 3);
+    rv = bview_set_viewport_y(self, y, do_rectify);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 static int _uscript_func_bview_split(lua_State* L) {
     int rv;
     bview_t* self;
@@ -2318,6 +2335,12 @@ static int _uscript_func_mark_swap_with_mark(lua_State* L) {
     return 1;
 }
 
+// static int _uscript_func_util_escape_shell_arg(lua_State* L) {
+// }
+
+// static int _uscript_func_util_shell_exec(lua_State* L) {
+// }
+
 static const struct luaL_Reg mle_lib[] = {
     { "buffer_add_mark", _uscript_func_buffer_add_mark },
     { "buffer_add_mark_ex", _uscript_func_buffer_add_mark_ex },
@@ -2376,6 +2399,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "bview_remove_cursors_except", _uscript_func_bview_remove_cursors_except },
     { "bview_resize", _uscript_func_bview_resize },
     { "bview_set_syntax", _uscript_func_bview_set_syntax },
+    { "bview_set_viewport_y", _uscript_func_bview_set_viewport_y },
     { "bview_split", _uscript_func_bview_split },
     { "bview_wake_sleeping_cursors", _uscript_func_bview_wake_sleeping_cursors },
     { "bview_zero_viewport_y", _uscript_func_bview_zero_viewport_y },
@@ -2461,6 +2485,8 @@ static const struct luaL_Reg mle_lib[] = {
     { "mark_replace", _uscript_func_mark_replace },
     { "mark_replace_between_mark", _uscript_func_mark_replace_between_mark },
     { "mark_swap_with_mark", _uscript_func_mark_swap_with_mark },
+    { "util_escape_shell_arg", _uscript_func_util_escape_shell_arg },
+    { "util_shell_exec", _uscript_func_util_shell_exec },
     { NULL, NULL }
 };
 

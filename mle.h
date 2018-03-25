@@ -652,6 +652,7 @@ extern editor_t _editor;
 
 /*
 TODO PRIORITY
+[ ] cleanup lua api, e.g., multi-retval
 [ ] reduce compiler warnings
 [ ] add cmd_tabulate
 [ ] add `_free_` hint to (opt)ret vars that need to be freed
