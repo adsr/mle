@@ -853,6 +853,7 @@ int cmd_shell(cmd_context_t* ctx) {
 // Perl
 int cmd_perl(cmd_context_t* ctx) {
     char* code;
+    char* code_escaped;
     char* cmd;
 
     // Get perl code
@@ -863,9 +864,13 @@ int cmd_perl(cmd_context_t* ctx) {
         if (!code) return MLE_OK;
     }
 
-    // Format cmd
-    asprintf(&cmd, "perl -lp -E 'BEGIN{$i=0}' -E %s 2>/dev/null", code);
+    // Shell escape code
+    code_escaped = util_escape_shell_arg(code, strlen(code));
     free(code);
+
+    // Format cmd
+    asprintf(&cmd, "perl -lp -E 'BEGIN{$i=0}' -E %s 2>/dev/null", code_escaped);
+    free(code_escaped);
 
     // Apply perl cmd
     _cmd_shell_apply_cmd(ctx, cmd);
