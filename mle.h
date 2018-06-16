@@ -652,6 +652,7 @@ extern editor_t _editor;
 
 /*
 TODO PRIORITY
+[ ] catch ENOSPC
 [ ] cleanup lua api, e.g., multi-retval
 [ ] reduce compiler warnings
 [ ] add cmd_tabulate
