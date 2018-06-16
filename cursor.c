@@ -224,6 +224,8 @@ int cursor_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append) {
     } else {
         cursor->cut_buffer = cutbuf;
     }
+    if (cursor->bview->editor->cut_buffer) free(cursor->bview->editor->cut_buffer);
+    cursor->bview->editor->cut_buffer = strdup(cursor->cut_buffer);
     if (is_cut) {
         mark_delete_between_mark(cursor->mark, cursor->anchor);
     }
@@ -233,8 +235,10 @@ int cursor_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append) {
 
 // Uncut (paste) text
 int cursor_uncut(cursor_t* cursor) {
-    if (!cursor->cut_buffer) return MLE_ERR;
-    mark_insert_before(cursor->mark, cursor->cut_buffer, strlen(cursor->cut_buffer));
+    char* cut_buffer;
+    cut_buffer = cursor->cut_buffer ? cursor->cut_buffer : cursor->bview->editor->cut_buffer;
+    if (!cut_buffer) return MLE_ERR;
+    mark_insert_before(cursor->mark, cut_buffer, strlen(cut_buffer));
     return MLE_OK;
 }
 

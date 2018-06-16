@@ -217,6 +217,7 @@ int editor_deinit(editor_t* editor) {
     _editor_destroy_syntax_map(editor->syntax_map);
     if (editor->kmap_init_name) free(editor->kmap_init_name);
     if (editor->insertbuf) free(editor->insertbuf);
+    if (editor->cut_buffer) free(editor->cut_buffer);
     if (editor->ttyfd) close(editor->ttyfd);
     if (editor->startup_macro_name) free(editor->startup_macro_name);
     return MLE_OK;

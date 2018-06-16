@@ -117,6 +117,7 @@ struct editor_s {
     int is_in_init;
     char* insertbuf;
     size_t insertbuf_size;
+    char* cut_buffer;
     #define MLE_ERRSTR_SIZE 256
     char errstr[MLE_ERRSTR_SIZE];
     char infostr[MLE_ERRSTR_SIZE];

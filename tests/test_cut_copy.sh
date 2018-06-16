@@ -64,3 +64,8 @@ macro='a space " q u o t e d " space s t r i n g C-f u o t e enter C-d c'
 declare -A expected
 expected[cut-by-eol_data]='^a "" string$'
 source 'test.sh'
+
+macro='o n e - a b c M-a left left left C-k C-n t w o - C-u'
+declare -A expected
+expected[global-cut-buffer_data]='^two-abc$'
+source 'test.sh'
