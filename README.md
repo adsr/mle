@@ -2,6 +2,8 @@
 
 mle is a small, flexible, terminal-based text editor written in C.
 
+Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
+
 [![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
 
 ### Demos
