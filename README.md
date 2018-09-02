@@ -68,13 +68,16 @@ To install to a custom directory, supply `DESTDIR`, e.g.:
 
 ### Basic usage
 
-    $ mle             # Blank buffer
-    $ mle one.c       # Open one.c
-    $ mle one.c:100   # Open one.c at line 100
-    $ mle one.c two.c # Open one.c and two.c
+    $ mle             # Open blank buffer
+    $ mle one.c       # Edit one.c
+    $ mle one.c:100   # Edit one.c at line 100
+    $ mle one.c two.c # Edit one.c and two.c
     $ mle -h          # Show command line help
 
-Press F2 for help when inside the editor.
+The default key bindings are intuitive. Input text as normal, use directional
+keys to move around, use `Ctrl-S` to save, `Ctrl-O` to open, `Ctrl-X` to exit.
+
+Press `F2` for full help.
 
 ### Advanced usage: mlerc
 
@@ -87,23 +90,38 @@ Lines that begin with a semi-colon are interpretted as comments.
 
 If `~/.mlerc` is executable, mle executes it and interprets the resulting stdout
 as described above. For example, consider the following snippet from an
-executable `~/.mlerc` PHP script:
+executable `~/.mlerc` bash(1) script:
 
-    <?php if (file_exists('.git')): ?>
-    -kcmd_grep,M-q,git grep --color=never -P -i -I -n %s 2>/dev/null
-    <?php endif; ?>
+    # Define 'test' kmap
+    echo '-Ktest,,1'
 
-This overrides the normal grep command with `git grep` if `.git` exists in the
-current working directory.
+    # M-q: replace grep with git grep if `.git` exists
+    if [ -d ".git" ]; then
+      echo '-kcmd_grep,M-q,git grep --color=never -P -i -I -n %s 2>/dev/null'
+    fi
 
-### Advanced usage: Scripting
+    # Set default kmap
+    echo '-n test'
 
-mle is extensible via the [Lua](https://www.lua.org) programming language.
-Scripts are loaded via the `-x` cli option. Commands registered by scripts can
-be mapped to keys as normal via `-k`. See `uscript.lua` for a simple example.
+This overrides the built-in grep command with `git grep` if `.git` exists in
+the current working directory.
 
-There is also a `wren` branch with [Wren](http://wren.io) scripting support.
-That work is on pause.
+### Shell command integration
+
+The following programs will enable or enhance certain features of mle if they
+exist in `PATH`.
+
+* [bash](https://www.gnu.org/software/bash/) (tab completion)
+* [fzf](https://github.com/junegunn/fzf) (fuzzy file search)
+* [grep](https://www.gnu.org/software/grep/) (file grep)
+* [less](https://www.gnu.org/software/less/) (less integration)
+* [perl](https://www.perl.org/) (perl 1-liners)
+* [readtags](https://github.com/universal-ctags/ctags) (ctags integration)
+* [tree](http://mama.indstate.edu/users/ice/tree/) (file browsing)
+
+Arbitrary shell commands can also be run via `cmd_shell` (M-e by default). If
+any text is selected, it is sent to stdin of the command. Any resulting stdout
+is inserted into the text buffer.
 
 ### Advanced usage: Headless mode
 
@@ -121,18 +139,14 @@ be explicitly enabled or disabled with the `-H` option.
 If stdin is a pipe and headless mode is disabled via `-H0`, mle reads stdin into
 a new buffer and then runs as normal in interactive mode.
 
-### Runtime dependencies (optional)
+### Advanced usage: Scripting
 
-The following programs will enable or enhance certain features of mle if they
-exist in `PATH`.
+mle is extensible via the [Lua](https://www.lua.org) programming language.
+Scripts are loaded via the `-x` cli option. Commands registered by scripts can
+be mapped to keys as normal via `-k`. See `uscript.lua` for a simple example.
 
-* [bash](https://www.gnu.org/software/bash/) (tab completion)
-* [fzf](https://github.com/junegunn/fzf) (fuzzy file search)
-* [grep](https://www.gnu.org/software/grep/) (file grep)
-* [less](https://www.gnu.org/software/less/) (less integration)
-* [perl](https://www.perl.org/) (perl 1-liners)
-* [readtags](https://github.com/universal-ctags/ctags) (ctags integration)
-* [tree](http://mama.indstate.edu/users/ice/tree/) (file browsing)
+There is also a `wren` branch with [Wren](http://wren.io) scripting support.
+That work is on pause.
 
 ### Known bugs
 

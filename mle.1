@@ -1,0 +1,281 @@
+.Dd August 1, 2018
+.Dt MLE 1
+.Os
+.Sh NAME
+.Nm mle
+.Nd flexible terminal-based text editor
+.Sh SYNOPSIS
+.Nm mle
+.Op Fl habcHiKklMmNnpSstvwxyz
+.Op Ar file[:line]
+.Li ...
+.Sh DESCRIPTION
+.Nm
+is a small, flexible, terminal-based text editor written in
+C. It runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
+Visit https://github.com/adsr/mle for more info.
+.Pp
+.Ss Basic usage
+.Bd -literal
+  $ mle             # Open blank buffer
+  $ mle one.c       # Edit one.c
+  $ mle one.c:100   # Edit one.c at line 100
+  $ mle one.c two.c # Edit one.c and two.c
+  $ mle -h          # Show command line help
+.Ed
+.Pp
+The default key bindings are intuitive. Input text as
+normal, use directional keys to move around, use `Ctrl-S`
+to save, `Ctrl-O` to open, `Ctrl-X` to exit.
+.Pp
+Press `F2` for full help.
+.Pp
+.Ss Options
+.Bl -tag -width ".Fl foo barbaz" -offset indent
+.It Fl h
+Show help message
+.It Fl a Aq 1|0
+Enable/disable tab_to_space (default: 1)
+.It Fl b Aq 1|0
+Enable/disable highlight bracket pairs (default: 1)
+.It Fl c Ar column
+Color column (default: -1, disabled)
+.It Fl H Aq 1|0
+Enable/disable headless mode (default: 1 if no tty, else 0)
+.It Fl i Aq 1|0
+Enable/disable auto_indent (default: 0)
+.It Fl K Ar kdef
+Make a kmap definition (use with -k).
+.Pp
+.Ar kdef
+is formatted as
+.Li `<name>,<default_cmd>,<allow_fallthru>` ,
+where
+.Ar name
+is the name of the kmap,
+.Ar default_cmd
+is the default command handler (can be empty), and
+.Ar allow_fallthru
+is a 0 or 1 specifying whether unhandled key input should
+be forwarded to the previous kmap on the stack or not.
+.It Fl k Ar kbind
+Add key binding to current kmap definition (use after -K).
+.Pp
+.Ar kbind
+is formatted as
+.Li `<cmd>,<key>,<param>` ,
+where
+.Ar cmd
+is a command name,
+.Ar key
+is a key name, and
+.Ar param
+is a static paramter passed to the command (can be empty).
+.It Fl l Ar ltype
+Set linenum type (default: 0, absolute).
+.Pp
+.Ar ltype
+can be 0 (absolute), 1 (relative), or 2 (both)
+.It Fl M Ar macro
+Add a macro.
+.Pp
+.Ar macro
+is formatted as
+.Li `<name> <key1> <key2> ... <keyN>` ,
+where
+.Ar name
+is the name of the macro, and
+.Ar keyN
+are space-separated key names.
+.It Fl m Ar key
+Set macro toggle key (default: M-r).
+.Ar key
+is a key name.
+.It Fl N
+Skip reading of rc file
+.It Fl n Ar kmap
+Set init kmap (default: mle_normal).
+.Ar kmap
+is a kmap name.
+.It Fl p Ar macro
+Set startup macro.
+.Ar macro
+is a macro name.
+.It Fl S Ar syndef
+Make a syntax definition (use with -s).
+.Pp
+.Ar syndef
+is formatted as
+.Li `<name>,<path_pattern>,<tab_width>,<tab_to_space>` ,
+where
+.Ar name
+is a syntax name,
+.Ar path_pattern
+is a path matching regex (PCRE),
+.Ar tab_width
+is the default tab width,
+.Ar tab_to_space
+is a 0 or 1 specifying whether to convert tabs to spaces or not.
+.It Fl s Ar synrule
+Add syntax rule to current syntax definition (use after -S).
+.Pp
+.Ar synrule
+is formatted as
+.Li `<start>,<end>,<fg>,<bg>` ,
+where
+.Ar start
+and
+.Ar end
+are text matching regexes (PCRE), and
+.Ar fg
+and
+.Ar bg
+are attributes to apply to matching text.
+.Pp
+If both
+.Ar start
+and
+.Ar end
+are supplied, the rule applies to all text matched in
+between the regexes, potentially spanning multiple lines.
+If only
+.Ar start
+is specified, the rule applies to text matched by the regex
+on a single line.
+.Pp
+Attributes for
+.Ar fg
+and
+.Ar bg
+are as follows:
+.Bl -tag -width "####" -offset indent
+.It 0
+default
+.It 1
+black
+.It 2
+red
+.It 4
+yellow
+.It 5
+blue
+.It 6
+magenta
+.It 7
+cyan
+.It 8
+white
+.It 256
+bold
+.It 512
+underline
+.It 1024
+reverse
+.El
+.It Fl t Ar size
+Set tab size (default: 4)
+.It Fl v
+Print version and exit
+.It Fl w Aq 1|0
+Enable/disable soft word wrap (default: 0)
+.It Fl x Ar uscript
+Run a Lua user script (experimental)
+.It Fl y Ar syntax
+Set override syntax for files opened at start up.
+.Ar syntax
+is any syntax name.
+.It Fl z Aq 1|0
+Enable/disable trim_paste (default: 1)
+.El
+.Sh ADVANCED USAGE
+Below are some advanced things you can do with mle.
+.Ss rc file
+To customize the editor, make an rc file named
+.Pa ~/.mlerc
+or
+.Pa /etc/mlerc .
+The contents of the rc file are any number of cli options
+separated by newlines. Lines that begin with a semi-colon
+are interpretted as comments.
+.Pp
+If the rc file is executable, mle executes it and
+interprets the resulting stdout as described above. For
+example, consider the following snippet from an executable
+.Ar ~/.mlerc
+.Xr bash 1
+script:
+.Bd -literal
+  ...
+  # Define 'test' kmap
+  echo '-Ktest,,1'
+
+  # M-q: replace grep with git grep if `.git` exists
+  if [ -d ".git" ]; then
+    echo '-kcmd_grep,M-q,git grep --color=never -P -i -I -n %s 2>/dev/null'
+  fi
+
+  # Set default kmap
+  echo '-n test'
+  ...
+.Ed
+.Pp
+This overrides the built-in grep command with `git grep` if
+.Pa .git
+exists in the current working directory.
+.Ss Shell command integration
+The following programs will enable or enhance certain features of mle if they exist in
+.Em PATH .
+.Bl -tag -width "############" -offset indent
+.It Xr bash 1
+file tab completion
+.It Xr fzf 1
+fuzzy file search
+.It Xr grep 1
+file grep
+.It Xr less 1
+less integration
+.It Xr perl 1
+perl 1-liners
+.It Xr readtags 1
+ctags integration
+.It Xr tree 1
+file browsing
+.El
+.Pp
+Arbitrary shell commands can also be run via `cmd_shell`
+(M-e by default). If any text is selected, it is sent to
+stdin of the command. Any resulting stdout is inserted into
+the text buffer.
+.Ss Headless mode
+mle provides support for non-interactive editing which may
+be useful for using the editor as a regular command line
+tool. In headless mode, mle reads stdin into a buffer,
+applies a startup macro if specified, and then writes the
+buffer contents to stdout. For example:
+.Bd -literal
+  $ echo -n hello | mle -M 'test C-e space w o r l d enter' -p test
+  hello world
+.Ed
+.Pp
+If stdin is a pipe, mle goes into headless mode
+automatically. Headless mode can be explicitly enabled or
+disabled with the `-H` option.
+.Pp
+If stdin is a pipe and headless mode is disabled via -H0,
+mle reads stdin into a new buffer and then runs as normal
+in interactive mode.
+.Ss Scripting (experimental)
+mle is extensible via the Lua programming language. Scripts
+are loaded via the `-x` cli option. Commands registered by
+scripts can be mapped to keys as normal via `-k`. See
+https://github.com/adsr/mle for more info.
+.Sh ACKNOWLEDGEMENTS
+mle makes extensive use of the following libraries.
+.Bl -tag -width "############" -offset indent
+.It Em uthash
+for hash maps and linked lists
+.It Em termbox
+for TUI
+.It Em PCRE
+for syntax highlighting and search
+.El
