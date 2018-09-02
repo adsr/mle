@@ -2059,7 +2059,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 printf("Usage: mle [options] [file:line]...\n\n");
                 printf("    -h           Show this message\n");
                 printf("    -a <1|0>     Enable/disable tab_to_space (default: %d)\n", MLE_DEFAULT_TAB_TO_SPACE);
-                printf("    -b <1|0>     Enable/disbale highlight bracket pairs (default: %d)\n", MLE_DEFAULT_HILI_BRACKET_PAIRS);
+                printf("    -b <1|0>     Enable/disable highlight bracket pairs (default: %d)\n", MLE_DEFAULT_HILI_BRACKET_PAIRS);
                 printf("    -c <column>  Color column\n");
                 printf("    -H <1|0>     Enable/disable headless mode (default: 1 if no tty, else 0)\n");
                 printf("    -i <1|0>     Enable/disable auto_indent (default: %d)\n", MLE_DEFAULT_AUTO_INDENT);
