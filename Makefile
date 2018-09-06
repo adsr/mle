@@ -1,4 +1,4 @@
-DESTDIR?=/usr/local/bin/
+prefix?=/usr/local
 
 mle_cflags:=$(CFLAGS) -D_GNU_SOURCE -Wall -Wextra -Wno-missing-braces -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -g -O0 -I./mlbuf/ -I./termbox/src/ -I./uthash/src/ -I./lua
 mle_ldlibs:=$(LDLIBS) -lm -lpcre
@@ -50,7 +50,7 @@ sloc:
 		wc -l
 
 install: mle
-	install -v -m 755 mle $(DESTDIR)
+	install -D -v -m 755 mle $(DESTDIR)$(prefix)/bin/mle
 
 uscript:
 	php uscript.inc.php >uscript.inc

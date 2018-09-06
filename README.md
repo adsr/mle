@@ -62,9 +62,9 @@ To install to `/usr/local/bin`:
 
     $ make install
 
-To install to a custom directory, supply `DESTDIR`, e.g.:
+To install to a custom directory, supply `prefix`, e.g.:
 
-    $ DESTDIR=/usr/bin make install
+    $ make install prefix=/usr # /usr/bin/mle
 
 ### Basic usage
 
