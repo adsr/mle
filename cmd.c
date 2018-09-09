@@ -279,6 +279,17 @@ int cmd_move_bracket_back(cmd_context_t* ctx) {
     return MLE_OK;
 }
 
+// Move to matching bracket, or prev bracket if not on a bracket
+int cmd_move_bracket_toggle(cmd_context_t* ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (mark_move_bracket_pair(cursor->mark, ctx->buffer->byte_count) == MLBUF_ERR) {
+            mark_move_prev_re(cursor->mark, "[\\[\\(\\{]", strlen("[\\[\\(\\{]"));
+        }
+    );
+    bview_rectify_viewport(ctx->bview);
+    return MLE_OK;
+}
+
 // Delete word back
 int cmd_delete_word_before(cmd_context_t* ctx) {
     mark_t* tmark;

@@ -492,6 +492,7 @@ int cmd_move_beginning(cmd_context_t* ctx);
 int cmd_move_bol(cmd_context_t* ctx);
 int cmd_move_bracket_back(cmd_context_t* ctx);
 int cmd_move_bracket_forward(cmd_context_t* ctx);
+int cmd_move_bracket_toggle(cmd_context_t* ctx);
 int cmd_move_down(cmd_context_t* ctx);
 int cmd_move_end(cmd_context_t* ctx);
 int cmd_move_eol(cmd_context_t* ctx);

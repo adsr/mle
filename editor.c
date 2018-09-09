@@ -1408,6 +1408,7 @@ static void _editor_register_cmds(editor_t* editor) {
     _editor_register_cmd_fn(editor, "cmd_move_bol", cmd_move_bol);
     _editor_register_cmd_fn(editor, "cmd_move_bracket_back", cmd_move_bracket_back);
     _editor_register_cmd_fn(editor, "cmd_move_bracket_forward", cmd_move_bracket_forward);
+    _editor_register_cmd_fn(editor, "cmd_move_bracket_toggle", cmd_move_bracket_toggle);
     _editor_register_cmd_fn(editor, "cmd_move_down", cmd_move_down);
     _editor_register_cmd_fn(editor, "cmd_move_end", cmd_move_end);
     _editor_register_cmd_fn(editor, "cmd_move_eol", cmd_move_eol);
@@ -1505,6 +1506,7 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_move_word_back", "M-b"),
         MLE_KBINDING_DEF("cmd_move_bracket_forward", "M-]"),
         MLE_KBINDING_DEF("cmd_move_bracket_back", "M-["),
+        MLE_KBINDING_DEF("cmd_move_bracket_toggle", "M-="),
         MLE_KBINDING_DEF("cmd_search", "C-f"),
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),
@@ -1515,9 +1517,9 @@ static void _editor_init_kmaps(editor_t* editor) {
         MLE_KBINDING_DEF("cmd_uncut", "C-u"),
         MLE_KBINDING_DEF("cmd_redraw", "M-x l"),
         MLE_KBINDING_DEF("cmd_less", "M-l"),
-        MLE_KBINDING_DEF("cmd_viewport_top", "M--"),
+        MLE_KBINDING_DEF("cmd_viewport_top", "M-9"),
         MLE_KBINDING_DEF("cmd_viewport_toggle", "C-l"),
-        MLE_KBINDING_DEF("cmd_viewport_bot", "M-="),
+        MLE_KBINDING_DEF("cmd_viewport_bot", "M-0"),
         MLE_KBINDING_DEF("cmd_push_kmap", "M-x p"),
         MLE_KBINDING_DEF("cmd_pop_kmap", "M-x P"),
         MLE_KBINDING_DEF_EX("cmd_copy_by", "C-c d", "bracket"),

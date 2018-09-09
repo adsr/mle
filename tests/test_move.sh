@@ -58,6 +58,15 @@ declare -A expected
 expected[bracket_cursor_col]='^bview.0.cursor.0.mark.col=7$'
 source 'test.sh'
 
+# cmd_move_bracket_toggle
+macro='t e s t 1 { enter t e s t 2 [ enter ] enter } M-= a M-= b'
+declare -A expected
+expected[bracket_toggle_line]='^bview.0.cursor.0.mark.line_index=2$'
+expected[bracket_toggle_col ]='^bview.0.cursor.0.mark.col=1$'
+expected[bracket_toggle_a   ]='^test2a\[$'
+expected[bracket_toggle_b   ]='^b\]$'
+source 'test.sh'
+
 # cmd_jump
 macro='a n t space b a t space c a t space d o g M-j a c'
 declare -A expected
