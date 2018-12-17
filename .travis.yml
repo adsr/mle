@@ -1,6 +1,5 @@
 language: c
 script:
-  - make test
+  - make test mle_vendor=1
 before_install:
   - git submodule update --init --recursive
-  - sudo apt-get install libpcre3-dev

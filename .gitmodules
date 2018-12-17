@@ -1,12 +1,12 @@
-[submodule "mlbuf"]
-	path = mlbuf
-	url = https://github.com/adsr/mlbuf
 [submodule "termbox"]
-	path = termbox
+	path = vendor/termbox
 	url = https://github.com/nsf/termbox
 [submodule "uthash"]
-	path = uthash
+	path = vendor/uthash
 	url = https://github.com/troydhanson/uthash.git
 [submodule "lua"]
-	path = lua
+	path = vendor/lua
 	url = https://github.com/lua/lua.git
+[submodule "pcre"]
+	path = vendor/pcre
+	url = https://github.com/adsr/pcre.git

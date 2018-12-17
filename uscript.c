@@ -163,13 +163,15 @@ static void _uscript_push_event_map(uscript_t* uscript, char* event_name, void* 
     lua_State* L;
     L = uscript->L;
     if (strcmp(event_name, "buffer:baction") == 0) {
-        return _uscript_push_baction_map(L, (baction_t*)event_data);
+        _uscript_push_baction_map(L, (baction_t*)event_data);
+        return;
     } else if (strcmp(event_name, "buffer:save") == 0) {
         lua_createtable(L, 0, 1);
         luaL_pushkey(L, pointer, "bview", event_data);
         return;
     } else if (strncmp(event_name, "cmd:", 4) == 0) {
-        return _uscript_push_cmd_map(L, (cmd_context_t*)event_data);
+        _uscript_push_cmd_map(L, (cmd_context_t*)event_data);
+        return;
     }
     lua_pushnil(uscript->L); // TODO
 }
@@ -277,6 +279,7 @@ static int _uscript_func_editor_register_observer(lua_State* L) {
 
 // foreign static int _uscript_func_util_escape_shell_arg(arg)
 static int _uscript_func_util_escape_shell_arg(lua_State* L) {
+    (void)L;
     return 0;
 }
 
@@ -307,54 +310,63 @@ static int _uscript_func_util_shell_exec(lua_State* L) {
 // foreign static int _uscript_func_editor_get_input(x, y, z)
 static int _uscript_func_editor_get_input(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_editor_menu(x, y, z)
 static int _uscript_func_editor_menu(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_bview_pop_kmap(x, y, z)
 static int _uscript_func_bview_pop_kmap(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_bview_push_kmap(x, y, z)
 static int _uscript_func_bview_push_kmap(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_buffer_set_callback(x, y, z)
 static int _uscript_func_buffer_set_callback(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_buffer_add_srule(x, y, z)
 static int _uscript_func_buffer_add_srule(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_buffer_remove_srule(x, y, z)
 static int _uscript_func_buffer_remove_srule(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_buffer_write_to_file(x, y, z)
 static int _uscript_func_buffer_write_to_file(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 
 // foreign static int _uscript_func_editor_input_to_key(x, y, z)
 static int _uscript_func_editor_input_to_key(lua_State* L) {
     // TODO
+    (void)L;
     return 0;
 }
 

@@ -1,48 +1,46 @@
 prefix?=/usr/local
 
-mle_cflags:=-g -O0 $(CFLAGS) -D_GNU_SOURCE -Wall -Wextra -Wno-missing-braces -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -I./mlbuf/ -I./termbox/src/ -I./uthash/src/ -I./lua
-mle_ldlibs:=$(LDLIBS) -lm -lpcre
+mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O3 -D_GNU_SOURCE -I.  $(CFLAGS)
 mle_ldflags:=$(LDFLAGS)
+mle_libs:=-lpcre -ltermbox -llua5.3
+mle_ldlibs:=-lm $(LDLIBS)
 mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
-mle_static:=
-termbox_cflags:=-g -O0 $(CFLAGS) -D_XOPEN_SOURCE -Wall -Wextra -Wno-unused-result -std=gnu99
-termbox_objects:=$(patsubst termbox/src/%.c,termbox/src/%.o,$(wildcard termbox/src/*.c))
-lua_objects:=$(patsubst lua/%.c,lua/%.o,$(wildcard lua/*.c))
-lua_cflags:=-g -O0 $(CFLAGS) -DLUA_USE_POSIX -Wall -Wextra -std=gnu99
+mle_objects_no_main:=$(filter-out main.o,$(mle_objects))
+mle_func_tests:=$(wildcard tests/func/test_*.sh))
+mle_unit_tests:=$(patsubst %.c,%,$(wildcard tests/unit/*.c))
+mle_link_default:=-Wl,-Bdynamic
+mle_vendor_deps:=
+
+ifdef mle_static
+  mle_static_var:=-static
+  mle_link_default:=-static
+endif
+
+ifdef mle_vendor
+  mle_ldlibs:=-Wl,-Bstatic $(mle_libs) $(mle_link_default) $(mle_ldlibs)
+  mle_ldflags:=-Lvendor/pcre/.libs -Lvendor/termbox/src -Lvendor/lua $(mle_ldflags)
+  mle_cflags:=-Ivendor/pcre -Ivendor/termbox/src -Ivendor -Ivendor/uthash/src $(mle_cflags)
+  mle_vendor_deps:=./vendor/pcre/.libs/libpcre.a ./vendor/termbox/src/libtermbox.a ./vendor/lua/liblua5.3.a
+else
+  mle_ldlibs:=$(mle_libs) $(mle_ldlibs)
+endif
 
 all: mle
 
-mle: $(mle_objects) ./mlbuf/libmlbuf.a ./termbox/src/libtermbox.a ./lua/liblua.a
-	$(CC) $(mle_cflags) $(mle_objects) $(mle_static) ./mlbuf/libmlbuf.a ./termbox/src/libtermbox.a ./lua/liblua.a $(mle_ldflags) $(mle_ldlibs) -o mle
-
-mle_static: mle_static:=-static
-mle_static: mle_ldlibs:=$(mle_ldlibs) -lpthread
-mle_static: mle
+mle: $(mle_objects) $(mle_vendor_deps)
+	$(CC) $(mle_static_var) $(mle_cflags) $(mle_objects) $(mle_ldflags) $(mle_ldlibs) -o mle
 
 $(mle_objects): %.o: %.c
 	$(CC) -c $(mle_cflags) $< -o $@
 
-./mlbuf/libmlbuf.a:
-	export CFLAGS LDLIBS LDFLAGS
-	$(MAKE) -C mlbuf
+$(mle_vendor_deps):
+	$(MAKE) -C vendor
 
-./termbox/src/libtermbox.a: $(termbox_objects)
-	$(AR) rcs $@ $(termbox_objects)
+$(mle_unit_tests): %: %.c
+	$(CC) $(mle_cflags) $(mle_objects_no_main) $(mle_ldflags) $(mle_ldlibs) $< -o $@
 
-./lua/liblua.a: $(lua_objects)
-	$(AR) rcs $@ $(lua_objects)
-
-$(termbox_objects): %.o: %.c
-	$(CC) -c $(termbox_cflags) $< -o $@
-
-$(lua_objects): %.o: %.c
-	$(CC) -c $(lua_cflags) $< -o $@
-
-test: mle test_mle
-	$(MAKE) -C mlbuf test
-
-test_mle: mle
-	./mle -v && $(MAKE) -C tests
+test: mle $(mle_unit_tests)
+	./mle -v && export MLE=$$(pwd)/mle && $(MAKE) -C tests
 
 sloc:
 	find . -name '*.c' -or -name '*.h' | \
@@ -57,9 +55,7 @@ uscript:
 	php uscript.inc.php >uscript.inc
 
 clean:
-	rm -f *.o mle.bak.* gmon.out perf.data perf.data.old mle
-	$(MAKE) -C mlbuf clean
-	rm -f lua/*.o lua/lua lua/liblua.a
-	rm -f termbox/src/*.o termbox/src/libtermbox.a
+	rm -f mle $(mle_objects) $(mle_vendor_deps) $(mle_unit_tests)
+	$(MAKE) -C vendor clean
 
-.PHONY: all mle_static test test_mle sloc install uscript clean
+.PHONY: all test sloc install uscript clean

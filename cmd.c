@@ -12,6 +12,14 @@
     } \
 } while(0)
 
+#define MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(pcursor, pfn) do {\
+    cursor_t* cursor; \
+    DL_FOREACH((pcursor)->bview->cursors, cursor) { \
+        if (cursor->is_asleep) continue; \
+        pfn(cursor->mark); \
+    } \
+} while(0)
+
 #define MLE_MULTI_CURSOR_CODE(pcursor, pcode) do { \
     cursor_t* cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
@@ -160,21 +168,21 @@ int cmd_move_bol(cmd_context_t* ctx) {
 
 // Move cursor to end of line
 int cmd_move_eol(cmd_context_t* ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_eol);
+    MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_eol);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to beginning of buffer
 int cmd_move_beginning(cmd_context_t* ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_beginning);
+    MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_beginning);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of buffer
 int cmd_move_end(cmd_context_t* ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_end);
+    MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_end);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
@@ -768,6 +776,7 @@ int cmd_apply_macro(cmd_context_t* ctx) {
 
 // No-op
 int cmd_noop(cmd_context_t* ctx) {
+    (void)ctx;
     return MLE_OK;
 }
 
@@ -961,6 +970,7 @@ static void _cmd_force_redraw(cmd_context_t* ctx) {
     int h;
     int x;
     int y;
+    (void)ctx;
     if (tb_width() >= 0) tb_shutdown();
     tb_init();
     tb_select_input_mode(TB_INPUT_ALT);
@@ -1252,9 +1262,9 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
     char* yn;
 
     if (!MLE_BVIEW_IS_EDIT(bview)) {
-        MLE_RETURN_ERR(editor, "Cannot close non-edit bview %p", bview);
+        MLE_RETURN_ERR(editor, "Cannot close non-edit bview %p", (void*)bview);
     } else if (editor->loop_depth > 1) {
-        MLE_RETURN_ERR(editor, "Cannot close bview %p when loop_depth > 1", bview);
+        MLE_RETURN_ERR(editor, "Cannot close bview %p when loop_depth > 1", (void*)bview);
     } else if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)
         || editor_count_bviews_by_buffer(editor, bview->buffer) > 1
     ) {
@@ -1397,6 +1407,8 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
     bview_t* bview;
     char* regex;
     int regex_len;
+    (void)action;
+    (void)udata;
 
     bview = bview_prompt->editor->active_edit;
 

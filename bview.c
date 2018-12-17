@@ -225,9 +225,9 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
     bview_t* child;
 
     if (self->split_child) {
-        MLE_RETURN_ERR(self->editor, "bview %p is already split", self);
+        MLE_RETURN_ERR(self->editor, "bview %p is already split", (void*)self);
     } else if (!MLE_BVIEW_IS_EDIT(self)) {
-        MLE_RETURN_ERR(self->editor, "bview %p is not an edit bview", self);
+        MLE_RETURN_ERR(self->editor, "bview %p is not an edit bview", (void*)self);
     }
 
     // Make child
@@ -409,6 +409,8 @@ static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpo
     int rc;
     bint_t vpos_start;
     bint_t vpos_stop;
+    (void)self;
+    (void)bline;
 
     // Find bounds
     if (dim_scope < 0) {
@@ -670,6 +672,7 @@ static void _bview_set_tab_width(bview_t* self, int tab_width) {
 static void _bview_expand_tilde(bview_t* self, char* path, int path_len, char** ret_path, int* ret_path_len) {
     char* homedir;
     char* newpath;
+    (void)self;
     if (!util_is_file("~", NULL, NULL)
         && strncmp(path, "~/", 2) == 0
         && (homedir = getenv("HOME")) != NULL
@@ -694,6 +697,7 @@ static void _bview_fix_path(bview_t* self, char* path, int path_len, char** ret_
     int fix_nudge;
     int fix_len;
     bint_t line_num;
+    (void)self;
 
     fix_nudge = 0;
     fix_len = path_len;

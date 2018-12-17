@@ -16,7 +16,7 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 
 ### Aims
 
-* Keep codebase small
+* Keep codebase small and hackable
 * Minimize build-time and run-time dependencies
 * Make extensible and configurable
 * Favor simplicity over portability
@@ -25,7 +25,6 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 ### Features
 
 * Small codebase (<10k sloc)
-* Only 1 out-of-repo dependency (PCRE)
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
@@ -51,10 +50,12 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 
     $ git clone --recursive https://github.com/adsr/mle.git
     $ cd mle
-    $ sudo apt-get install libpcre3-dev # or `yum install pcre-devel`, `pacman -S pcre`, etc
-    $ make
+    $ make mle_vendor=1
 
-You can run `make mle_static` instead to build a static binary.
+To build a completely static binary, try `make mle_vendor=1 mle_static=1`.
+
+You can also run plain `make` to link against system libraries instead of
+`vendor/`. Note this requires dev libraries and headers to be installed.
 
 ### Installing
 

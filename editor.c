@@ -1,8 +1,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <termbox.h>
-#include "uthash.h"
-#include "utlist.h"
+#include <uthash.h>
+#include <utlist.h>
 #include "mle.h"
 #include "mlbuf.h"
 
@@ -366,9 +366,9 @@ int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed)
 // Set the active bview
 int editor_set_active(editor_t* editor, bview_t* bview) {
     if (!_editor_bview_exists(editor, bview)) {
-        MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", bview);
+        MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", (void*)bview);
     } else if (editor->prompt) {
-        MLE_RETURN_ERR(editor, "Cannot abandon prompt for bview %p", bview);
+        MLE_RETURN_ERR(editor, "Cannot abandon prompt for bview %p", (void*)bview);
     }
     editor->active = bview;
     if (MLE_BVIEW_IS_EDIT(bview)) {
@@ -418,6 +418,7 @@ int editor_debug_dump(editor_t* editor, FILE* fp) {
 // Given a kinput, put the key name in keybuf
 int editor_input_to_key(editor_t* editor, kinput_t* input, char* keybuf) {
     int nbytes;
+    (void)editor;
     #define MLE_KEY_DEF(pckey, pmod, pch, pkey) \
         } else if (input->key == (pkey) && input->ch == (pch) && input->mod == (pmod)) { \
             sprintf(keybuf, "%s", (pckey)); \
@@ -576,7 +577,7 @@ static int _editor_should_skip_rc(char** argv) {
 // Close a bview
 static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optret_num_closed) {
     if (!_editor_bview_exists(editor, bview)) {
-        MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", bview);
+        MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", (void*)bview);
     }
     if (bview->split_child) {
         _editor_close_bview_inner(editor, bview->split_child, optret_num_closed);
@@ -604,6 +605,7 @@ static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optr
 
 // Destroy a command
 static int _editor_destroy_cmd(editor_t* editor, cmd_t* cmd) {
+    (void)editor;
     free(cmd->name);
     free(cmd);
     return MLE_OK;
@@ -1351,6 +1353,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
 // Init signal handlers
 static void _editor_init_signal_handlers(editor_t* editor) {
     struct sigaction action;
+    (void)editor;
     memset(&action, 0, sizeof(struct sigaction));
     action.sa_handler = _editor_graceful_exit;
     sigaction(SIGTERM, &action, NULL);
@@ -1365,6 +1368,7 @@ static void _editor_graceful_exit(int signum) {
     bview_t* bview;
     char path[64];
     int bview_num;
+    (void)signum;
     bview_num = 0;
     if (tb_width() >= 0) tb_shutdown();
     CDL_FOREACH2(_editor.all_bviews, bview, all_next) {
@@ -1932,6 +1936,7 @@ static void _editor_destroy_syntax_map(syntax_t* map) {
 
 // Read rc file
 static int _editor_init_from_rc_read(editor_t* editor, FILE* rc, char** ret_rc_data, size_t* ret_rc_data_len) {
+    (void)editor;
     fseek(rc, 0L, SEEK_END);
     *ret_rc_data_len = (size_t)ftell(rc);
     fseek(rc, 0L, SEEK_SET);
@@ -2119,7 +2124,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 'k':
                 if (!cur_kmap || _editor_init_kmap_add_binding_by_str(editor, cur_kmap, optarg) != MLE_OK) {
-                    MLE_LOG_ERR("Could not add key binding to kmap %p by str: %s\n", cur_kmap, optarg);
+                    MLE_LOG_ERR("Could not add key binding to kmap %p by str: %s\n", (void*)cur_kmap, optarg);
                     editor->exit_code = EXIT_FAILURE;
                     rv = MLE_ERR;
                 }
@@ -2162,7 +2167,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
                 break;
             case 's':
                 if (!cur_syntax || _editor_init_syntax_add_rule_by_str(cur_syntax, optarg) != MLE_OK) {
-                    MLE_LOG_ERR("Could not add style rule to syntax %p by str: %s\n", cur_syntax, optarg);
+                    MLE_LOG_ERR("Could not add style rule to syntax %p by str: %s\n", (void*)cur_syntax, optarg);
                     editor->exit_code = EXIT_FAILURE;
                     rv = MLE_ERR;
                 }

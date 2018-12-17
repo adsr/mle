@@ -1,0 +1,32 @@
+#include "test.h"
+
+MAIN("[\n * comment\n ]/\nsel",
+    bint_t i;
+    srule_t* multi;
+    srule_t* range;
+    mark_t* ma;
+    mark_t* mb;
+
+    ma = buffer_add_mark(buf, buf->first_line->next, 0);
+    mb = buffer_add_mark(buf, buf->first_line->next->next->next, 3);
+    multi = srule_new_multi("\\[", 2, "\\]", 2, 1, 2);
+    range = srule_new_range(ma, mb, 3, 4);
+    buffer_add_srule(buf, multi);
+    buffer_add_srule(buf, range);
+
+    for (i = 0; i < buf->first_line->next->char_count; i++) {
+        ASSERT("line1fg", 1, buf->first_line->next->chars[i].style.fg);
+        ASSERT("line1bg", 2, buf->first_line->next->chars[i].style.bg);
+    }
+    for (i = 0; i < buf->first_line->next->next->next->char_count; i++) {
+        ASSERT("line2fg", 3, buf->first_line->next->next->next->chars[i].style.fg);
+        ASSERT("line2bg", 4, buf->first_line->next->next->next->chars[i].style.bg);
+    }
+
+    buffer_remove_srule(buf, multi);
+    buffer_remove_srule(buf, range);
+    srule_destroy(multi);
+    srule_destroy(range);
+    buffer_destroy_mark(buf, ma);
+    buffer_destroy_mark(buf, mb);
+)

@@ -3,12 +3,12 @@
 
 #include <stdint.h>
 #include <limits.h>
-#include "termbox.h"
-#include "uthash.h"
+#include <termbox.h>
+#include <uthash.h>
+#include <lua5.3/lua.h>
+#include <lua5.3/lualib.h>
+#include <lua5.3/lauxlib.h>
 #include "mlbuf.h"
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
 
 // Typedefs
 typedef struct editor_s editor_t; // A container for editor-wide globals
