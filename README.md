@@ -48,6 +48,7 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 
 ### Building
 
+    $ sudo apt -y install git build-essential libtool automake
     $ git clone --recursive https://github.com/adsr/mle.git
     $ cd mle
     $ make mle_vendor=1
@@ -55,7 +56,12 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 To build a completely static binary, try `make mle_vendor=1 mle_static=1`.
 
 You can also run plain `make` to link against system libraries instead of
-`vendor/`. Note this requires dev libraries and headers to be installed.
+`vendor/`. Note this requires the following packages to be installed:
+
+    uthash-dev
+    liblua5.3-dev
+    libpcre3-dev
+    libtermbox-dev
 
 ### Installing
 

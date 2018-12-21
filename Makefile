@@ -27,7 +27,7 @@ endif
 
 all: mle
 
-mle: $(mle_objects) $(mle_vendor_deps)
+mle: $(mle_vendor_deps) $(mle_objects)
 	$(CC) $(mle_static_var) $(mle_cflags) $(mle_objects) $(mle_ldflags) $(mle_ldlibs) -o mle
 
 $(mle_objects): %.o: %.c
