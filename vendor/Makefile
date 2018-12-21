@@ -1,5 +1,5 @@
 lua_cflags:=-std=c99 -Wall -Wextra -pedantic -g -O3 -DLUA_USE_POSIX $(CFLAGS)
-lua_objects:=$(patsubst lua/%.c,lua/%.o,$(wildcard lua/*.c))
+lua_objects:=$(patsubst lua/%.c,lua/%.o,$(filter-out lua/lua.c, $(wildcard lua/*.c)))
 termbox_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-unused-result -g -O3 -D_XOPEN_SOURCE $(CFLAGS)
 termbox_objects:=$(patsubst termbox/src/%.c,termbox/src/%.o,$(wildcard termbox/src/*.c))
 
