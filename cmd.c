@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include "mle.h"
 
 #define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do {\
@@ -1334,7 +1335,7 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
         if (rc == MLBUF_ERR) {
             MLE_SET_ERR(editor, "save: %s", errno ? strerror(errno) : "failed");
         } else {
-            MLE_SET_INFO(editor, "save: Wrote %ld bytes", nbytes);
+            MLE_SET_INFO(editor, "save: Wrote %" PRIdMAX " bytes", nbytes);
             // Notify event observers
             editor_notify_observers(editor, "buffer:save", (void*)bview);
         }

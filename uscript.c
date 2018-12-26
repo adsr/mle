@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include "mle.h"
 
 #define MLE_USCRIPT_KEY "_uscript"
@@ -377,9 +378,11 @@ static void* luaL_checkpointer(lua_State* L, int arg) {
 
 static void* luaL_optpointer(lua_State* L, int arg, void* def) {
     const char* ptr;
+    uintptr_t ptr_as_int;
     ptr = luaL_optstring(L, arg, NULL);
     if (ptr && strlen(ptr) > 0) {
-        return (void*)strtoull(ptr, NULL, 16);
+        ptr_as_int = (uintptr_t)strtoull(ptr, NULL, 16);
+        return (void*)ptr_as_int;
     }
     return def;
 }
@@ -389,7 +392,7 @@ static void lua_pushpointer(lua_State* L, void* ptr) {
     if (ptr == NULL) {
         lua_pushnil(L);
     } else {
-        snprintf(ptrbuf, 32, "%llx", (unsigned long long)ptr);
+        snprintf(ptrbuf, 32, "%" PRIxPTR, (uintptr_t)ptr);
         lua_pushstring(L, ptrbuf);
     }
 }

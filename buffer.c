@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <utlist.h>
+#include <inttypes.h>
 #include "mlbuf.h"
 
 static int _buffer_open_mmap(buffer_t* self, int fd, size_t size);
@@ -1637,12 +1638,12 @@ static bint_t _buffer_bline_delete(bline_t* bline, bint_t col, bint_t num_chars)
     // Clamp num_chars
     safe_num_chars = MLBUF_MIN(bline->char_count - col, num_chars);
     if (safe_num_chars != num_chars) {
-        MLBUF_DEBUG_PRINTF("num_chars=%lu does not match safe_num_chars=%lu\n", num_chars, safe_num_chars);
+        MLBUF_DEBUG_PRINTF("num_chars=%" PRIdMAX " does not match safe_num_chars=%" PRIdMAX "\n", num_chars, safe_num_chars);
     }
 
     // Nothing to do if safe_num_chars is 0
     if (safe_num_chars < 1) {
-        MLBUF_DEBUG_PRINTF("safe_num_chars=%lu lt 1\n", safe_num_chars);
+        MLBUF_DEBUG_PRINTF("safe_num_chars=%" PRIdMAX " lt 1\n", safe_num_chars);
         return MLBUF_OK;
     }
 

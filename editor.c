@@ -3,6 +3,7 @@
 #include <termbox.h>
 #include <uthash.h>
 #include <utlist.h>
+#include <inttypes.h>
 #include "mle.h"
 #include "mlbuf.h"
 
@@ -391,18 +392,18 @@ int editor_debug_dump(editor_t* editor, FILE* fp) {
         if (!MLE_BVIEW_IS_EDIT(bview)) continue;
         cursor_index = 0;
         DL_FOREACH(bview->cursors, cursor) {
-            fprintf(fp, "bview.%d.cursor.%d.mark.line_index=%ld\n", bview_index, cursor_index, cursor->mark->bline->line_index);
-            fprintf(fp, "bview.%d.cursor.%d.mark.col=%ld\n", bview_index, cursor_index, cursor->mark->col);
+            fprintf(fp, "bview.%d.cursor.%d.mark.line_index=%" PRIdMAX "\n", bview_index, cursor_index, cursor->mark->bline->line_index);
+            fprintf(fp, "bview.%d.cursor.%d.mark.col=%" PRIdMAX "\n", bview_index, cursor_index, cursor->mark->col);
             if (cursor->is_anchored) {
-                fprintf(fp, "bview.%d.cursor.%d.anchor.line_index=%ld\n", bview_index, cursor_index, cursor->anchor->bline->line_index);
-                fprintf(fp, "bview.%d.cursor.%d.anchor.col=%ld\n", bview_index, cursor_index, cursor->anchor->col);
+                fprintf(fp, "bview.%d.cursor.%d.anchor.line_index=%" PRIdMAX "\n", bview_index, cursor_index, cursor->anchor->bline->line_index);
+                fprintf(fp, "bview.%d.cursor.%d.anchor.col=%" PRIdMAX "\n", bview_index, cursor_index, cursor->anchor->col);
             }
             cursor_index += 1;
         }
         fprintf(fp, "bview.%d.cursor_count=%d\n", bview_index, cursor_index);
         buffer = bview->buffer;
-        fprintf(fp, "bview.%d.buffer.byte_count=%ld\n", bview_index, buffer->byte_count);
-        fprintf(fp, "bview.%d.buffer.line_count=%ld\n", bview_index, buffer->line_count);
+        fprintf(fp, "bview.%d.buffer.byte_count=%" PRIdMAX "\n", bview_index, buffer->byte_count);
+        fprintf(fp, "bview.%d.buffer.line_count=%" PRIdMAX "\n", bview_index, buffer->line_count);
         if (buffer->path) {
             fprintf(fp, "bview.%d.buffer.path=%s\n", bview_index, buffer->path);
         }
