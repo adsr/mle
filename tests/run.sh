@@ -11,7 +11,7 @@ for t in $(find . -mindepth 2 -executable -type f); do
     tshort=$(basename $t)
     tfull=$(readlink -f $t)
     tdir=$(dirname $tfull)
-    tput bold; echo TEST $tshort; tput sgr0
+    tput bold 2>/dev/null; echo TEST $tshort; tput sgr0 2>/dev/null
     pushd $tdir &>/dev/null
     ./$tshort
     ec=$?
