@@ -649,11 +649,11 @@ int buffer_replace_w_bline(buffer_t *self, bline_t *start_line, bint_t start_col
         action->start_line = start_line;
         action->start_line_index = start_line->line_index;
         action->start_col = start_col;
-        action->byte_delta = -1 * del_data.len;
+        action->byte_delta = -1 * (bint_t)del_data.len;
         action->char_delta = -1 * (del_chars - delete_rem);
         action->line_delta = -1 * nlines;
         action->data = del_data.data;
-        action->data_len = del_data.len;
+        action->data_len = (bint_t)del_data.len;
         _buffer_update(self, action);
     }
 
