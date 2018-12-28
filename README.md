@@ -48,7 +48,8 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 
 ### Building
 
-    $ sudo apt -y install git build-essential libtool automake
+    $ sudo apt install git build-essential libtool automake # or equivalent
+    $
     $ git clone --recursive https://github.com/adsr/mle.git
     $ cd mle
     $ make mle_vendor=1
