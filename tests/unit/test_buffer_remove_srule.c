@@ -1,10 +1,10 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     bint_t i;
-    srule_t* srule;
+    srule_t *srule;
     srule = srule_new_single("world", sizeof("world")-1, 0, 1, 2);
     buffer_add_srule(buf, srule);
     buffer_remove_srule(buf, srule);

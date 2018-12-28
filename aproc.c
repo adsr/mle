@@ -9,8 +9,8 @@
 #include "mle.h"
 
 // Return a new aproc_t
-aproc_t* aproc_new(editor_t* editor, void* owner, aproc_t** owner_aproc, char* shell_cmd, int rw, aproc_cb_t callback) {
-    aproc_t* aproc;
+aproc_t *aproc_new(editor_t *editor, void *owner, aproc_t **owner_aproc, char *shell_cmd, int rw, aproc_cb_t callback) {
+    aproc_t *aproc;
     aproc = calloc(1, sizeof(aproc_t));
     aproc->editor = editor;
     aproc_set_owner(aproc, owner, owner_aproc);
@@ -38,7 +38,7 @@ aproc_new_failure:
 }
 
 // Set aproc owner
-int aproc_set_owner(aproc_t* aproc, void* owner, aproc_t** owner_aproc) {
+int aproc_set_owner(aproc_t *aproc, void *owner, aproc_t **owner_aproc) {
     if (aproc->owner_aproc) {
         *aproc->owner_aproc = NULL;
     }
@@ -49,7 +49,7 @@ int aproc_set_owner(aproc_t* aproc, void* owner, aproc_t** owner_aproc) {
 }
 
 // Destroy an aproc_t
-int aproc_destroy(aproc_t* aproc, int preempt) {
+int aproc_destroy(aproc_t *aproc, int preempt) {
     DL_DELETE(aproc->editor->aprocs, aproc);
     if (aproc->owner_aproc) *aproc->owner_aproc = NULL;
     if (preempt) {
@@ -65,11 +65,11 @@ int aproc_destroy(aproc_t* aproc, int preempt) {
 
 // Manage async procs, giving priority to user input. Return 1 if drain should
 // be called again, else return 0.
-int aproc_drain_all(aproc_t* aprocs, int* ttyfd) {
+int aproc_drain_all(aproc_t *aprocs, int *ttyfd) {
     int maxfd;
     fd_set readfds;
-    aproc_t* aproc;
-    aproc_t* aproc_tmp;
+    aproc_t *aproc;
+    aproc_t *aproc_tmp;
     char buf[1024 + 1];
     ssize_t nbytes;
     int rc;

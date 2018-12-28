@@ -1,8 +1,8 @@
 #include "test.h"
 
-char* str = "lineA\n\nline2\nline3\n";
+char *str = "lineA\n\nline2\nline3\n";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     char *data;
     bint_t data_len;
 

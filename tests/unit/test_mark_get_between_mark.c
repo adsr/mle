@@ -1,11 +1,11 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
-    char* str;
+void test(buffer_t *buf, mark_t *cur) {
+    char *str;
     bint_t str_len;
-    mark_t* other;
+    mark_t *other;
     other = buffer_add_mark(buf, NULL, 0);
     mark_move_beginning(cur);
     mark_move_end(other);

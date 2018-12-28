@@ -6,7 +6,7 @@
 #include "mle.h"
 
 #define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do {\
-    cursor_t* cursor; \
+    cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
         pfn(cursor->mark, ##__VA_ARGS__); \
@@ -14,7 +14,7 @@
 } while(0)
 
 #define MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(pcursor, pfn) do {\
-    cursor_t* cursor; \
+    cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
         pfn(cursor->mark); \
@@ -22,38 +22,38 @@
 } while(0)
 
 #define MLE_MULTI_CURSOR_CODE(pcursor, pcode) do { \
-    cursor_t* cursor; \
+    cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
         pcode \
     } \
 } while(0)
 
-static void _cmd_force_redraw(cmd_context_t* ctx);
-static int _cmd_pre_close(editor_t* editor, bview_t* bview);
-static int _cmd_quit_inner(editor_t* editor, bview_t* bview);
-static int _cmd_save(editor_t* editor, bview_t* bview, int save_as);
-static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len);
-static void _cmd_aproc_bview_passthru_cb(aproc_t* self, char* buf, size_t buf_len);
-static void _cmd_isearch_prompt_cb(bview_t* bview, baction_t* action, void* udata);
-static int _cmd_menu_browse_cb(cmd_context_t* ctx);
-static int _cmd_menu_grep_cb(cmd_context_t* ctx);
-static int _cmd_menu_ctag_cb(cmd_context_t* ctx);
-static int _cmd_indent(cmd_context_t* ctx, int outdent);
-static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent);
-static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h);
-static void _cmd_insert_auto_indent_newline(cmd_context_t* ctx);
-static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t* ctx);
-static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd);
-static void _cmd_get_input(cmd_context_t* ctx, kinput_t* ret_input);
+static void _cmd_force_redraw(cmd_context_t *ctx);
+static int _cmd_pre_close(editor_t *editor, bview_t *bview);
+static int _cmd_quit_inner(editor_t *editor, bview_t *bview);
+static int _cmd_save(editor_t *editor, bview_t *bview, int save_as);
+static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mark, char *regex, int regex_len);
+static void _cmd_aproc_bview_passthru_cb(aproc_t *self, char *buf, size_t buf_len);
+static void _cmd_isearch_prompt_cb(bview_t *bview, baction_t *action, void *udata);
+static int _cmd_menu_browse_cb(cmd_context_t *ctx);
+static int _cmd_menu_grep_cb(cmd_context_t *ctx);
+static int _cmd_menu_ctag_cb(cmd_context_t *ctx);
+static int _cmd_indent(cmd_context_t *ctx, int outdent);
+static int _cmd_indent_line(bline_t *bline, int use_tabs, int outdent);
+static void _cmd_help_inner(char *buf, kbinding_t *trie, str_t *h);
+static void _cmd_insert_auto_indent_newline(cmd_context_t *ctx);
+static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t *ctx);
+static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd);
+static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input);
 
 // Insert data
-int cmd_insert_data(cmd_context_t* ctx) {
+int cmd_insert_data(cmd_context_t *ctx) {
     bint_t insertbuf_len;
-    char* insertbuf_cur;
+    char *insertbuf_cur;
     bint_t len;
     size_t insert_size;
-    kinput_t* input;
+    kinput_t *input;
     int i;
 
     // Ensure space in insertbuf
@@ -101,7 +101,7 @@ int cmd_insert_data(cmd_context_t* ctx) {
         && memchr(ctx->editor->insertbuf, '\n', insertbuf_len) != NULL
     ) {
         // Insert with trim
-        char* trimmed = NULL;
+        char *trimmed = NULL;
         int trimmed_len = 0;
         util_pcre_replace("(?m) +$", ctx->editor->insertbuf, "", &trimmed, &trimmed_len);
         MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, trimmed, trimmed_len);
@@ -122,7 +122,7 @@ int cmd_insert_data(cmd_context_t* ctx) {
 }
 
 // Insert newline above current line
-int cmd_insert_newline_above(cmd_context_t* ctx) {
+int cmd_insert_newline_above(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_move_bol(cursor->mark);
         mark_insert_after(cursor->mark, "\n", 1);
@@ -131,7 +131,7 @@ int cmd_insert_newline_above(cmd_context_t* ctx) {
 }
 
 // Delete char before cursor mark
-int cmd_delete_before(cmd_context_t* ctx) {
+int cmd_delete_before(cmd_context_t *ctx) {
     bint_t offset;
     mark_get_offset(ctx->cursor->mark, &offset);
     if (offset < 1) return MLE_OK;
@@ -140,15 +140,15 @@ int cmd_delete_before(cmd_context_t* ctx) {
 }
 
 // Delete char after cursor mark
-int cmd_delete_after(cmd_context_t* ctx) {
+int cmd_delete_after(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_delete_after, 1);
     return MLE_OK;
 }
 
 // Move cursor to beginning of line
-int cmd_move_bol(cmd_context_t* ctx) {
+int cmd_move_bol(cmd_context_t *ctx) {
     uint32_t ch;
-    mark_t* mark;
+    mark_t *mark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_clone(cursor->mark, &mark);
         mark_move_bol(mark);
@@ -168,71 +168,71 @@ int cmd_move_bol(cmd_context_t* ctx) {
 }
 
 // Move cursor to end of line
-int cmd_move_eol(cmd_context_t* ctx) {
+int cmd_move_eol(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_eol);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to beginning of buffer
-int cmd_move_beginning(cmd_context_t* ctx) {
+int cmd_move_beginning(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_beginning);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of buffer
-int cmd_move_end(cmd_context_t* ctx) {
+int cmd_move_end(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_end);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor left one char
-int cmd_move_left(cmd_context_t* ctx) {
+int cmd_move_left(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_by, -1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor right one char
-int cmd_move_right(cmd_context_t* ctx) {
+int cmd_move_right(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_by, 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor up one line
-int cmd_move_up(cmd_context_t* ctx) {
+int cmd_move_up(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor down one line
-int cmd_move_down(cmd_context_t* ctx) {
+int cmd_move_down(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor one page up
-int cmd_move_page_up(cmd_context_t* ctx) {
+int cmd_move_page_up(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1 * ctx->bview->rect_buffer.h);
     bview_zero_viewport_y(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor one page down
-int cmd_move_page_down(cmd_context_t* ctx) {
+int cmd_move_page_down(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, ctx->bview->rect_buffer.h);
     bview_zero_viewport_y(ctx->bview);
     return MLE_OK;
 }
 
 // Move to specific line
-int cmd_move_to_line(cmd_context_t* ctx) {
-    char* linestr;
+int cmd_move_to_line(cmd_context_t *ctx) {
+    char *linestr;
     bint_t line;
     editor_prompt(ctx->editor, "move_to_line: Line num?", NULL, &linestr);
     if (!linestr) return MLE_OK;
@@ -245,7 +245,7 @@ int cmd_move_to_line(cmd_context_t* ctx) {
 }
 
 // Move vertically relative to current line
-int cmd_move_relative(cmd_context_t* ctx) {
+int cmd_move_relative(cmd_context_t *ctx) {
     int delta;
     if (ctx->loop_ctx->numeric_params_len < 1) {
         return MLE_ERR;
@@ -263,33 +263,33 @@ int cmd_move_relative(cmd_context_t* ctx) {
 }
 
 // Move one word forward
-int cmd_move_word_forward(cmd_context_t* ctx) {
+int cmd_move_word_forward(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re_nudge, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     return MLE_OK;
 }
 
 // Move one word back
-int cmd_move_word_back(cmd_context_t* ctx) {
+int cmd_move_word_back(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     return MLE_OK;
 }
 
 // Move to next open bracket
-int cmd_move_bracket_forward(cmd_context_t* ctx) {
+int cmd_move_bracket_forward(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, "{", 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move to prev open bracket
-int cmd_move_bracket_back(cmd_context_t* ctx) {
+int cmd_move_bracket_back(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, "{", 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move to matching bracket, or prev bracket if not on a bracket
-int cmd_move_bracket_toggle(cmd_context_t* ctx) {
+int cmd_move_bracket_toggle(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (mark_move_bracket_pair(cursor->mark, ctx->buffer->byte_count) == MLBUF_ERR) {
             mark_move_prev_re(cursor->mark, "[\\[\\(\\{]", strlen("[\\[\\(\\{]"));
@@ -300,8 +300,8 @@ int cmd_move_bracket_toggle(cmd_context_t* ctx) {
 }
 
 // Delete word back
-int cmd_delete_word_before(cmd_context_t* ctx) {
-    mark_t* tmark;
+int cmd_delete_word_before(cmd_context_t *ctx) {
+    mark_t *tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_clone(cursor->mark, &tmark);
         mark_move_prev_re(tmark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
@@ -312,8 +312,8 @@ int cmd_delete_word_before(cmd_context_t* ctx) {
 }
 
 // Delete word ahead
-int cmd_delete_word_after(cmd_context_t* ctx) {
-    mark_t* tmark;
+int cmd_delete_word_after(cmd_context_t *ctx) {
+    mark_t *tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_clone(cursor->mark, &tmark);
         mark_move_next_re(tmark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
@@ -324,7 +324,7 @@ int cmd_delete_word_after(cmd_context_t* ctx) {
 }
 
 // Toggle sel bound on cursors
-int cmd_toggle_anchor(cmd_context_t* ctx) {
+int cmd_toggle_anchor(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_toggle_anchor(cursor, 1);
     );
@@ -332,26 +332,26 @@ int cmd_toggle_anchor(cmd_context_t* ctx) {
 }
 
 // Drop an is_asleep=1 cursor
-int cmd_drop_sleeping_cursor(cmd_context_t* ctx) {
+int cmd_drop_sleeping_cursor(cmd_context_t *ctx) {
     return bview_add_cursor_asleep(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, NULL);
 }
 
 // Awake all is_asleep=1 cursors
-int cmd_wake_sleeping_cursors(cmd_context_t* ctx) {
+int cmd_wake_sleeping_cursors(cmd_context_t *ctx) {
     return bview_wake_sleeping_cursors(ctx->bview);
 }
 
 // Remove all cursors except the active one
-int cmd_remove_extra_cursors(cmd_context_t* ctx) {
+int cmd_remove_extra_cursors(cmd_context_t *ctx) {
     return bview_remove_cursors_except(ctx->bview, ctx->cursor);
 }
 
 // Drop column of cursors in selection
-int cmd_drop_cursor_column(cmd_context_t* ctx) {
-    bline_t* bline;
+int cmd_drop_cursor_column(cmd_context_t *ctx) {
+    bline_t *bline;
     bint_t col;
-    mark_t* lo;
-    mark_t* hi;
+    mark_t *lo;
+    mark_t *hi;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (!cursor->is_anchored) continue;
         col = cursor->mark->col;
@@ -374,10 +374,10 @@ int cmd_drop_cursor_column(cmd_context_t* ctx) {
 }
 
 // Search for a regex
-int cmd_search(cmd_context_t* ctx) {
-    char* regex;
+int cmd_search(cmd_context_t *ctx) {
+    char *regex;
     int regex_len;
-    mark_t* search_mark;
+    mark_t *search_mark;
     editor_prompt(ctx->editor, "search: Regex?", NULL, &regex);
     if (!regex) return MLE_OK;
     regex_len = strlen(regex);
@@ -392,9 +392,9 @@ int cmd_search(cmd_context_t* ctx) {
 }
 
 // Search for next instance of last search regex
-int cmd_search_next(cmd_context_t* ctx) {
+int cmd_search_next(cmd_context_t *ctx) {
     int regex_len;
-    mark_t* search_mark;
+    mark_t *search_mark;
     if (!ctx->bview->last_search) return MLE_OK;
     regex_len = strlen(ctx->bview->last_search);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
@@ -406,40 +406,40 @@ int cmd_search_next(cmd_context_t* ctx) {
 }
 
 // Interactive search and replace
-int cmd_replace(cmd_context_t* ctx) {
+int cmd_replace(cmd_context_t *ctx) {
     return cursor_replace(ctx->cursor, 1, NULL, NULL);
 }
 
 // Redraw screen
-int cmd_redraw(cmd_context_t* ctx) {
+int cmd_redraw(cmd_context_t *ctx) {
     bview_center_viewport_y(ctx->bview);
     _cmd_force_redraw(ctx);
     return MLE_OK;
 }
 
 // Zero viewport y
-int cmd_viewport_top(cmd_context_t* ctx) {
+int cmd_viewport_top(cmd_context_t *ctx) {
     bview_zero_viewport_y(ctx->bview);
     return MLE_OK;
 }
 
 // Center viewport y
-int cmd_viewport_mid(cmd_context_t* ctx) {
+int cmd_viewport_mid(cmd_context_t *ctx) {
     bview_center_viewport_y(ctx->bview);
     return MLE_OK;
 }
 
 // Max viewport y
-int cmd_viewport_bot(cmd_context_t* ctx) {
+int cmd_viewport_bot(cmd_context_t *ctx) {
     bview_max_viewport_y(ctx->bview);
     return MLE_OK;
 }
 
 // Toggle between top and mid viewport y
-int cmd_viewport_toggle(cmd_context_t* ctx) {
-    bline_t* orig;
-    bline_t* mid;
-    bline_t* top;
+int cmd_viewport_toggle(cmd_context_t *ctx) {
+    bline_t *orig;
+    bline_t *mid;
+    bline_t *top;
     orig = ctx->bview->viewport_bline;
     cmd_viewport_mid(ctx); mid = ctx->bview->viewport_bline;
     cmd_viewport_top(ctx); top = ctx->bview->viewport_bline;
@@ -454,9 +454,9 @@ int cmd_viewport_toggle(cmd_context_t* ctx) {
 }
 
 // Find next occurence of word under cursor
-int cmd_find_word(cmd_context_t* ctx) {
-    char* re;
-    char* word;
+int cmd_find_word(cmd_context_t *ctx) {
+    char *re;
+    char *word;
     bint_t re_len;
     bint_t word_len;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
@@ -477,7 +477,7 @@ int cmd_find_word(cmd_context_t* ctx) {
 }
 
 // Incremental search
-int cmd_isearch(cmd_context_t* ctx) {
+int cmd_isearch(cmd_context_t *ctx) {
     editor_prompt(ctx->editor, "isearch: Regex?", &(editor_prompt_params_t) {
         .kmap = ctx->editor->kmap_prompt_isearch,
         .prompt_cb = _cmd_isearch_prompt_cb
@@ -491,7 +491,7 @@ int cmd_isearch(cmd_context_t* ctx) {
 }
 
 // Cut text
-int cmd_cut(cmd_context_t* ctx) {
+int cmd_cut(cmd_context_t *ctx) {
     int append;
     append = ctx->loop_ctx->last_cmd && ctx->loop_ctx->last_cmd->func == cmd_cut ? 1 : 0;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
@@ -501,7 +501,7 @@ int cmd_cut(cmd_context_t* ctx) {
 }
 
 // Copy text
-int cmd_copy(cmd_context_t* ctx) {
+int cmd_copy(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_cut_copy(cursor, 0, 1, 0);
     );
@@ -509,7 +509,7 @@ int cmd_copy(cmd_context_t* ctx) {
 }
 
 // Paste text
-int cmd_uncut(cmd_context_t* ctx) {
+int cmd_uncut(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_uncut(cursor);
     );
@@ -517,7 +517,7 @@ int cmd_uncut(cmd_context_t* ctx) {
 }
 
 // Copy in between chars
-int cmd_copy_by(cmd_context_t* ctx) {
+int cmd_copy_by(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (cursor_select_by(cursor, ctx->static_param) == MLE_OK) {
             cursor_cut_copy(cursor, 0, 0, 0);
@@ -527,7 +527,7 @@ int cmd_copy_by(cmd_context_t* ctx) {
 }
 
 // Cut in between chars
-int cmd_cut_by(cmd_context_t* ctx) {
+int cmd_cut_by(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (cursor_select_by(cursor, ctx->static_param) == MLE_OK) {
             cursor_cut_copy(cursor, 1, 0, 0);
@@ -537,20 +537,20 @@ int cmd_cut_by(cmd_context_t* ctx) {
 }
 
 // Go to next bview
-int cmd_next(cmd_context_t* ctx) {
+int cmd_next(cmd_context_t *ctx) {
     editor_set_active(ctx->editor, ctx->bview->all_next);
     return MLE_OK;
 }
 
 // Go to prev bview
-int cmd_prev(cmd_context_t* ctx) {
+int cmd_prev(cmd_context_t *ctx) {
     editor_set_active(ctx->editor, ctx->bview->all_prev);
     return MLE_OK;
 }
 
 // Split a bview vertically
-int cmd_split_vertical(cmd_context_t* ctx) {
-    bview_t* child;
+int cmd_split_vertical(cmd_context_t *ctx) {
+    bview_t *child;
     if (bview_split(ctx->bview, 1, 0.5, &child) == MLE_OK) {
         editor_set_active(ctx->editor, child);
     }
@@ -558,8 +558,8 @@ int cmd_split_vertical(cmd_context_t* ctx) {
 }
 
 // Split a bview horizontally
-int cmd_split_horizontal(cmd_context_t* ctx) {
-    bview_t* child;
+int cmd_split_horizontal(cmd_context_t *ctx) {
+    bview_t *child;
     if (bview_split(ctx->bview, 0, 0.5, &child) == MLE_OK) {
         editor_set_active(ctx->editor, child);
     }
@@ -567,8 +567,8 @@ int cmd_split_horizontal(cmd_context_t* ctx) {
 }
 
 // Fuzzy path search via fzf
-int cmd_fsearch(cmd_context_t* ctx) {
-    char* path;
+int cmd_fsearch(cmd_context_t *ctx) {
+    char *path;
     size_t path_len;
     path = NULL;
     if (util_shell_exec(ctx->editor, "fzf", -1, NULL, 0, 0, NULL, &path, &path_len) == MLE_ERR) {
@@ -595,12 +595,12 @@ int cmd_fsearch(cmd_context_t* ctx) {
 }
 
 // Grep for pattern in cwd
-int cmd_grep(cmd_context_t* ctx) {
-    aproc_t* aproc;
-    char* path;
-    char* path_arg;
-    char* cmd;
-    char* grep_fmt;
+int cmd_grep(cmd_context_t *ctx) {
+    aproc_t *aproc;
+    char *path;
+    char *path_arg;
+    char *cmd;
+    char *grep_fmt;
     editor_prompt(ctx->editor, "grep: Pattern?", NULL, &path);
     if (!path) return MLE_OK;
     if (ctx->static_param) {
@@ -624,11 +624,11 @@ int cmd_grep(cmd_context_t* ctx) {
 }
 
 // Invoke ctag search
-int cmd_ctag(cmd_context_t* ctx) {
-    aproc_t* aproc;
-    char* word;
-    char* word_arg;
-    char* cmd;
+int cmd_ctag(cmd_context_t *ctx) {
+    aproc_t *aproc;
+    char *word;
+    char *word_arg;
+    char *cmd;
     bint_t word_len;
     if (cursor_select_by(ctx->cursor, "word") != MLE_OK) {
         MLE_RETURN_ERR(ctx->editor, "%s", "Failed to select word under cursor");
@@ -650,10 +650,10 @@ int cmd_ctag(cmd_context_t* ctx) {
 }
 
 // Browse directory via tree
-int cmd_browse(cmd_context_t* ctx) {
-    bview_t* menu;
-    aproc_t* aproc;
-    char* cmd;
+int cmd_browse(cmd_context_t *ctx) {
+    bview_t *menu;
+    aproc_t *aproc;
+    char *cmd;
     asprintf(&cmd, "tree --charset C -n -f -L 2 %s 2>/dev/null", ctx->static_param ? ctx->static_param : "");
     aproc = aproc_new(ctx->editor, ctx->bview, &(ctx->bview->aproc), cmd, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
@@ -664,20 +664,20 @@ int cmd_browse(cmd_context_t* ctx) {
 }
 
 // Save-as file
-int cmd_save_as(cmd_context_t* ctx) {
+int cmd_save_as(cmd_context_t *ctx) {
     _cmd_save(ctx->editor, ctx->bview, 1);
     return MLE_OK;
 }
 
 // Save file
-int cmd_save(cmd_context_t* ctx) {
+int cmd_save(cmd_context_t *ctx) {
     _cmd_save(ctx->editor, ctx->bview, 0);
     return MLE_OK;
 }
 
 // Open file in a new bview
-int cmd_open_file(cmd_context_t* ctx) {
-    char* path;
+int cmd_open_file(cmd_context_t *ctx) {
+    char *path;
     editor_prompt(ctx->editor, "new_open: File?", NULL, &path);
     if (!path) return MLE_OK;
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, strlen(path), 1, 0, 0, NULL, NULL);
@@ -686,14 +686,14 @@ int cmd_open_file(cmd_context_t* ctx) {
 }
 
 // Open empty buffer in a new bview
-int cmd_open_new(cmd_context_t* ctx) {
+int cmd_open_new(cmd_context_t *ctx) {
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, NULL);
     return MLE_OK;
 }
 
 // Open file into current bview
-int cmd_open_replace_file(cmd_context_t* ctx) {
-    char* path;
+int cmd_open_replace_file(cmd_context_t *ctx) {
+    char *path;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     path = NULL;
     editor_prompt(ctx->editor, "replace_open: Path?", NULL, &path);
@@ -704,14 +704,14 @@ int cmd_open_replace_file(cmd_context_t* ctx) {
 }
 
 // Open empty buffer into current bview
-int cmd_open_replace_new(cmd_context_t* ctx) {
+int cmd_open_replace_new(cmd_context_t *ctx) {
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
     bview_open(ctx->bview, NULL, 0);
     return MLE_OK;
 }
 
 // Close bview
-int cmd_close(cmd_context_t* ctx) {
+int cmd_close(cmd_context_t *ctx) {
     int num_open;
     int num_closed;
     if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_ERR) return MLE_OK;
@@ -722,9 +722,9 @@ int cmd_close(cmd_context_t* ctx) {
 }
 
 // Quit editor
-int cmd_quit(cmd_context_t* ctx) {
-    bview_t* bview;
-    bview_t* tmp;
+int cmd_quit(cmd_context_t *ctx) {
+    bview_t *bview;
+    bview_t *tmp;
     if (ctx->editor->loop_depth > 1) return MLE_OK;
     DL_FOREACH_SAFE2(ctx->editor->top_bviews, bview, tmp, top_next) {
         if (!MLE_BVIEW_IS_EDIT(bview)) {
@@ -738,14 +738,14 @@ int cmd_quit(cmd_context_t* ctx) {
 }
 
 // Quit editor without saving
-int cmd_quit_without_saving(cmd_context_t* ctx) {
+int cmd_quit_without_saving(cmd_context_t *ctx) {
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
 
 // Apply a macro with single-char name
-int cmd_apply_macro_by(cmd_context_t* ctx) {
-    kmacro_t* macro;
+int cmd_apply_macro_by(cmd_context_t *ctx) {
+    kmacro_t *macro;
     uint32_t ch;
     char name[6] = { 0 };
     if (ctx->editor->macro_apply) MLE_RETURN_ERR(ctx->editor, "Cannot nest macros%s", "");
@@ -761,9 +761,9 @@ int cmd_apply_macro_by(cmd_context_t* ctx) {
 
 
 // Apply a macro
-int cmd_apply_macro(cmd_context_t* ctx) {
-    char* name;
-    kmacro_t* macro;
+int cmd_apply_macro(cmd_context_t *ctx) {
+    char *name;
+    kmacro_t *macro;
     if (ctx->editor->macro_apply) MLE_RETURN_ERR(ctx->editor, "Cannot nest macros%s", "");
     editor_prompt(ctx->editor, "apply_macro: Name?", NULL, &name);
     if (!name) return MLE_OK;
@@ -776,13 +776,13 @@ int cmd_apply_macro(cmd_context_t* ctx) {
 }
 
 // No-op
-int cmd_noop(cmd_context_t* ctx) {
+int cmd_noop(cmd_context_t *ctx) {
     (void)ctx;
     return MLE_OK;
 }
 
 // Move forward til a certain char
-int cmd_move_until_forward(cmd_context_t* ctx) {
+int cmd_move_until_forward(cmd_context_t *ctx) {
     uint32_t ch;
     char str[6] = { 0 };
     ch = MLE_PARAM_WILDCARD(ctx, 0);
@@ -794,7 +794,7 @@ int cmd_move_until_forward(cmd_context_t* ctx) {
 }
 
 // Move back til a certain char
-int cmd_move_until_back(cmd_context_t* ctx) {
+int cmd_move_until_back(cmd_context_t *ctx) {
     uint32_t ch;
     char str[6] = { 0 };
     ch = MLE_PARAM_WILDCARD(ctx, 0);
@@ -806,31 +806,31 @@ int cmd_move_until_back(cmd_context_t* ctx) {
 }
 
 // Undo
-int cmd_undo(cmd_context_t* ctx) {
+int cmd_undo(cmd_context_t *ctx) {
     buffer_undo(ctx->bview->buffer);
     return MLE_OK;
 }
 
 // Redo
-int cmd_redo(cmd_context_t* ctx) {
+int cmd_redo(cmd_context_t *ctx) {
     buffer_redo(ctx->bview->buffer);
     return MLE_OK;
 }
 
 // Indent line(s)
-int cmd_indent(cmd_context_t* ctx) {
+int cmd_indent(cmd_context_t *ctx) {
     return _cmd_indent(ctx, 0);
 }
 
 // Outdent line(s)
-int cmd_outdent(cmd_context_t* ctx) {
+int cmd_outdent(cmd_context_t *ctx) {
     return _cmd_indent(ctx, 1);
 }
 
 // Set option
-int cmd_set_opt(cmd_context_t* ctx) {
-    char* prompt;
-    char* val;
+int cmd_set_opt(cmd_context_t *ctx) {
+    char *prompt;
+    char *val;
     int vali;
     if (!ctx->static_param) return MLE_ERR;
     asprintf(&prompt, "set_opt: %s?", ctx->static_param);
@@ -853,8 +853,8 @@ int cmd_set_opt(cmd_context_t* ctx) {
 }
 
 // Shell
-int cmd_shell(cmd_context_t* ctx) {
-    char* cmd;
+int cmd_shell(cmd_context_t *ctx) {
+    char *cmd;
 
     // Get shell cmd
     if (ctx->static_param) {
@@ -872,10 +872,10 @@ int cmd_shell(cmd_context_t* ctx) {
 }
 
 // Perl
-int cmd_perl(cmd_context_t* ctx) {
-    char* code;
-    char* code_escaped;
-    char* cmd;
+int cmd_perl(cmd_context_t *ctx) {
+    char *code;
+    char *code_escaped;
+    char *cmd;
 
     // Get perl code
     if (ctx->static_param) {
@@ -901,13 +901,13 @@ int cmd_perl(cmd_context_t* ctx) {
 }
 
 // Jump to a `\S{2,}` on screen via `[a-z][a-z]`
-int cmd_jump(cmd_context_t* ctx) {
-    bline_t* bline;
+int cmd_jump(cmd_context_t *ctx) {
+    bline_t *bline;
     bint_t col;
     bint_t nchars;
     bint_t stop_line_index;
-    mark_t* mark;
-    mark_t* jumps;
+    mark_t *mark;
+    mark_t *jumps;
     int jumpi, jumpt, screen_x, screen_y;
     char jumpa[3];
     kinput_t ev[2];
@@ -966,7 +966,7 @@ int cmd_jump(cmd_context_t* ctx) {
 }
 
 // Force a redraw of the screen
-static void _cmd_force_redraw(cmd_context_t* ctx) {
+static void _cmd_force_redraw(cmd_context_t *ctx) {
     int w;
     int h;
     int x;
@@ -987,10 +987,10 @@ static void _cmd_force_redraw(cmd_context_t* ctx) {
 }
 
 // Indent or outdent line(s)
-static int _cmd_indent(cmd_context_t* ctx, int outdent) {
-    bline_t* start;
-    bline_t* end;
-    bline_t* cur;
+static int _cmd_indent(cmd_context_t *ctx, int outdent) {
+    bline_t *start;
+    bline_t *end;
+    bline_t *cur;
     int use_tabs;
     use_tabs = ctx->bview->tab_to_space ? 0 : 1;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
@@ -1016,9 +1016,9 @@ static int _cmd_indent(cmd_context_t* ctx, int outdent) {
 }
 
 // Push kmap
-int cmd_push_kmap(cmd_context_t* ctx) {
-    kmap_t* kmap;
-    char* kmap_name;
+int cmd_push_kmap(cmd_context_t *ctx) {
+    kmap_t *kmap;
+    char *kmap_name;
     int rv;
 
     // Get kmap name
@@ -1049,16 +1049,16 @@ int cmd_push_kmap(cmd_context_t* ctx) {
 }
 
 // Pop kmap
-int cmd_pop_kmap(cmd_context_t* ctx) {
+int cmd_pop_kmap(cmd_context_t *ctx) {
     bview_pop_kmap(ctx->bview, NULL);
     return MLE_OK;
 }
 
 // Hacky as hell less integration
-int cmd_less(cmd_context_t* ctx) {
+int cmd_less(cmd_context_t *ctx) {
     int rc;
-    char* sh_fmt;
-    char* sh;
+    char *sh_fmt;
+    char *sh;
     char out[32];
     int screen_x;
     int screen_y;
@@ -1130,14 +1130,14 @@ int cmd_less(cmd_context_t* ctx) {
 }
 
 // Show help
-int cmd_show_help(cmd_context_t* ctx) {
+int cmd_show_help(cmd_context_t *ctx) {
     str_t h = {0}; // help
-    kmap_t* kmap;
-    kmap_t* kmap_tmp;
-    kmap_node_t* kmap_node;
+    kmap_t *kmap;
+    kmap_t *kmap_tmp;
+    kmap_node_t *kmap_node;
     int kmap_node_depth;
     int i;
-    bview_t* bview;
+    bview_t *bview;
     char buf[1024];
 
     str_append(&h,
@@ -1196,9 +1196,9 @@ int cmd_show_help(cmd_context_t* ctx) {
 }
 
 // Recursively descend into kbinding trie to build help string
-static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h) {
-    kbinding_t* binding;
-    kbinding_t* binding_tmp;
+static void _cmd_help_inner(char *buf, kbinding_t *trie, str_t *h) {
+    kbinding_t *binding;
+    kbinding_t *binding_tmp;
     HASH_ITER(hh, trie, binding, binding_tmp) {
         if (binding->children) {
             _cmd_help_inner(buf, binding->children, h);
@@ -1215,7 +1215,7 @@ static void _cmd_help_inner(char* buf, kbinding_t* trie, str_t* h) {
 }
 
 // Indent/outdent a line, optionally using tabs
-static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {
+static int _cmd_indent_line(bline_t *bline, int use_tabs, int outdent) {
     char tab_char;
     int num_chars;
     int num_to_del;
@@ -1247,7 +1247,7 @@ static int _cmd_indent_line(bline_t* bline, int use_tabs, int outdent) {
 
 // Recursively close bviews, prompting to save unsaved changes. Return MLE_OK if
 // it's OK to continue closing, or MLE_ERR if the action was cancelled.
-static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
+static int _cmd_quit_inner(editor_t *editor, bview_t *bview) {
     if (bview->split_child && _cmd_quit_inner(editor, bview->split_child) == MLE_ERR) {
         return MLE_ERR;
     } else if (_cmd_pre_close(editor, bview) == MLE_ERR) {
@@ -1259,8 +1259,8 @@ static int _cmd_quit_inner(editor_t* editor, bview_t* bview) {
 
 // Prompt to save unsaved changes on close. Return MLE_OK if it's OK to continue
 // closing the bview, or MLE_ERR if the action was cancelled.
-static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
-    char* yn;
+static int _cmd_pre_close(editor_t *editor, bview_t *bview) {
+    char *yn;
 
     if (!MLE_BVIEW_IS_EDIT(bview)) {
         MLE_RETURN_ERR(editor, "Cannot close non-edit bview %p", (void*)bview);
@@ -1288,10 +1288,10 @@ static int _cmd_pre_close(editor_t* editor, bview_t* bview) {
 
 // Prompt to save changes. Return MLE_OK if file was saved or MLE_ERR if the action
 // was cancelled.
-static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
+static int _cmd_save(editor_t *editor, bview_t *bview, int save_as) {
     int rc;
-    char* path;
-    char* yn;
+    char *path;
+    char *yn;
     int fname_changed;
     struct stat st;
     bint_t nbytes;
@@ -1351,7 +1351,7 @@ static int _cmd_save(editor_t* editor, bview_t* bview, int save_as) {
 
 // Move cursor to next occurrence of term, wrap if necessary. Return MLE_OK if
 // there was a match, or MLE_ERR if no match.
-static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mark, char* regex, int regex_len) {
+static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mark, char *regex, int regex_len) {
     int rc;
     rc = MLE_ERR;
 
@@ -1380,11 +1380,11 @@ static int _cmd_search_next(bview_t* bview, cursor_t* cursor, mark_t* search_mar
 }
 
 // Aproc callback that writes buf to bview buffer
-static void _cmd_aproc_bview_passthru_cb(aproc_t* aproc, char* buf, size_t buf_len) {
-    mark_t* active_mark;
-    mark_t* ins_mark;
+static void _cmd_aproc_bview_passthru_cb(aproc_t *aproc, char *buf, size_t buf_len) {
+    mark_t *active_mark;
+    mark_t *ins_mark;
     int is_cursor_at_zero;
-    bview_t* bview;
+    bview_t *bview;
 
     if (!buf || buf_len < 1) return;
 
@@ -1404,9 +1404,9 @@ static void _cmd_aproc_bview_passthru_cb(aproc_t* aproc, char* buf, size_t buf_l
 }
 
 // Incremental search prompt callback
-static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, void* udata) {
-    bview_t* bview;
-    char* regex;
+static void _cmd_isearch_prompt_cb(bview_t *bview_prompt, baction_t *action, void *udata) {
+    bview_t *bview;
+    char *regex;
     int regex_len;
     (void)action;
     (void)udata;
@@ -1433,10 +1433,10 @@ static void _cmd_isearch_prompt_cb(bview_t* bview_prompt, baction_t* action, voi
 }
 
 // Callback from cmd_grep
-static int _cmd_menu_grep_cb(cmd_context_t* ctx) {
+static int _cmd_menu_grep_cb(cmd_context_t *ctx) {
     bint_t linenum;
-    char* line;
-    char* colon;
+    char *line;
+    char *colon;
     line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
     colon = strchr(line, ':');
     if (colon == NULL) {
@@ -1455,17 +1455,17 @@ static int _cmd_menu_grep_cb(cmd_context_t* ctx) {
 }
 
 // Callback from cmd_ctag
-static int _cmd_menu_ctag_cb(cmd_context_t* ctx) {
-    char* line;
-    char* tok;
-    char* fname;
-    char* re;
-    char* qre;
-    char* qre2;
+static int _cmd_menu_ctag_cb(cmd_context_t *ctx) {
+    char *line;
+    char *tok;
+    char *fname;
+    char *re;
+    char *qre;
+    char *qre2;
     int re_len;
     int qre_len;
     int i;
-    bview_t* bview;
+    bview_t *bview;
     line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
     i = 0;
     fname = NULL;
@@ -1503,12 +1503,12 @@ static int _cmd_menu_ctag_cb(cmd_context_t* ctx) {
 }
 
 // Callback from cmd_browse
-static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
-    char* line;
-    char* path;
+static int _cmd_menu_browse_cb(cmd_context_t *ctx) {
+    char *line;
+    char *path;
     char cwd[PATH_MAX];
-    char* corrected_path;
-    bview_t* new_bview;
+    char *corrected_path;
+    bview_t *new_bview;
 
     // Get path from tree output
     line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
@@ -1555,13 +1555,13 @@ static int _cmd_menu_browse_cb(cmd_context_t* ctx) {
 }
 
 // Insert newline when auto_indent is enabled (preserves or increases indent)
-static void _cmd_insert_auto_indent_newline(cmd_context_t* ctx) {
-    bline_t* prev_bline;
-    char* prev_line = NULL;
+static void _cmd_insert_auto_indent_newline(cmd_context_t *ctx) {
+    bline_t *prev_bline;
+    char *prev_line = NULL;
     bint_t prev_line_len;
-    char* indent;
+    char *indent;
     int indent_len;
-    char* tmp;
+    char *tmp;
     mark_insert_before(ctx->cursor->mark, "\n", 1);
     prev_bline = ctx->cursor->mark->bline->prev;
     prev_line = strndup(prev_bline->data, prev_bline->data_len);
@@ -1599,11 +1599,11 @@ static void _cmd_insert_auto_indent_newline(cmd_context_t* ctx) {
 }
 
 // Insert closing curly bracket when auto_indent is enabled (decreases indent)
-static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t* ctx) {
-    char* this_line = NULL;
-    char* this_ws;
-    char* prev_line = NULL;
-    char* prev_ws;
+static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t *ctx) {
+    char *this_line = NULL;
+    char *this_ws;
+    char *prev_line = NULL;
+    char *prev_ws;
     int this_line_len;
     int this_ws_len;
     int prev_line_len;
@@ -1642,10 +1642,10 @@ static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t* ctx) {
 }
 
 // Apply cmd for each cursor
-static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd) {
-    char* input;
+static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
+    char *input;
     bint_t input_len;
-    char* output;
+    char *output;
     size_t output_len;
 
     // Loop for each cursor
@@ -1676,7 +1676,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t* ctx, char* cmd) {
 }
 
 // Get one kinput_t, saving original input on cmd_context_t
-static void _cmd_get_input(cmd_context_t* ctx, kinput_t* ret_input) {
+static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input) {
     kinput_t oinput;
     oinput = ctx->input;
     memset(ret_input, 0, sizeof(kinput_t));

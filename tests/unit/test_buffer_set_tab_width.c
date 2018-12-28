@@ -2,9 +2,9 @@
 
 #define comma ,
 
-char* str = "he\tllo\t\t";
+char *str = "he\tllo\t\t";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     bint_t i;
     bint_t char_vcols_4[8] = {0 comma  1 comma  2 comma  4 comma  5 comma  6 comma  7 comma  8};
     bint_t char_vcols_2a[8] = {0 comma  1 comma  2 comma  4 comma  5 comma  6 comma  7 comma  8};

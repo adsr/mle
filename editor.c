@@ -7,76 +7,76 @@
 #include "mle.h"
 #include "mlbuf.h"
 
-static int _editor_set_macro_toggle_key(editor_t* editor, char* key);
-static int _editor_bview_exists(editor_t* editor, bview_t* bview);
-static int _editor_register_cmd_fn(editor_t* editor, char* name, int (*func)(cmd_context_t* ctx));
-static int _editor_should_skip_rc(char** argv);
-static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optret_num_closed);
-static int _editor_destroy_cmd(editor_t* editor, cmd_t* cmd);
-static int _editor_prompt_input_submit(cmd_context_t* ctx);
-static int _editor_prompt_input_complete(cmd_context_t* ctx);
-static prompt_history_t* _editor_prompt_find_or_add_history(cmd_context_t* ctx, prompt_hnode_t** optret_prompt_hnode);
-static int _editor_prompt_history_up(cmd_context_t* ctx);
-static int _editor_prompt_history_down(cmd_context_t* ctx);
-static int _editor_prompt_history_append(cmd_context_t* ctx, char* data);
-static int _editor_prompt_yna_all(cmd_context_t* ctx);
-static int _editor_prompt_yn_yes(cmd_context_t* ctx);
-static int _editor_prompt_yn_no(cmd_context_t* ctx);
-static int _editor_prompt_cancel(cmd_context_t* ctx);
-static int _editor_menu_submit(cmd_context_t* ctx);
-static int _editor_menu_cancel(cmd_context_t* ctx);
-static int _editor_prompt_menu_up(cmd_context_t* ctx);
-static int _editor_prompt_menu_down(cmd_context_t* ctx);
-static int _editor_prompt_menu_page_up(cmd_context_t* ctx);
-static int _editor_prompt_menu_page_down(cmd_context_t* ctx);
-static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx);
-static int _editor_prompt_isearch_next(cmd_context_t* ctx);
-static int _editor_prompt_isearch_prev(cmd_context_t* ctx);
-static int _editor_prompt_isearch_viewport_down(cmd_context_t* ctx);
-static int _editor_prompt_isearch_viewport_up(cmd_context_t* ctx);
-static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx);
-static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* ctx);
-static void _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before);
-static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input);
-static void _editor_resize(editor_t* editor, int w, int h);
-static void _editor_draw_cursors(editor_t* editor, bview_t* bview);
-static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx);
-static void _editor_ingest_paste(editor_t* editor, cmd_context_t* ctx);
-static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input);
-static cmd_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx, kinput_t* opt_peek_input);
-static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, loop_context_t* loop_ctx, int is_peek, int* ret_again);
-static cmd_t* _editor_resolve_cmd(editor_t* editor, cmd_t** rcmd, char* cmd_name);
-static int _editor_key_to_input(char* key, kinput_t* ret_input);
-static void _editor_init_signal_handlers(editor_t* editor);
+static int _editor_set_macro_toggle_key(editor_t *editor, char *key);
+static int _editor_bview_exists(editor_t *editor, bview_t *bview);
+static int _editor_register_cmd_fn(editor_t *editor, char *name, int (*func)(cmd_context_t *ctx));
+static int _editor_should_skip_rc(char **argv);
+static int _editor_close_bview_inner(editor_t *editor, bview_t *bview, int *optret_num_closed);
+static int _editor_destroy_cmd(editor_t *editor, cmd_t *cmd);
+static int _editor_prompt_input_submit(cmd_context_t *ctx);
+static int _editor_prompt_input_complete(cmd_context_t *ctx);
+static prompt_history_t *_editor_prompt_find_or_add_history(cmd_context_t *ctx, prompt_hnode_t **optret_prompt_hnode);
+static int _editor_prompt_history_up(cmd_context_t *ctx);
+static int _editor_prompt_history_down(cmd_context_t *ctx);
+static int _editor_prompt_history_append(cmd_context_t *ctx, char *data);
+static int _editor_prompt_yna_all(cmd_context_t *ctx);
+static int _editor_prompt_yn_yes(cmd_context_t *ctx);
+static int _editor_prompt_yn_no(cmd_context_t *ctx);
+static int _editor_prompt_cancel(cmd_context_t *ctx);
+static int _editor_menu_submit(cmd_context_t *ctx);
+static int _editor_menu_cancel(cmd_context_t *ctx);
+static int _editor_prompt_menu_up(cmd_context_t *ctx);
+static int _editor_prompt_menu_down(cmd_context_t *ctx);
+static int _editor_prompt_menu_page_up(cmd_context_t *ctx);
+static int _editor_prompt_menu_page_down(cmd_context_t *ctx);
+static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx);
+static int _editor_prompt_isearch_next(cmd_context_t *ctx);
+static int _editor_prompt_isearch_prev(cmd_context_t *ctx);
+static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx);
+static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx);
+static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx);
+static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *ctx);
+static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before);
+static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input);
+static void _editor_resize(editor_t *editor, int w, int h);
+static void _editor_draw_cursors(editor_t *editor, bview_t *bview);
+static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx);
+static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx);
+static void _editor_record_macro_input(kmacro_t *macro, kinput_t *input);
+static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_peek_input);
+static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, loop_context_t *loop_ctx, int is_peek, int *ret_again);
+static cmd_t *_editor_resolve_cmd(editor_t *editor, cmd_t **rcmd, char *cmd_name);
+static int _editor_key_to_input(char *key, kinput_t *ret_input);
+static void _editor_init_signal_handlers(editor_t *editor);
 static void _editor_graceful_exit(int signum);
-static void _editor_register_cmds(editor_t* editor);
-static void _editor_init_kmaps(editor_t* editor);
-static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, char* default_cmd_name, int allow_fallthru, kbinding_def_t* defs);
-static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, kbinding_def_t* binding_def);
-static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_name, char* cur_key_patt, char* full_key_patt, char* static_param);
-static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* str);
-static int _editor_init_kmap_add_binding_by_str(editor_t* editor, kmap_t* kmap, char* str);
-static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* trie);
-static int _editor_add_macro_by_str(editor_t* editor, char* str);
-static void _editor_init_syntaxes(editor_t* editor);
-static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, int tab_width, int tab_to_space, srule_def_t* defs);
-static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str);
-static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t* def);
-static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str);
-static void _editor_destroy_syntax_map(syntax_t* map);
-static int _editor_init_from_rc_read(editor_t* editor, FILE* rc, char** ret_rc_data, size_t* ret_rc_data_len);
-static int _editor_init_from_rc_exec(editor_t* editor, char* rc_path, char** ret_rc_data, size_t* ret_rc_data_len);
-static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path);
-static int _editor_init_from_args(editor_t* editor, int argc, char** argv);
-static void _editor_init_status(editor_t* editor);
-static void _editor_init_bviews(editor_t* editor, int argc, char** argv);
-static int _editor_init_headless_mode(editor_t* editor);
-static int _editor_init_startup_macro(editor_t* editor);
+static void _editor_register_cmds(editor_t *editor);
+static void _editor_init_kmaps(editor_t *editor);
+static void _editor_init_kmap(editor_t *editor, kmap_t **ret_kmap, char *name, char *default_cmd_name, int allow_fallthru, kbinding_def_t *defs);
+static void _editor_init_kmap_add_binding(editor_t *editor, kmap_t *kmap, kbinding_def_t *binding_def);
+static int _editor_init_kmap_add_binding_to_trie(kbinding_t **trie, char *cmd_name, char *cur_key_patt, char *full_key_patt, char *static_param);
+static int _editor_init_kmap_by_str(editor_t *editor, kmap_t **ret_kmap, char *str);
+static int _editor_init_kmap_add_binding_by_str(editor_t *editor, kmap_t *kmap, char *str);
+static void _editor_destroy_kmap(kmap_t *kmap, kbinding_t *trie);
+static int _editor_add_macro_by_str(editor_t *editor, char *str);
+static void _editor_init_syntaxes(editor_t *editor);
+static void _editor_init_syntax(editor_t *editor, syntax_t **optret_syntax, char *name, char *path_pattern, int tab_width, int tab_to_space, srule_def_t *defs);
+static int _editor_init_syntax_by_str(editor_t *editor, syntax_t **ret_syntax, char *str);
+static void _editor_init_syntax_add_rule(syntax_t *syntax, srule_def_t *def);
+static int _editor_init_syntax_add_rule_by_str(syntax_t *syntax, char *str);
+static void _editor_destroy_syntax_map(syntax_t *map);
+static int _editor_init_from_rc_read(editor_t *editor, FILE *rc, char **ret_rc_data, size_t *ret_rc_data_len);
+static int _editor_init_from_rc_exec(editor_t *editor, char *rc_path, char **ret_rc_data, size_t *ret_rc_data_len);
+static int _editor_init_from_rc(editor_t *editor, FILE *rc, char *rc_path);
+static int _editor_init_from_args(editor_t *editor, int argc, char **argv);
+static void _editor_init_status(editor_t *editor);
+static void _editor_init_bviews(editor_t *editor, int argc, char **argv);
+static int _editor_init_headless_mode(editor_t *editor);
+static int _editor_init_startup_macro(editor_t *editor);
 
 // Init editor from args
-int editor_init(editor_t* editor, int argc, char** argv) {
+int editor_init(editor_t *editor, int argc, char **argv) {
     int rv;
-    FILE* rc;
+    FILE *rc;
     char *home_rc;
     rv = MLE_OK;
     do {
@@ -149,7 +149,7 @@ int editor_init(editor_t* editor, int argc, char** argv) {
 }
 
 // Run editor
-int editor_run(editor_t* editor) {
+int editor_run(editor_t *editor) {
     loop_context_t loop_ctx;
     memset(&loop_ctx, 0, sizeof(loop_context_t));
     _editor_resize(editor, -1, -1);
@@ -158,23 +158,23 @@ int editor_run(editor_t* editor) {
 }
 
 // Deinit editor
-int editor_deinit(editor_t* editor) {
-    bview_t* bview;
-    bview_t* bview_tmp1;
-    bview_t* bview_tmp2;
-    kmap_t* kmap;
-    kmap_t* kmap_tmp;
-    kmacro_t* macro;
-    kmacro_t* macro_tmp;
-    cmd_t* cmd;
-    cmd_t* cmd_tmp;
-    prompt_history_t* prompt_history;
-    prompt_history_t* prompt_history_tmp;
-    prompt_hnode_t* prompt_hnode;
-    prompt_hnode_t* prompt_hnode_tmp1;
-    prompt_hnode_t* prompt_hnode_tmp2;
-    observer_t* observer;
-    observer_t* observer_tmp;
+int editor_deinit(editor_t *editor) {
+    bview_t *bview;
+    bview_t *bview_tmp1;
+    bview_t *bview_tmp2;
+    kmap_t *kmap;
+    kmap_t *kmap_tmp;
+    kmacro_t *macro;
+    kmacro_t *macro_tmp;
+    cmd_t *cmd;
+    cmd_t *cmd_tmp;
+    prompt_history_t *prompt_history;
+    prompt_history_t *prompt_history_tmp;
+    prompt_hnode_t *prompt_hnode;
+    prompt_hnode_t *prompt_hnode_tmp1;
+    prompt_hnode_t *prompt_hnode_tmp2;
+    observer_t *observer;
+    observer_t *observer_tmp;
     if (editor->status) bview_destroy(editor->status);
     CDL_FOREACH_SAFE2(editor->all_bviews, bview, bview_tmp1, bview_tmp2, all_prev, all_next) {
         CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
@@ -225,8 +225,8 @@ int editor_deinit(editor_t* editor) {
 }
 
 // Prompt user for input
-int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params, char** optret_answer) {
-    bview_t* bview_tmp;
+int editor_prompt(editor_t *editor, char *prompt, editor_prompt_params_t *params, char **optret_answer) {
+    bview_t *bview_tmp;
     loop_context_t loop_ctx;
     memset(&loop_ctx, 0, sizeof(loop_context_t));
 
@@ -274,8 +274,8 @@ int editor_prompt(editor_t* editor, char* prompt, editor_prompt_params_t* params
 }
 
 // Open dialog menu
-int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int opt_buf_data_len, aproc_t* opt_aproc, bview_t** optret_menu) {
-    bview_t* menu;
+int editor_menu(editor_t *editor, cmd_func_t callback, char *opt_buf_data, int opt_buf_data_len, aproc_t *opt_aproc, bview_t **optret_menu) {
+    bview_t *menu;
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, &menu);
     menu->is_menu = 1;
     menu->menu_callback = callback;
@@ -291,9 +291,9 @@ int editor_menu(editor_t* editor, cmd_func_t callback, char* opt_buf_data, int o
 }
 
 // Open a bview
-int editor_open_bview(editor_t* editor, bview_t* opt_parent, int type, char* opt_path, int opt_path_len, int make_active, bint_t linenum, int skip_resize, buffer_t* opt_buffer, bview_t** optret_bview) {
-    bview_t* bview;
-    bview_rect_t* rect;
+int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt_path, int opt_path_len, int make_active, bint_t linenum, int skip_resize, buffer_t *opt_buffer, bview_t **optret_bview) {
+    bview_t *bview;
+    bview_rect_t *rect;
     int found;
     found = 0;
     // Check if already open and not dirty
@@ -355,7 +355,7 @@ int editor_open_bview(editor_t* editor, bview_t* opt_parent, int type, char* opt
 }
 
 // Close a bview
-int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed) {
+int editor_close_bview(editor_t *editor, bview_t *bview, int *optret_num_closed) {
     int rc;
     if (optret_num_closed) *optret_num_closed = 0;
     if ((rc = _editor_close_bview_inner(editor, bview, optret_num_closed)) == MLE_OK) {
@@ -365,7 +365,7 @@ int editor_close_bview(editor_t* editor, bview_t* bview, int* optret_num_closed)
 }
 
 // Set the active bview
-int editor_set_active(editor_t* editor, bview_t* bview) {
+int editor_set_active(editor_t *editor, bview_t *bview) {
     if (!_editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", (void*)bview);
     } else if (editor->prompt) {
@@ -381,10 +381,10 @@ int editor_set_active(editor_t* editor, bview_t* bview) {
 }
 
 // Print debug info
-int editor_debug_dump(editor_t* editor, FILE* fp) {
-    bview_t* bview;
-    cursor_t* cursor;
-    buffer_t* buffer;
+int editor_debug_dump(editor_t *editor, FILE *fp) {
+    bview_t *bview;
+    cursor_t *cursor;
+    buffer_t *buffer;
     int bview_index;
     int cursor_index;
     bview_index = 0;
@@ -417,7 +417,7 @@ int editor_debug_dump(editor_t* editor, FILE* fp) {
 }
 
 // Given a kinput, put the key name in keybuf
-int editor_input_to_key(editor_t* editor, kinput_t* input, char* keybuf) {
+int editor_input_to_key(editor_t *editor, kinput_t *input, char *keybuf) {
     int nbytes;
     (void)editor;
     #define MLE_KEY_DEF(pckey, pmod, pch, pkey) \
@@ -438,13 +438,13 @@ int editor_input_to_key(editor_t* editor, kinput_t* input, char* keybuf) {
 }
 
 // Set macro toggle key
-static int _editor_set_macro_toggle_key(editor_t* editor, char* key) {
+static int _editor_set_macro_toggle_key(editor_t *editor, char *key) {
     return _editor_key_to_input(key, &editor->macro_toggle_key);
 }
 
 // Return 1 if bview exists in editor, else return 0
-static int _editor_bview_exists(editor_t* editor, bview_t* bview) {
-    bview_t* tmp;
+static int _editor_bview_exists(editor_t *editor, bview_t *bview) {
+    bview_t *tmp;
     CDL_FOREACH2(editor->all_bviews, tmp, all_next) {
         if (tmp == bview) return 1;
     }
@@ -452,9 +452,9 @@ static int _editor_bview_exists(editor_t* editor, bview_t* bview) {
 }
 
 // Return number of EDIT bviews open
-int editor_bview_edit_count(editor_t* editor) {
+int editor_bview_edit_count(editor_t *editor) {
     int count;
-    bview_t* bview;
+    bview_t *bview;
     count = 0;
     CDL_FOREACH2(editor->all_bviews, bview, all_next) {
         if (MLE_BVIEW_IS_EDIT(bview)) count += 1;
@@ -463,9 +463,9 @@ int editor_bview_edit_count(editor_t* editor) {
 }
 
 // Return number of bviews displaying buffer
-int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer) {
+int editor_count_bviews_by_buffer(editor_t *editor, buffer_t *buffer) {
     int count;
-    bview_t* bview;
+    bview_t *bview;
     count = 0;
     CDL_FOREACH2(editor->all_bviews, bview, all_next) {
         if (bview->buffer == buffer) count += 1;
@@ -474,7 +474,7 @@ int editor_count_bviews_by_buffer(editor_t* editor, buffer_t* buffer) {
 }
 
 // Register a command
-static int _editor_register_cmd_fn(editor_t* editor, char* name, int (*func)(cmd_context_t* ctx)) {
+static int _editor_register_cmd_fn(editor_t *editor, char *name, int (*func)(cmd_context_t *ctx)) {
     cmd_t cmd = {0};
     cmd.name = name;
     cmd.func = func;
@@ -482,9 +482,9 @@ static int _editor_register_cmd_fn(editor_t* editor, char* name, int (*func)(cmd
 }
 
 // Register a command (extended)
-int editor_register_cmd(editor_t* editor, cmd_t* cmd) {
-    cmd_t* existing_cmd;
-    cmd_t* new_cmd;
+int editor_register_cmd(editor_t *editor, cmd_t *cmd) {
+    cmd_t *existing_cmd;
+    cmd_t *new_cmd;
     HASH_FIND_STR(editor->cmd_map, cmd->name, existing_cmd);
     if (existing_cmd) return MLE_ERR;
     new_cmd = calloc(1, sizeof(cmd_t));
@@ -495,7 +495,7 @@ int editor_register_cmd(editor_t* editor, cmd_t* cmd) {
 }
 
 // Get input from either macro or user
-int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* ctx) {
+int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *ctx) {
     ctx->is_user_input = 0;
     if (editor->macro_apply
         && editor->macro_apply_input_index < editor->macro_apply->inputs_len
@@ -528,8 +528,8 @@ int editor_get_input(editor_t* editor, loop_context_t* loop_ctx, cmd_context_t* 
 }
 
 // Display the editor
-int editor_display(editor_t* editor) {
-    bview_t* bview;
+int editor_display(editor_t *editor) {
+    bview_t *bview;
     if (editor->headless_mode) return MLE_OK;
     tb_clear();
     bview_draw(editor->active_edit_root);
@@ -543,8 +543,8 @@ int editor_display(editor_t* editor) {
 }
 
 // Register a cmd observer
-int editor_register_observer(editor_t* editor, char* event_name, void* udata, observer_func_t fn_callback, observer_t** optret_observer) {
-    observer_t* observer;
+int editor_register_observer(editor_t *editor, char *event_name, void *udata, observer_func_t fn_callback, observer_t **optret_observer) {
+    observer_t *observer;
     observer = calloc(1, sizeof(observer_t));
     observer->event_name = strdup(event_name);
     observer->callback = fn_callback;
@@ -555,7 +555,7 @@ int editor_register_observer(editor_t* editor, char* event_name, void* udata, ob
 }
 
 // Register a cmd observer
-int editor_destroy_observer(editor_t* editor, observer_t* observer) {
+int editor_destroy_observer(editor_t *editor, observer_t *observer) {
     DL_DELETE(editor->observers, observer);
     free(observer->event_name);
     free(observer);
@@ -563,7 +563,7 @@ int editor_destroy_observer(editor_t* editor, observer_t* observer) {
 }
 
 // Return 1 if we should skip reading rc files
-static int _editor_should_skip_rc(char** argv) {
+static int _editor_should_skip_rc(char **argv) {
     int skip = 0;
     while (*argv) {
         if (strcmp("-h", *argv) == 0 || strcmp("-N", *argv) == 0) {
@@ -576,7 +576,7 @@ static int _editor_should_skip_rc(char** argv) {
 }
 
 // Close a bview
-static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optret_num_closed) {
+static int _editor_close_bview_inner(editor_t *editor, bview_t *bview, int *optret_num_closed) {
     if (!_editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", (void*)bview);
     }
@@ -605,7 +605,7 @@ static int _editor_close_bview_inner(editor_t* editor, bview_t* bview, int *optr
 }
 
 // Destroy a command
-static int _editor_destroy_cmd(editor_t* editor, cmd_t* cmd) {
+static int _editor_destroy_cmd(editor_t *editor, cmd_t *cmd) {
     (void)editor;
     free(cmd->name);
     free(cmd);
@@ -613,9 +613,9 @@ static int _editor_destroy_cmd(editor_t* editor, cmd_t* cmd) {
 }
 
 // Invoked when user hits enter in a prompt_input
-static int _editor_prompt_input_submit(cmd_context_t* ctx) {
+static int _editor_prompt_input_submit(cmd_context_t *ctx) {
     bint_t answer_len;
-    char* answer;
+    char *answer;
     buffer_get(ctx->bview->buffer, &answer, &answer_len);
     ctx->loop_ctx->prompt_answer = strndup(answer, answer_len);
     _editor_prompt_history_append(ctx, ctx->loop_ctx->prompt_answer);
@@ -624,15 +624,15 @@ static int _editor_prompt_input_submit(cmd_context_t* ctx) {
 }
 
 // Invoke when user hits tab in a prompt_input
-static int _editor_prompt_input_complete(cmd_context_t* ctx) {
-    loop_context_t* loop_ctx;
+static int _editor_prompt_input_complete(cmd_context_t *ctx) {
+    loop_context_t *loop_ctx;
     loop_ctx = ctx->loop_ctx;
-    char* cmd;
-    char* cmd_arg;
-    char* terms;
+    char *cmd;
+    char *cmd_arg;
+    char *terms;
     size_t terms_len;
     int num_terms;
-    char* term;
+    char *term;
     int term_index;
 
     // Update tab_complete_term and tab_complete_index
@@ -701,8 +701,8 @@ static int _editor_prompt_input_complete(cmd_context_t* ctx) {
 }
 
 // Find or add a prompt history entry for the current prompt
-static prompt_history_t* _editor_prompt_find_or_add_history(cmd_context_t* ctx, prompt_hnode_t** optret_prompt_hnode) {
-    prompt_history_t* prompt_history;
+static prompt_history_t *_editor_prompt_find_or_add_history(cmd_context_t *ctx, prompt_hnode_t **optret_prompt_hnode) {
+    prompt_history_t *prompt_history;
     HASH_FIND_STR(ctx->editor->prompt_history, ctx->bview->prompt_str, prompt_history);
     if (!prompt_history) {
         prompt_history = calloc(1, sizeof(prompt_history_t));
@@ -721,8 +721,8 @@ static prompt_history_t* _editor_prompt_find_or_add_history(cmd_context_t* ctx, 
 }
 
 // Prompt history up
-static int _editor_prompt_history_up(cmd_context_t* ctx) {
-    prompt_hnode_t* prompt_hnode;
+static int _editor_prompt_history_up(cmd_context_t *ctx) {
+    prompt_hnode_t *prompt_hnode;
     _editor_prompt_find_or_add_history(ctx, &prompt_hnode);
     if (prompt_hnode) {
         ctx->loop_ctx->prompt_hnode = prompt_hnode->prev;
@@ -732,8 +732,8 @@ static int _editor_prompt_history_up(cmd_context_t* ctx) {
 }
 
 // Prompt history down
-static int _editor_prompt_history_down(cmd_context_t* ctx) {
-    prompt_hnode_t* prompt_hnode;
+static int _editor_prompt_history_down(cmd_context_t *ctx) {
+    prompt_hnode_t *prompt_hnode;
     _editor_prompt_find_or_add_history(ctx, &prompt_hnode);
     if (prompt_hnode) {
         ctx->loop_ctx->prompt_hnode = prompt_hnode->next;
@@ -743,9 +743,9 @@ static int _editor_prompt_history_down(cmd_context_t* ctx) {
 }
 
 // Prompt history append
-static int _editor_prompt_history_append(cmd_context_t* ctx, char* data) {
-    prompt_history_t* prompt_history;
-    prompt_hnode_t* prompt_hnode;
+static int _editor_prompt_history_append(cmd_context_t *ctx, char *data) {
+    prompt_history_t *prompt_history;
+    prompt_hnode_t *prompt_hnode;
     prompt_history = _editor_prompt_find_or_add_history(ctx, NULL);
     prompt_hnode = calloc(1, sizeof(prompt_hnode_t));
     prompt_hnode->data = strdup(data);
@@ -755,75 +755,75 @@ static int _editor_prompt_history_append(cmd_context_t* ctx, char* data) {
 }
 
 // Invoked when user hits a in a prompt_yna
-static int _editor_prompt_yna_all(cmd_context_t* ctx) {
+static int _editor_prompt_yna_all(cmd_context_t *ctx) {
     ctx->loop_ctx->prompt_answer = MLE_PROMPT_ALL;
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
 
 // Invoked when user hits y in a prompt_yn(a)
-static int _editor_prompt_yn_yes(cmd_context_t* ctx) {
+static int _editor_prompt_yn_yes(cmd_context_t *ctx) {
     ctx->loop_ctx->prompt_answer = MLE_PROMPT_YES;
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
 
 // Invoked when user hits n in a prompt_yn(a)
-static int _editor_prompt_yn_no(cmd_context_t* ctx) {
+static int _editor_prompt_yn_no(cmd_context_t *ctx) {
     ctx->loop_ctx->prompt_answer = MLE_PROMPT_NO;
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
 
 // Invoked when user cancels (Ctrl-C) a prompt_(input|yn), or hits any key in a prompt_ok
-static int _editor_prompt_cancel(cmd_context_t* ctx) {
+static int _editor_prompt_cancel(cmd_context_t *ctx) {
     ctx->loop_ctx->prompt_answer = NULL;
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;
 }
 
 // Invoked when user hits enter in a menu
-static int _editor_menu_submit(cmd_context_t* ctx) {
+static int _editor_menu_submit(cmd_context_t *ctx) {
     if (ctx->bview->menu_callback) return ctx->bview->menu_callback(ctx);
     return MLE_OK;
 }
 
 // Invoked when user hits C-c in a menu
-static int _editor_menu_cancel(cmd_context_t* ctx) {
+static int _editor_menu_cancel(cmd_context_t *ctx) {
     if (ctx->bview->aproc) aproc_destroy(ctx->bview->aproc, 1);
     return MLE_OK;
 }
 
 // Invoked when user hits up in a prompt_menu
-static int _editor_prompt_menu_up(cmd_context_t* ctx) {
+static int _editor_prompt_menu_up(cmd_context_t *ctx) {
     mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1);
     bview_rectify_viewport(ctx->editor->active_edit);
     return MLE_OK;
 }
 
 // Invoked when user hits down in a prompt_menu
-static int _editor_prompt_menu_down(cmd_context_t* ctx) {
+static int _editor_prompt_menu_down(cmd_context_t *ctx) {
     mark_move_vert(ctx->editor->active_edit->active_cursor->mark, 1);
     bview_rectify_viewport(ctx->editor->active_edit);
     return MLE_OK;
 }
 
 // Invoked when user hits page-up in a prompt_menu
-static int _editor_prompt_menu_page_up(cmd_context_t* ctx) {
+static int _editor_prompt_menu_page_up(cmd_context_t *ctx) {
     mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1 * ctx->editor->active_edit->rect_buffer.h);
     bview_zero_viewport_y(ctx->editor->active_edit);
     return MLE_OK;
 }
 
 // Invoked when user hits page-down in a prompt_menu
-static int _editor_prompt_menu_page_down(cmd_context_t* ctx) {
+static int _editor_prompt_menu_page_down(cmd_context_t *ctx) {
     mark_move_vert(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->rect_buffer.h);
     bview_zero_viewport_y(ctx->editor->active_edit);
     return MLE_OK;
 }
 
 // Invoked when user hits down in a prompt_isearch
-static int _editor_prompt_isearch_next(cmd_context_t* ctx) {
+static int _editor_prompt_isearch_next(cmd_context_t *ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
         mark_move_next_cre_nudge(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
         bview_center_viewport_y(ctx->editor->active_edit);
@@ -832,7 +832,7 @@ static int _editor_prompt_isearch_next(cmd_context_t* ctx) {
 }
 
 // Invoked when user hits up in a prompt_isearch
-static int _editor_prompt_isearch_prev(cmd_context_t* ctx) {
+static int _editor_prompt_isearch_prev(cmd_context_t *ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
         mark_move_prev_cre(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
         bview_center_viewport_y(ctx->editor->active_edit);
@@ -841,22 +841,22 @@ static int _editor_prompt_isearch_prev(cmd_context_t* ctx) {
 }
 
 // Invoked when user hits up in a prompt_isearch
-static int _editor_prompt_isearch_viewport_up(cmd_context_t* ctx) {
+static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx) {
     return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_y - 5, 0);
 }
 
 // Invoked when user hits up in a prompt_isearch
-static int _editor_prompt_isearch_viewport_down(cmd_context_t* ctx) {
+static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx) {
     return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_y + 5, 0);
 }
 
 // Drops a cursor on each isearch match
-static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
-    bview_t* bview;
-    mark_t* mark;
-    pcre* cre;
-    cursor_t* orig_cursor;
-    cursor_t* last_cursor;
+static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx) {
+    bview_t *bview;
+    mark_t *mark;
+    pcre *cre;
+    cursor_t *orig_cursor;
+    cursor_t *last_cursor;
     bint_t nchars;
     bview = ctx->editor->active_edit;
     if (!bview->isearch_rule) return MLE_OK;
@@ -881,8 +881,8 @@ static int _editor_prompt_isearch_drop_cursors(cmd_context_t* ctx) {
 }
 
 // Run editor loop
-static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
-    cmd_t* cmd;
+static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
+    cmd_t *cmd;
     cmd_context_t cmd_ctx;
 
     // Increment loop_depth
@@ -964,15 +964,15 @@ static void _editor_loop(editor_t* editor, loop_context_t* loop_ctx) {
 }
 
 // Set fresh values on cmd_context
-static void _editor_refresh_cmd_context(editor_t* editor, cmd_context_t* cmd_ctx) {
+static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *cmd_ctx) {
     cmd_ctx->cursor = editor->active->active_cursor;
     cmd_ctx->bview = cmd_ctx->cursor->bview;
     cmd_ctx->buffer = cmd_ctx->bview->buffer;
 }
 
 // Notify cmd observers
-static void _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before) {
-    char* event_name;
+static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before) {
+    char *event_name;
     asprintf(&event_name, "cmd:%s:%s", ctx->cmd->name, is_before ? "before" : "after");
     _editor_refresh_cmd_context(ctx->editor, ctx);
     editor_notify_observers(ctx->editor, event_name, (void*)ctx);
@@ -980,8 +980,8 @@ static void _editor_notify_cmd_observers(cmd_context_t* ctx, int is_before) {
 }
 
 // Notify observers
-int editor_notify_observers(editor_t* editor, char* event_name, void* event_data) {
-    observer_t* observer;
+int editor_notify_observers(editor_t *editor, char *event_name, void *event_data) {
+    observer_t *observer;
     // TODO implement as hash lookup
     DL_FOREACH(editor->observers, observer) {
         if (strcmp(event_name, observer->event_name) == 0) {
@@ -993,8 +993,8 @@ int editor_notify_observers(editor_t* editor, char* event_name, void* event_data
 
 // If input == editor->macro_toggle_key, toggle macro mode and return 1. Else
 // return 0.
-static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
-    char* name;
+static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input) {
+    char *name;
     if (memcmp(input, &editor->macro_toggle_key, sizeof(kinput_t)) != 0) {
         return 0;
     }
@@ -1019,9 +1019,9 @@ static int _editor_maybe_toggle_macro(editor_t* editor, kinput_t* input) {
 }
 
 // Resize the editor
-static void _editor_resize(editor_t* editor, int w, int h) {
-    bview_t* bview;
-    bview_rect_t* bounds;
+static void _editor_resize(editor_t *editor, int w, int h) {
+    bview_t *bview;
+    bview_rect_t *bounds;
 
     editor->w = w >= 0 ? w : tb_width();
     editor->h = h >= 0 ? h : tb_height();
@@ -1055,7 +1055,7 @@ static void _editor_resize(editor_t* editor, int w, int h) {
 }
 
 // Draw bviews cursors recursively
-static void _editor_draw_cursors(editor_t* editor, bview_t* bview) {
+static void _editor_draw_cursors(editor_t *editor, bview_t *bview) {
     if (MLE_BVIEW_IS_EDIT(bview) && bview_get_split_root(bview) != editor->active_edit_root) {
         return;
     }
@@ -1066,7 +1066,7 @@ static void _editor_draw_cursors(editor_t* editor, bview_t* bview) {
 }
 
 // Get user input
-static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx) {
+static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
     int rc;
     tb_event_t ev;
 
@@ -1097,11 +1097,11 @@ static void _editor_get_user_input(editor_t* editor, cmd_context_t* ctx) {
 }
 
 // Ingest available input until non-cmd_insert_data
-static void _editor_ingest_paste(editor_t* editor, cmd_context_t* ctx) {
+static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
     int rc;
     tb_event_t ev;
     kinput_t input;
-    cmd_t* cmd;
+    cmd_t *cmd;
     memset(&input, 0, sizeof(kinput_t));
 
     // Reset pastebuf
@@ -1143,7 +1143,7 @@ static void _editor_ingest_paste(editor_t* editor, cmd_context_t* ctx) {
 }
 
 // Copy input into macro buffer
-static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input) {
+static void _editor_record_macro_input(kmacro_t *macro, kinput_t *input) {
     if (!macro->inputs) {
         macro->inputs = calloc(8, sizeof(kinput_t));
         macro->inputs_len = 0;
@@ -1157,12 +1157,12 @@ static void _editor_record_macro_input(kmacro_t* macro, kinput_t* input) {
 }
 
 // Return command for input
-static cmd_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx, kinput_t* opt_peek_input) {
-    loop_context_t* loop_ctx;
-    kinput_t* input;
-    kbinding_t* node;
-    kbinding_t* binding;
-    kmap_node_t* kmap_node;
+static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_peek_input) {
+    loop_context_t *loop_ctx;
+    kinput_t *input;
+    kbinding_t *node;
+    kbinding_t *binding;
+    kmap_node_t *kmap_node;
     int is_top;
     int is_peek;
     int again;
@@ -1232,8 +1232,8 @@ static cmd_t* _editor_get_command(editor_t* editor, cmd_context_t* ctx, kinput_t
 }
 
 // Find binding by input in trie, taking into account numeric and wildcards patterns
-static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, loop_context_t* loop_ctx, int is_peek, int* ret_again) {
-    kbinding_t* binding;
+static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, loop_context_t *loop_ctx, int is_peek, int *ret_again) {
+    kbinding_t *binding;
     kinput_t input_tmp;
     memset(&input_tmp, 0, sizeof(kinput_t));
 
@@ -1298,9 +1298,9 @@ static kbinding_t* _editor_get_kbinding_node(kbinding_t* node, kinput_t* input, 
 }
 
 // Resolve a potentially unresolved cmd by name
-static cmd_t* _editor_resolve_cmd(editor_t* editor, cmd_t** rcmd, char* cmd_name) {
-    cmd_t* tcmd;
-    cmd_t* cmd;
+static cmd_t *_editor_resolve_cmd(editor_t *editor, cmd_t **rcmd, char *cmd_name) {
+    cmd_t *tcmd;
+    cmd_t *cmd;
     cmd = NULL;
     if ((*rcmd)) {
         cmd = *rcmd;
@@ -1315,7 +1315,7 @@ static cmd_t* _editor_resolve_cmd(editor_t* editor, cmd_t** rcmd, char* cmd_name
 }
 
 // Return a kinput_t given a key name
-static int _editor_key_to_input(char* key, kinput_t* ret_input) {
+static int _editor_key_to_input(char *key, kinput_t *ret_input) {
     int keylen;
     int mod;
     uint32_t ch;
@@ -1352,7 +1352,7 @@ static int _editor_key_to_input(char* key, kinput_t* ret_input) {
 }
 
 // Init signal handlers
-static void _editor_init_signal_handlers(editor_t* editor) {
+static void _editor_init_signal_handlers(editor_t *editor) {
     struct sigaction action;
     (void)editor;
     memset(&action, 0, sizeof(struct sigaction));
@@ -1366,7 +1366,7 @@ static void _editor_init_signal_handlers(editor_t* editor) {
 
 // Gracefully exit
 static void _editor_graceful_exit(int signum) {
-    bview_t* bview;
+    bview_t *bview;
     char path[64];
     int bview_num;
     (void)signum;
@@ -1384,7 +1384,7 @@ static void _editor_graceful_exit(int signum) {
 }
 
 // Register built-in commands
-static void _editor_register_cmds(editor_t* editor) {
+static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
     _editor_register_cmd_fn(editor, "cmd_browse", cmd_browse);
@@ -1483,7 +1483,7 @@ static void _editor_register_cmds(editor_t* editor) {
 }
 
 // Init built-in kmaps
-static void _editor_init_kmaps(editor_t* editor) {
+static void _editor_init_kmaps(editor_t *editor) {
     _editor_init_kmap(editor, &editor->kmap_normal, "mle_normal", "cmd_insert_data", 0, (kbinding_def_t[]){
         MLE_KBINDING_DEF("cmd_show_help", "F2"),
         MLE_KBINDING_DEF("cmd_delete_before", "backspace"),
@@ -1643,8 +1643,8 @@ static void _editor_init_kmaps(editor_t* editor) {
 }
 
 // Init a single kmap
-static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, char* default_cmd_name, int allow_fallthru, kbinding_def_t* defs) {
-    kmap_t* kmap;
+static void _editor_init_kmap(editor_t *editor, kmap_t **ret_kmap, char *name, char *default_cmd_name, int allow_fallthru, kbinding_def_t *defs) {
+    kmap_t *kmap;
 
     kmap = calloc(1, sizeof(kmap_t));
     kmap->name = strdup(name);
@@ -1664,8 +1664,8 @@ static void _editor_init_kmap(editor_t* editor, kmap_t** ret_kmap, char* name, c
 }
 
 // Add a binding to a kmap
-static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, kbinding_def_t* binding_def) {
-    char* cur_key_patt;
+static void _editor_init_kmap_add_binding(editor_t *editor, kmap_t *kmap, kbinding_def_t *binding_def) {
+    char *cur_key_patt;
     cur_key_patt = strdup(binding_def->key_patt);
     _editor_init_kmap_add_binding_to_trie(&kmap->bindings->children, binding_def->cmd_name, cur_key_patt, binding_def->key_patt, binding_def->static_param);
     if (strcmp(binding_def->cmd_name, "cmd_show_help") == 0) {
@@ -1676,9 +1676,9 @@ static void _editor_init_kmap_add_binding(editor_t* editor, kmap_t* kmap, kbindi
 }
 
 // Add a binding to a kmap trie
-static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_name, char* cur_key_patt, char* full_key_patt, char* static_param) {
-    char* next_key_patt;
-    kbinding_t* node;
+static int _editor_init_kmap_add_binding_to_trie(kbinding_t **trie, char *cmd_name, char *cur_key_patt, char *full_key_patt, char *static_param) {
+    char *next_key_patt;
+    kbinding_t *node;
     kinput_t input;
 
     // Find next_key_patt and add null-char to cur_key_patt
@@ -1729,8 +1729,8 @@ static int _editor_init_kmap_add_binding_to_trie(kbinding_t** trie, char* cmd_na
 }
 
 // Proxy for _editor_init_kmap with str in format '<name>,<default_cmd>,<allow_fallthru>'
-static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* str) {
-    char* args[3];
+static int _editor_init_kmap_by_str(editor_t *editor, kmap_t **ret_kmap, char *str) {
+    char *args[3];
     args[0] = strtok(str,  ","); if (!args[0]) return MLE_ERR;
     args[1] = strtok(NULL, ","); if (!args[1]) return MLE_ERR;
     args[2] = strtok(NULL, ",");
@@ -1739,8 +1739,8 @@ static int _editor_init_kmap_by_str(editor_t* editor, kmap_t** ret_kmap, char* s
 }
 
 // Proxy for _editor_init_kmap_add_binding with str in format '<cmd>,<key>,<param>'
-static int _editor_init_kmap_add_binding_by_str(editor_t* editor, kmap_t* kmap, char* str) {
-    char* args[3];
+static int _editor_init_kmap_add_binding_by_str(editor_t *editor, kmap_t *kmap, char *str) {
+    char *args[3];
     args[0] = strtok(str,  ","); if (!args[0]) return MLE_ERR;
     args[1] = strtok(NULL, ","); if (!args[1]) return MLE_ERR;
     args[2] = strtok(NULL, ",");
@@ -1749,9 +1749,9 @@ static int _editor_init_kmap_add_binding_by_str(editor_t* editor, kmap_t* kmap, 
 }
 
 // Destroy a kmap
-static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* trie) {
-    kbinding_t* binding;
-    kbinding_t* binding_tmp;
+static void _editor_destroy_kmap(kmap_t *kmap, kbinding_t *trie) {
+    kbinding_t *binding;
+    kbinding_t *binding_tmp;
     int is_top;
     is_top = (trie == kmap->bindings ? 1 : 0);
     HASH_ITER(hh, trie, binding, binding_tmp) {
@@ -1771,10 +1771,10 @@ static void _editor_destroy_kmap(kmap_t* kmap, kbinding_t* trie) {
 }
 
 // Add a macro by str with format '<name> <key1> <key2> ... <keyN>'
-static int _editor_add_macro_by_str(editor_t* editor, char* str) {
+static int _editor_add_macro_by_str(editor_t *editor, char *str) {
     int has_input;
-    char* token;
-    kmacro_t* macro;
+    char *token;
+    kmacro_t *macro;
     kinput_t input = { 0, 0, 0 };
 
     has_input = 0;
@@ -1817,7 +1817,7 @@ static int _editor_add_macro_by_str(editor_t* editor, char* str) {
 }
 
 // Init built-in syntax map
-static void _editor_init_syntaxes(editor_t* editor) {
+static void _editor_init_syntaxes(editor_t *editor) {
     _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cc|cpp|h|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua|rs)$", -1, -1, (srule_def_t[]){
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
@@ -1862,8 +1862,8 @@ static void _editor_init_syntaxes(editor_t* editor) {
 }
 
 // Init a single syntax
-static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char* name, char* path_pattern, int tab_width, int tab_to_space, srule_def_t* defs) {
-    syntax_t* syntax;
+static void _editor_init_syntax(editor_t *editor, syntax_t **optret_syntax, char *name, char *path_pattern, int tab_width, int tab_to_space, srule_def_t *defs) {
+    syntax_t *syntax;
 
     syntax = calloc(1, sizeof(syntax_t));
     syntax->name = strdup(name);
@@ -1881,8 +1881,8 @@ static void _editor_init_syntax(editor_t* editor, syntax_t** optret_syntax, char
 }
 
 // Proxy for _editor_init_syntax with str in format '<name>,<path_pattern>,<tab_width>,<tab_to_space>'
-static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, char* str) {
-    char* args[4];
+static int _editor_init_syntax_by_str(editor_t *editor, syntax_t **ret_syntax, char *str) {
+    char *args[4];
     args[0] = strtok(str,  ","); if (!args[0]) return MLE_ERR;
     args[1] = strtok(NULL, ","); if (!args[1]) return MLE_ERR;
     args[2] = strtok(NULL, ","); if (!args[2]) return MLE_ERR;
@@ -1892,8 +1892,8 @@ static int _editor_init_syntax_by_str(editor_t* editor, syntax_t** ret_syntax, c
 }
 
 // Add rule to syntax
-static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t* def) {
-    srule_node_t* node;
+static void _editor_init_syntax_add_rule(syntax_t *syntax, srule_def_t *def) {
+    srule_node_t *node;
     node = calloc(1, sizeof(srule_node_t));
     if (def->re_end) {
         node->srule = srule_new_multi(def->re, strlen(def->re), def->re_end, strlen(def->re_end), def->fg, def->bg);
@@ -1904,8 +1904,8 @@ static void _editor_init_syntax_add_rule(syntax_t* syntax, srule_def_t* def) {
 }
 
 // Proxy for _editor_init_syntax_add_rule with str in format '<start>,<end>,<fg>,<bg>' or '<regex>,<fg>,<bg>'
-static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str) {
-    char* args[4];
+static int _editor_init_syntax_add_rule_by_str(syntax_t *syntax, char *str) {
+    char *args[4];
     int style_i;
     args[0] = strtok(str,  ","); if (!args[0]) return MLE_ERR;
     args[1] = strtok(NULL, ","); if (!args[1]) return MLE_ERR;
@@ -1917,11 +1917,11 @@ static int _editor_init_syntax_add_rule_by_str(syntax_t* syntax, char* str) {
 }
 
 // Destroy a syntax
-static void _editor_destroy_syntax_map(syntax_t* map) {
-    syntax_t* syntax;
-    syntax_t* syntax_tmp;
-    srule_node_t* srule;
-    srule_node_t* srule_tmp;
+static void _editor_destroy_syntax_map(syntax_t *map) {
+    syntax_t *syntax;
+    syntax_t *syntax_tmp;
+    srule_node_t *srule;
+    srule_node_t *srule_tmp;
     HASH_ITER(hh, map, syntax, syntax_tmp) {
         HASH_DELETE(hh, map, syntax);
         DL_FOREACH_SAFE(syntax->srules, srule, srule_tmp) {
@@ -1936,7 +1936,7 @@ static void _editor_destroy_syntax_map(syntax_t* map) {
 }
 
 // Read rc file
-static int _editor_init_from_rc_read(editor_t* editor, FILE* rc, char** ret_rc_data, size_t* ret_rc_data_len) {
+static int _editor_init_from_rc_read(editor_t *editor, FILE *rc, char **ret_rc_data, size_t *ret_rc_data_len) {
     (void)editor;
     fseek(rc, 0L, SEEK_END);
     *ret_rc_data_len = (size_t)ftell(rc);
@@ -1948,13 +1948,13 @@ static int _editor_init_from_rc_read(editor_t* editor, FILE* rc, char** ret_rc_d
 }
 
 // Exec rc file, read stdout
-static int _editor_init_from_rc_exec(editor_t* editor, char* rc_path, char** ret_rc_data, size_t* ret_rc_data_len) {
+static int _editor_init_from_rc_exec(editor_t *editor, char *rc_path, char **ret_rc_data, size_t *ret_rc_data_len) {
     char buf[512];
     size_t nbytes;
-    char* data;
+    char *data;
     size_t data_len;
     size_t data_cap;
-    FILE* fp;
+    FILE *fp;
 
     // Popen rc file
     if ((fp = popen(rc_path, "r")) == NULL) {
@@ -1989,15 +1989,15 @@ static int _editor_init_from_rc_exec(editor_t* editor, char* rc_path, char** ret
 }
 
 // Parse rc file
-static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path) {
+static int _editor_init_from_rc(editor_t *editor, FILE *rc, char *rc_path) {
     int rv;
     size_t rc_data_len;
     char *rc_data;
     char *rc_data_stop;
-    char* eol;
-    char* bol;
+    char *eol;
+    char *bol;
     int fargc;
-    char** fargv;
+    char **fargv;
     struct stat statbuf;
     rv = MLE_OK;
     rc_data = NULL;
@@ -2049,11 +2049,11 @@ static int _editor_init_from_rc(editor_t* editor, FILE* rc, char* rc_path) {
 }
 
 // Parse cli args
-static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
+static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
     int rv;
-    kmap_t* cur_kmap;
-    syntax_t* cur_syntax;
-    uscript_t* uscript;
+    kmap_t *cur_kmap;
+    syntax_t *cur_syntax;
+    uscript_t *uscript;
     int c;
     rv = MLE_OK;
 
@@ -2215,7 +2215,7 @@ static int _editor_init_from_args(editor_t* editor, int argc, char** argv) {
 }
 
 // Init status bar
-static void _editor_init_status(editor_t* editor) {
+static void _editor_init_status(editor_t *editor) {
     editor->status = bview_new(editor, NULL, 0, NULL);
     editor->status->type = MLE_BVIEW_TYPE_STATUS;
     editor->rect_status.fg = TB_WHITE;
@@ -2223,7 +2223,7 @@ static void _editor_init_status(editor_t* editor) {
 }
 
 // Init bviews
-static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
+static void _editor_init_bviews(editor_t *editor, int argc, char **argv) {
     int i;
     char *path;
     int path_len;
@@ -2243,11 +2243,11 @@ static void _editor_init_bviews(editor_t* editor, int argc, char** argv) {
 }
 
 // Init headless mode
-static int _editor_init_headless_mode(editor_t* editor) {
+static int _editor_init_headless_mode(editor_t *editor) {
     fd_set readfds;
     ssize_t nbytes;
     char buf[1024];
-    bview_t* bview;
+    bview_t *bview;
     int stdin_is_a_pipe;
 
     // Check if stdin is a pipe
@@ -2285,8 +2285,8 @@ static int _editor_init_headless_mode(editor_t* editor) {
 }
 
 // Init startup macro if present
-static int _editor_init_startup_macro(editor_t* editor) {
-    kmacro_t* macro;
+static int _editor_init_startup_macro(editor_t *editor) {
+    kmacro_t *macro;
     if (!editor->startup_macro_name) return MLE_OK;
     macro = NULL;
     HASH_FIND_STR(editor->macro_map, editor->startup_macro_name, macro);

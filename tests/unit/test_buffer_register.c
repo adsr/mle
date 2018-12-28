@@ -1,9 +1,9 @@
 #include "test.h"
 
-char* str = "hi";
+char *str = "hi";
 
-void test(buffer_t* buf, mark_t* cur) {
-    char* reg;
+void test(buffer_t *buf, mark_t *cur) {
+    char *reg;
     size_t reg_len;
 
     buffer_register_set(buf, 'a', "yo", 2);

@@ -1,8 +1,8 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     char *data;
     bint_t data_len;
     bint_t nchars;

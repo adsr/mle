@@ -1,9 +1,9 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
-    bline_t* line;
+void test(buffer_t *buf, mark_t *cur) {
+    bline_t *line;
     bint_t col;
 
     buffer_get_bline_col(buf, 0, &line, &col);

@@ -1,9 +1,9 @@
 #include "test.h"
 
-char* str = "  hello {\n    world\n  }";
+char *str = "  hello {\n    world\n  }";
 
-void test(buffer_t* buf, mark_t* cur) {
-    mark_t* other;
+void test(buffer_t *buf, mark_t *cur) {
+    mark_t *other;
     other = buffer_add_mark(buf, NULL, 0);
     mark_move_next_str(cur, "{", 1);
     mark_move_by(cur, 1);

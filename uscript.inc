@@ -1,10 +1,10 @@
-static int _uscript_func_buffer_add_mark(lua_State* L) {
-    mark_t* rv;
-    buffer_t* self;
-    bline_t* maybe_line;
+static int _uscript_func_buffer_add_mark(lua_State *L) {
+    mark_t *rv;
+    buffer_t *self;
+    bline_t *maybe_line;
     bint_t maybe_col;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    maybe_line = (bline_t*)luaL_checkpointer(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    maybe_line = (bline_t *)luaL_checkpointer(L, 2);
     maybe_col = (bint_t)luaL_checkinteger(L, 3);
     rv = buffer_add_mark(self, maybe_line, maybe_col);
     lua_createtable(L, 0, 1);
@@ -15,15 +15,15 @@ static int _uscript_func_buffer_add_mark(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_add_mark_ex(lua_State* L) {
-    mark_t* rv;
-    buffer_t* self;
+static int _uscript_func_buffer_add_mark_ex(lua_State *L) {
+    mark_t *rv;
+    buffer_t *self;
     char letter;
-    bline_t* maybe_line;
+    bline_t *maybe_line;
     bint_t maybe_col;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     letter = (char)luaL_checkinteger(L, 2);
-    maybe_line = (bline_t*)luaL_checkpointer(L, 3);
+    maybe_line = (bline_t *)luaL_checkpointer(L, 3);
     maybe_col = (bint_t)luaL_checkinteger(L, 4);
     rv = buffer_add_mark_ex(self, letter, maybe_line, maybe_col);
     lua_createtable(L, 0, 1);
@@ -34,16 +34,16 @@ static int _uscript_func_buffer_add_mark_ex(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_buffer_add_srule(lua_State* L) {
+// static int _uscript_func_buffer_add_srule(lua_State *L) {
 // }
 
-static int _uscript_func_buffer_apply_styles(lua_State* L) {
+static int _uscript_func_buffer_apply_styles(lua_State *L) {
     int rv;
-    buffer_t* self;
-    bline_t* start_line;
+    buffer_t *self;
+    bline_t *start_line;
     bint_t line_delta;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    start_line = (bline_t *)luaL_checkpointer(L, 2);
     line_delta = (bint_t)luaL_checkinteger(L, 3);
     rv = buffer_apply_styles(self, start_line, line_delta);
     lua_createtable(L, 0, 1);
@@ -54,10 +54,10 @@ static int _uscript_func_buffer_apply_styles(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_clear(lua_State* L) {
+static int _uscript_func_buffer_clear(lua_State *L) {
     int rv;
-    buffer_t* self;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    buffer_t *self;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     rv = buffer_clear(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -67,12 +67,12 @@ static int _uscript_func_buffer_clear(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_delete(lua_State* L) {
+static int _uscript_func_buffer_delete(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     bint_t offset;
     bint_t num_chars;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     offset = (bint_t)luaL_checkinteger(L, 2);
     num_chars = (bint_t)luaL_checkinteger(L, 3);
     rv = buffer_delete(self, offset, num_chars);
@@ -84,14 +84,14 @@ static int _uscript_func_buffer_delete(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_delete_w_bline(lua_State* L) {
+static int _uscript_func_buffer_delete_w_bline(lua_State *L) {
     int rv;
-    buffer_t* self;
-    bline_t* start_line;
+    buffer_t *self;
+    bline_t *start_line;
     bint_t start_col;
     bint_t num_chars;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    start_line = (bline_t *)luaL_checkpointer(L, 2);
     start_col = (bint_t)luaL_checkinteger(L, 3);
     num_chars = (bint_t)luaL_checkinteger(L, 4);
     rv = buffer_delete_w_bline(self, start_line, start_col, num_chars);
@@ -103,10 +103,10 @@ static int _uscript_func_buffer_delete_w_bline(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_destroy(lua_State* L) {
+static int _uscript_func_buffer_destroy(lua_State *L) {
     int rv;
-    buffer_t* self;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    buffer_t *self;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     rv = buffer_destroy(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -116,12 +116,12 @@ static int _uscript_func_buffer_destroy(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_destroy_mark(lua_State* L) {
+static int _uscript_func_buffer_destroy_mark(lua_State *L) {
     int rv;
-    buffer_t* self;
-    mark_t* mark;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    mark = (mark_t*)luaL_checkpointer(L, 2);
+    buffer_t *self;
+    mark_t *mark;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    mark = (mark_t *)luaL_checkpointer(L, 2);
     rv = buffer_destroy_mark(self, mark);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -131,12 +131,12 @@ static int _uscript_func_buffer_destroy_mark(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_get(lua_State* L) {
+static int _uscript_func_buffer_get(lua_State *L) {
     int rv;
-    buffer_t* self;
-    char* ret_data = NULL;
+    buffer_t *self;
+    char *ret_data = NULL;
     bint_t ret_data_len = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     rv = buffer_get(self, &ret_data, &ret_data_len);
     lua_createtable(L, 0, 3);
     lua_pushstring(L, "rv");
@@ -152,12 +152,12 @@ static int _uscript_func_buffer_get(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_get_bline(lua_State* L) {
+static int _uscript_func_buffer_get_bline(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     bint_t line_index;
-    bline_t* ret_bline = NULL;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    bline_t *ret_bline = NULL;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     line_index = (bint_t)luaL_checkinteger(L, 2);
     rv = buffer_get_bline(self, line_index, &ret_bline);
     lua_createtable(L, 0, 2);
@@ -171,13 +171,13 @@ static int _uscript_func_buffer_get_bline(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_get_bline_col(lua_State* L) {
+static int _uscript_func_buffer_get_bline_col(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     bint_t offset;
-    bline_t* ret_bline = NULL;
+    bline_t *ret_bline = NULL;
     bint_t ret_col = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     offset = (bint_t)luaL_checkinteger(L, 2);
     rv = buffer_get_bline_col(self, offset, &ret_bline, &ret_col);
     lua_createtable(L, 0, 3);
@@ -194,12 +194,12 @@ static int _uscript_func_buffer_get_bline_col(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_get_lettered_mark(lua_State* L) {
+static int _uscript_func_buffer_get_lettered_mark(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     char letter;
-    mark_t* ret_mark = NULL;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    mark_t *ret_mark = NULL;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     letter = (char)luaL_checkinteger(L, 2);
     rv = buffer_get_lettered_mark(self, letter, &ret_mark);
     lua_createtable(L, 0, 2);
@@ -213,14 +213,14 @@ static int _uscript_func_buffer_get_lettered_mark(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_get_offset(lua_State* L) {
+static int _uscript_func_buffer_get_offset(lua_State *L) {
     int rv;
-    buffer_t* self;
-    bline_t* bline;
+    buffer_t *self;
+    bline_t *bline;
     bint_t col;
     bint_t ret_offset = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    bline = (bline_t*)luaL_checkpointer(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    bline = (bline_t *)luaL_checkpointer(L, 2);
     col = (bint_t)luaL_checkinteger(L, 3);
     rv = buffer_get_offset(self, bline, col, &ret_offset);
     lua_createtable(L, 0, 2);
@@ -234,16 +234,16 @@ static int _uscript_func_buffer_get_offset(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_insert(lua_State* L) {
+static int _uscript_func_buffer_insert(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     bint_t offset;
-    char* data;
+    char *data;
     bint_t data_len;
     bint_t optret_num_chars = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     offset = (bint_t)luaL_checkinteger(L, 2);
-    data = (char*)luaL_checkstring(L, 3);
+    data = (char *)luaL_checkstring(L, 3);
     data_len = (bint_t)luaL_checkinteger(L, 4);
     rv = buffer_insert(self, offset, data, data_len, &optret_num_chars);
     lua_createtable(L, 0, 2);
@@ -257,18 +257,18 @@ static int _uscript_func_buffer_insert(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_insert_w_bline(lua_State* L) {
+static int _uscript_func_buffer_insert_w_bline(lua_State *L) {
     int rv;
-    buffer_t* self;
-    bline_t* start_line;
+    buffer_t *self;
+    bline_t *start_line;
     bint_t start_col;
-    char* data;
+    char *data;
     bint_t data_len;
     bint_t optret_num_chars = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    start_line = (bline_t *)luaL_checkpointer(L, 2);
     start_col = (bint_t)luaL_checkinteger(L, 3);
-    data = (char*)luaL_checkstring(L, 4);
+    data = (char *)luaL_checkstring(L, 4);
     data_len = (bint_t)luaL_checkinteger(L, 5);
     rv = buffer_insert_w_bline(self, start_line, start_col, data, data_len, &optret_num_chars);
     lua_createtable(L, 0, 2);
@@ -282,8 +282,8 @@ static int _uscript_func_buffer_insert_w_bline(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_new(lua_State* L) {
-    buffer_t* rv;
+static int _uscript_func_buffer_new(lua_State *L) {
+    buffer_t *rv;
     rv = buffer_new();
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -293,10 +293,10 @@ static int _uscript_func_buffer_new(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_new_open(lua_State* L) {
-    buffer_t* rv;
-    char* path;
-    path = (char*)luaL_checkstring(L, 1);
+static int _uscript_func_buffer_new_open(lua_State *L) {
+    buffer_t *rv;
+    char *path;
+    path = (char *)luaL_checkstring(L, 1);
     rv = buffer_new_open(path);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -306,12 +306,12 @@ static int _uscript_func_buffer_new_open(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_open(lua_State* L) {
+static int _uscript_func_buffer_open(lua_State *L) {
     int rv;
-    buffer_t* self;
-    char* path;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    path = (char*)luaL_checkstring(L, 2);
+    buffer_t *self;
+    char *path;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    path = (char *)luaL_checkstring(L, 2);
     rv = buffer_open(self, path);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -321,10 +321,10 @@ static int _uscript_func_buffer_open(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_redo(lua_State* L) {
+static int _uscript_func_buffer_redo(lua_State *L) {
     int rv;
-    buffer_t* self;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    buffer_t *self;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     rv = buffer_redo(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -334,15 +334,15 @@ static int _uscript_func_buffer_redo(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_register_append(lua_State* L) {
+static int _uscript_func_buffer_register_append(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     char reg;
-    char* data;
+    char *data;
     size_t data_len;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     reg = (char)luaL_checkinteger(L, 2);
-    data = (char*)luaL_checkstring(L, 3);
+    data = (char *)luaL_checkstring(L, 3);
     data_len = (size_t)luaL_checkinteger(L, 4);
     rv = buffer_register_append(self, reg, data, data_len);
     lua_createtable(L, 0, 1);
@@ -353,11 +353,11 @@ static int _uscript_func_buffer_register_append(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_register_clear(lua_State* L) {
+static int _uscript_func_buffer_register_clear(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     char reg;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     reg = (char)luaL_checkinteger(L, 2);
     rv = buffer_register_clear(self, reg);
     lua_createtable(L, 0, 1);
@@ -368,14 +368,14 @@ static int _uscript_func_buffer_register_clear(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_register_get(lua_State* L) {
+static int _uscript_func_buffer_register_get(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     char reg;
     int dup;
-    char* ret_data = NULL;
+    char *ret_data = NULL;
     size_t ret_data_len = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     reg = (char)luaL_checkinteger(L, 2);
     dup = (int)luaL_checkinteger(L, 3);
     rv = buffer_register_get(self, reg, dup, &ret_data, &ret_data_len);
@@ -393,15 +393,15 @@ static int _uscript_func_buffer_register_get(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_register_prepend(lua_State* L) {
+static int _uscript_func_buffer_register_prepend(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     char reg;
-    char* data;
+    char *data;
     size_t data_len;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     reg = (char)luaL_checkinteger(L, 2);
-    data = (char*)luaL_checkstring(L, 3);
+    data = (char *)luaL_checkstring(L, 3);
     data_len = (size_t)luaL_checkinteger(L, 4);
     rv = buffer_register_prepend(self, reg, data, data_len);
     lua_createtable(L, 0, 1);
@@ -412,15 +412,15 @@ static int _uscript_func_buffer_register_prepend(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_register_set(lua_State* L) {
+static int _uscript_func_buffer_register_set(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     char reg;
-    char* data;
+    char *data;
     size_t data_len;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     reg = (char)luaL_checkinteger(L, 2);
-    data = (char*)luaL_checkstring(L, 3);
+    data = (char *)luaL_checkstring(L, 3);
     data_len = (size_t)luaL_checkinteger(L, 4);
     rv = buffer_register_set(self, reg, data, data_len);
     lua_createtable(L, 0, 1);
@@ -431,20 +431,20 @@ static int _uscript_func_buffer_register_set(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_buffer_remove_srule(lua_State* L) {
+// static int _uscript_func_buffer_remove_srule(lua_State *L) {
 // }
 
-static int _uscript_func_buffer_replace(lua_State* L) {
+static int _uscript_func_buffer_replace(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     bint_t offset;
     bint_t num_chars;
-    char* data;
+    char *data;
     bint_t data_len;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     offset = (bint_t)luaL_checkinteger(L, 2);
     num_chars = (bint_t)luaL_checkinteger(L, 3);
-    data = (char*)luaL_checkstring(L, 4);
+    data = (char *)luaL_checkstring(L, 4);
     data_len = (bint_t)luaL_checkinteger(L, 5);
     rv = buffer_replace(self, offset, num_chars, data, data_len);
     lua_createtable(L, 0, 1);
@@ -455,19 +455,19 @@ static int _uscript_func_buffer_replace(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_replace_w_bline(lua_State* L) {
+static int _uscript_func_buffer_replace_w_bline(lua_State *L) {
     int rv;
-    buffer_t* self;
-    bline_t* start_line;
+    buffer_t *self;
+    bline_t *start_line;
     bint_t start_col;
     bint_t num_chars;
-    char* data;
+    char *data;
     bint_t data_len;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    start_line = (bline_t *)luaL_checkpointer(L, 2);
     start_col = (bint_t)luaL_checkinteger(L, 3);
     num_chars = (bint_t)luaL_checkinteger(L, 4);
-    data = (char*)luaL_checkstring(L, 5);
+    data = (char *)luaL_checkstring(L, 5);
     data_len = (bint_t)luaL_checkinteger(L, 6);
     rv = buffer_replace_w_bline(self, start_line, start_col, num_chars, data, data_len);
     lua_createtable(L, 0, 1);
@@ -478,10 +478,10 @@ static int _uscript_func_buffer_replace_w_bline(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_save(lua_State* L) {
+static int _uscript_func_buffer_save(lua_State *L) {
     int rv;
-    buffer_t* self;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    buffer_t *self;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     rv = buffer_save(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -491,13 +491,13 @@ static int _uscript_func_buffer_save(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_save_as(lua_State* L) {
+static int _uscript_func_buffer_save_as(lua_State *L) {
     int rv;
-    buffer_t* self;
-    char* path;
+    buffer_t *self;
+    char *path;
     bint_t optret_nbytes = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    path = (char*)luaL_checkstring(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    path = (char *)luaL_checkstring(L, 2);
     rv = buffer_save_as(self, path, &optret_nbytes);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -510,13 +510,13 @@ static int _uscript_func_buffer_save_as(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_set(lua_State* L) {
+static int _uscript_func_buffer_set(lua_State *L) {
     int rv;
-    buffer_t* self;
-    char* data;
+    buffer_t *self;
+    char *data;
     bint_t data_len;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    data = (char*)luaL_checkstring(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    data = (char *)luaL_checkstring(L, 2);
     data_len = (bint_t)luaL_checkinteger(L, 3);
     rv = buffer_set(self, data, data_len);
     lua_createtable(L, 0, 1);
@@ -527,16 +527,16 @@ static int _uscript_func_buffer_set(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_buffer_set_callback(lua_State* L) {
+// static int _uscript_func_buffer_set_callback(lua_State *L) {
 // }
 
-static int _uscript_func_buffer_set_mmapped(lua_State* L) {
+static int _uscript_func_buffer_set_mmapped(lua_State *L) {
     int rv;
-    buffer_t* self;
-    char* data;
+    buffer_t *self;
+    char *data;
     bint_t data_len;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    data = (char*)luaL_checkstring(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    data = (char *)luaL_checkstring(L, 2);
     data_len = (bint_t)luaL_checkinteger(L, 3);
     rv = buffer_set_mmapped(self, data, data_len);
     lua_createtable(L, 0, 1);
@@ -547,11 +547,11 @@ static int _uscript_func_buffer_set_mmapped(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_set_styles_enabled(lua_State* L) {
+static int _uscript_func_buffer_set_styles_enabled(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     int is_enabled;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     is_enabled = (int)luaL_checkinteger(L, 2);
     rv = buffer_set_styles_enabled(self, is_enabled);
     lua_createtable(L, 0, 1);
@@ -562,11 +562,11 @@ static int _uscript_func_buffer_set_styles_enabled(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_set_tab_width(lua_State* L) {
+static int _uscript_func_buffer_set_tab_width(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     int tab_width;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     tab_width = (int)luaL_checkinteger(L, 2);
     rv = buffer_set_tab_width(self, tab_width);
     lua_createtable(L, 0, 1);
@@ -577,20 +577,20 @@ static int _uscript_func_buffer_set_tab_width(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_substr(lua_State* L) {
+static int _uscript_func_buffer_substr(lua_State *L) {
     int rv;
-    buffer_t* self;
-    bline_t* start_line;
+    buffer_t *self;
+    bline_t *start_line;
     bint_t start_col;
-    bline_t* end_line;
+    bline_t *end_line;
     bint_t end_col;
-    char* ret_data = NULL;
+    char *ret_data = NULL;
     bint_t ret_data_len = 0;
     bint_t ret_nchars = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
-    start_line = (bline_t*)luaL_checkpointer(L, 2);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    start_line = (bline_t *)luaL_checkpointer(L, 2);
     start_col = (bint_t)luaL_checkinteger(L, 3);
-    end_line = (bline_t*)luaL_checkpointer(L, 4);
+    end_line = (bline_t *)luaL_checkpointer(L, 4);
     end_col = (bint_t)luaL_checkinteger(L, 5);
     rv = buffer_substr(self, start_line, start_col, end_line, end_col, &ret_data, &ret_data_len, &ret_nchars);
     lua_createtable(L, 0, 4);
@@ -610,10 +610,10 @@ static int _uscript_func_buffer_substr(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_undo(lua_State* L) {
+static int _uscript_func_buffer_undo(lua_State *L) {
     int rv;
-    buffer_t* self;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    buffer_t *self;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     rv = buffer_undo(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -623,12 +623,12 @@ static int _uscript_func_buffer_undo(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_buffer_write_to_fd(lua_State* L) {
+static int _uscript_func_buffer_write_to_fd(lua_State *L) {
     int rv;
-    buffer_t* self;
+    buffer_t *self;
     int fd;
     size_t optret_nbytes = 0;
-    self = (buffer_t*)luaL_checkpointer(L, 1);
+    self = (buffer_t *)luaL_checkpointer(L, 1);
     fd = (int)luaL_checkinteger(L, 2);
     rv = buffer_write_to_fd(self, fd, &optret_nbytes);
     lua_createtable(L, 0, 2);
@@ -642,17 +642,17 @@ static int _uscript_func_buffer_write_to_fd(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_buffer_write_to_file(lua_State* L) {
+// static int _uscript_func_buffer_write_to_file(lua_State *L) {
 // }
 
-static int _uscript_func_bview_add_cursor(lua_State* L) {
+static int _uscript_func_bview_add_cursor(lua_State *L) {
     int rv;
-    bview_t* self;
-    bline_t* opt_bline;
+    bview_t *self;
+    bline_t *opt_bline;
     bint_t opt_col;
-    cursor_t* optret_cursor = NULL;
-    self = (bview_t*)luaL_checkpointer(L, 1);
-    opt_bline = (bline_t*)luaL_optpointer(L, 2, NULL);
+    cursor_t *optret_cursor = NULL;
+    self = (bview_t *)luaL_checkpointer(L, 1);
+    opt_bline = (bline_t *)luaL_optpointer(L, 2, NULL);
     opt_col = (bint_t)luaL_optinteger(L, 3, 0);
     rv = bview_add_cursor(self, opt_bline, opt_col, &optret_cursor);
     lua_createtable(L, 0, 2);
@@ -666,14 +666,14 @@ static int _uscript_func_bview_add_cursor(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_add_cursor_asleep(lua_State* L) {
+static int _uscript_func_bview_add_cursor_asleep(lua_State *L) {
     int rv;
-    bview_t* self;
-    bline_t* opt_bline;
+    bview_t *self;
+    bline_t *opt_bline;
     bint_t opt_col;
-    cursor_t* optret_cursor = NULL;
-    self = (bview_t*)luaL_checkpointer(L, 1);
-    opt_bline = (bline_t*)luaL_optpointer(L, 2, NULL);
+    cursor_t *optret_cursor = NULL;
+    self = (bview_t *)luaL_checkpointer(L, 1);
+    opt_bline = (bline_t *)luaL_optpointer(L, 2, NULL);
     opt_col = (bint_t)luaL_optinteger(L, 3, 0);
     rv = bview_add_cursor_asleep(self, opt_bline, opt_col, &optret_cursor);
     lua_createtable(L, 0, 2);
@@ -687,10 +687,10 @@ static int _uscript_func_bview_add_cursor_asleep(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_center_viewport_y(lua_State* L) {
+static int _uscript_func_bview_center_viewport_y(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_center_viewport_y(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -700,10 +700,10 @@ static int _uscript_func_bview_center_viewport_y(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_destroy(lua_State* L) {
+static int _uscript_func_bview_destroy(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_destroy(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -713,10 +713,10 @@ static int _uscript_func_bview_destroy(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_draw(lua_State* L) {
+static int _uscript_func_bview_draw(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_draw(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -726,11 +726,11 @@ static int _uscript_func_bview_draw(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_draw_cursor(lua_State* L) {
+static int _uscript_func_bview_draw_cursor(lua_State *L) {
     int rv;
-    bview_t* self;
+    bview_t *self;
     int set_real_cursor;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    self = (bview_t *)luaL_checkpointer(L, 1);
     set_real_cursor = (int)luaL_checkinteger(L, 2);
     rv = bview_draw_cursor(self, set_real_cursor);
     lua_createtable(L, 0, 1);
@@ -741,10 +741,10 @@ static int _uscript_func_bview_draw_cursor(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_get_active_cursor_count(lua_State* L) {
+static int _uscript_func_bview_get_active_cursor_count(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_get_active_cursor_count(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -754,10 +754,10 @@ static int _uscript_func_bview_get_active_cursor_count(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_get_split_root(lua_State* L) {
-    bview_t* rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+static int _uscript_func_bview_get_split_root(lua_State *L) {
+    bview_t *rv;
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_get_split_root(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -767,10 +767,10 @@ static int _uscript_func_bview_get_split_root(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_max_viewport_y(lua_State* L) {
+static int _uscript_func_bview_max_viewport_y(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_max_viewport_y(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -780,16 +780,16 @@ static int _uscript_func_bview_max_viewport_y(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_new(lua_State* L) {
-    bview_t* rv;
-    editor_t* editor;
-    char* opt_path;
+static int _uscript_func_bview_new(lua_State *L) {
+    bview_t *rv;
+    editor_t *editor;
+    char *opt_path;
     int opt_path_len;
-    buffer_t* opt_buffer;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
-    opt_path = (char*)luaL_optstring(L, 2, NULL);
+    buffer_t *opt_buffer;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    opt_path = (char *)luaL_optstring(L, 2, NULL);
     opt_path_len = (int)luaL_optinteger(L, 3, 0);
-    opt_buffer = (buffer_t*)luaL_optpointer(L, 4, NULL);
+    opt_buffer = (buffer_t *)luaL_optpointer(L, 4, NULL);
     rv = bview_new(editor, opt_path, opt_path_len, opt_buffer);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -799,13 +799,13 @@ static int _uscript_func_bview_new(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_open(lua_State* L) {
+static int _uscript_func_bview_open(lua_State *L) {
     int rv;
-    bview_t* self;
-    char* path;
+    bview_t *self;
+    char *path;
     int path_len;
-    self = (bview_t*)luaL_checkpointer(L, 1);
-    path = (char*)luaL_checkstring(L, 2);
+    self = (bview_t *)luaL_checkpointer(L, 1);
+    path = (char *)luaL_checkstring(L, 2);
     path_len = (int)luaL_checkinteger(L, 3);
     rv = bview_open(self, path, path_len);
     lua_createtable(L, 0, 1);
@@ -816,16 +816,16 @@ static int _uscript_func_bview_open(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_bview_pop_kmap(lua_State* L) {
+// static int _uscript_func_bview_pop_kmap(lua_State *L) {
 // }
 
-// static int _uscript_func_bview_push_kmap(lua_State* L) {
+// static int _uscript_func_bview_push_kmap(lua_State *L) {
 // }
 
-static int _uscript_func_bview_rectify_viewport(lua_State* L) {
+static int _uscript_func_bview_rectify_viewport(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_rectify_viewport(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -835,12 +835,12 @@ static int _uscript_func_bview_rectify_viewport(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_remove_cursor(lua_State* L) {
+static int _uscript_func_bview_remove_cursor(lua_State *L) {
     int rv;
-    bview_t* self;
-    cursor_t* cursor;
-    self = (bview_t*)luaL_checkpointer(L, 1);
-    cursor = (cursor_t*)luaL_checkpointer(L, 2);
+    bview_t *self;
+    cursor_t *cursor;
+    self = (bview_t *)luaL_checkpointer(L, 1);
+    cursor = (cursor_t *)luaL_checkpointer(L, 2);
     rv = bview_remove_cursor(self, cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -850,12 +850,12 @@ static int _uscript_func_bview_remove_cursor(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_remove_cursors_except(lua_State* L) {
+static int _uscript_func_bview_remove_cursors_except(lua_State *L) {
     int rv;
-    bview_t* self;
-    cursor_t* one;
-    self = (bview_t*)luaL_checkpointer(L, 1);
-    one = (cursor_t*)luaL_checkpointer(L, 2);
+    bview_t *self;
+    cursor_t *one;
+    self = (bview_t *)luaL_checkpointer(L, 1);
+    one = (cursor_t *)luaL_checkpointer(L, 2);
     rv = bview_remove_cursors_except(self, one);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -865,14 +865,14 @@ static int _uscript_func_bview_remove_cursors_except(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_resize(lua_State* L) {
+static int _uscript_func_bview_resize(lua_State *L) {
     int rv;
-    bview_t* self;
+    bview_t *self;
     int x;
     int y;
     int w;
     int h;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    self = (bview_t *)luaL_checkpointer(L, 1);
     x = (int)luaL_checkinteger(L, 2);
     y = (int)luaL_checkinteger(L, 3);
     w = (int)luaL_checkinteger(L, 4);
@@ -886,12 +886,12 @@ static int _uscript_func_bview_resize(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_set_syntax(lua_State* L) {
+static int _uscript_func_bview_set_syntax(lua_State *L) {
     int rv;
-    bview_t* self;
-    char* opt_syntax;
-    self = (bview_t*)luaL_checkpointer(L, 1);
-    opt_syntax = (char*)luaL_optstring(L, 2, NULL);
+    bview_t *self;
+    char *opt_syntax;
+    self = (bview_t *)luaL_checkpointer(L, 1);
+    opt_syntax = (char *)luaL_optstring(L, 2, NULL);
     rv = bview_set_syntax(self, opt_syntax);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -901,12 +901,12 @@ static int _uscript_func_bview_set_syntax(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_set_viewport_y(lua_State* L) {
+static int _uscript_func_bview_set_viewport_y(lua_State *L) {
     int rv;
-    bview_t* self;
+    bview_t *self;
     bint_t y;
     int do_rectify;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    self = (bview_t *)luaL_checkpointer(L, 1);
     y = (bint_t)luaL_checkinteger(L, 2);
     do_rectify = (int)luaL_checkinteger(L, 3);
     rv = bview_set_viewport_y(self, y, do_rectify);
@@ -918,13 +918,13 @@ static int _uscript_func_bview_set_viewport_y(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_split(lua_State* L) {
+static int _uscript_func_bview_split(lua_State *L) {
     int rv;
-    bview_t* self;
+    bview_t *self;
     int is_vertical;
     float factor;
-    bview_t* optret_bview = NULL;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *optret_bview = NULL;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     is_vertical = (int)luaL_checkinteger(L, 2);
     factor = (float)luaL_checknumber(L, 3);
     rv = bview_split(self, is_vertical, factor, &optret_bview);
@@ -939,10 +939,10 @@ static int _uscript_func_bview_split(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_wake_sleeping_cursors(lua_State* L) {
+static int _uscript_func_bview_wake_sleeping_cursors(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_wake_sleeping_cursors(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -952,10 +952,10 @@ static int _uscript_func_bview_wake_sleeping_cursors(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_bview_zero_viewport_y(lua_State* L) {
+static int _uscript_func_bview_zero_viewport_y(lua_State *L) {
     int rv;
-    bview_t* self;
-    self = (bview_t*)luaL_checkpointer(L, 1);
+    bview_t *self;
+    self = (bview_t *)luaL_checkpointer(L, 1);
     rv = bview_zero_viewport_y(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -965,10 +965,10 @@ static int _uscript_func_bview_zero_viewport_y(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_destroy(lua_State* L) {
+static int _uscript_func_cursor_destroy(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_destroy(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -978,11 +978,11 @@ static int _uscript_func_cursor_destroy(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_get_anchor(lua_State* L) {
+static int _uscript_func_cursor_get_anchor(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    mark_t* ret_anchor = NULL;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    mark_t *ret_anchor = NULL;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_get_anchor(cursor, &ret_anchor);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -995,12 +995,12 @@ static int _uscript_func_cursor_get_anchor(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_get_lo_hi(lua_State* L) {
+static int _uscript_func_cursor_get_lo_hi(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    mark_t* ret_lo = NULL;
-    mark_t* ret_hi = NULL;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    mark_t *ret_lo = NULL;
+    mark_t *ret_hi = NULL;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_get_lo_hi(cursor, &ret_lo, &ret_hi);
     lua_createtable(L, 0, 3);
     lua_pushstring(L, "rv");
@@ -1016,11 +1016,11 @@ static int _uscript_func_cursor_get_lo_hi(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_get_mark(lua_State* L) {
+static int _uscript_func_cursor_get_mark(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    mark_t* ret_mark = NULL;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    mark_t *ret_mark = NULL;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_get_mark(cursor, &ret_mark);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -1033,10 +1033,10 @@ static int _uscript_func_cursor_get_mark(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_lift_anchor(lua_State* L) {
+static int _uscript_func_cursor_lift_anchor(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_lift_anchor(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1046,16 +1046,16 @@ static int _uscript_func_cursor_lift_anchor(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_replace(lua_State* L) {
+static int _uscript_func_cursor_replace(lua_State *L) {
     int rv;
-    cursor_t* cursor;
+    cursor_t *cursor;
     int interactive;
-    char* opt_regex;
-    char* opt_replacement;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    char *opt_regex;
+    char *opt_replacement;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     interactive = (int)luaL_checkinteger(L, 2);
-    opt_regex = (char*)luaL_optstring(L, 3, NULL);
-    opt_replacement = (char*)luaL_optstring(L, 4, NULL);
+    opt_regex = (char *)luaL_optstring(L, 3, NULL);
+    opt_replacement = (char *)luaL_optstring(L, 4, NULL);
     rv = cursor_replace(cursor, interactive, opt_regex, opt_replacement);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1065,12 +1065,12 @@ static int _uscript_func_cursor_replace(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_select_by(lua_State* L) {
+static int _uscript_func_cursor_select_by(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    const char* strat;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
-    strat = (const char*)luaL_checkstring(L, 2);
+    cursor_t *cursor;
+    const char *strat;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
+    strat = (const char *)luaL_checkstring(L, 2);
     rv = cursor_select_by(cursor, strat);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1080,10 +1080,10 @@ static int _uscript_func_cursor_select_by(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_select_by_bracket(lua_State* L) {
+static int _uscript_func_cursor_select_by_bracket(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_select_by_bracket(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1093,10 +1093,10 @@ static int _uscript_func_cursor_select_by_bracket(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_select_by_string(lua_State* L) {
+static int _uscript_func_cursor_select_by_string(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_select_by_string(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1106,10 +1106,10 @@ static int _uscript_func_cursor_select_by_string(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_select_by_word(lua_State* L) {
+static int _uscript_func_cursor_select_by_word(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_select_by_word(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1119,10 +1119,10 @@ static int _uscript_func_cursor_select_by_word(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_select_by_word_back(lua_State* L) {
+static int _uscript_func_cursor_select_by_word_back(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_select_by_word_back(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1132,10 +1132,10 @@ static int _uscript_func_cursor_select_by_word_back(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_select_by_word_forward(lua_State* L) {
+static int _uscript_func_cursor_select_by_word_forward(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_select_by_word_forward(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1145,10 +1145,10 @@ static int _uscript_func_cursor_select_by_word_forward(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_cursor_uncut(lua_State* L) {
+static int _uscript_func_cursor_uncut(lua_State *L) {
     int rv;
-    cursor_t* cursor;
-    cursor = (cursor_t*)luaL_checkpointer(L, 1);
+    cursor_t *cursor;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_uncut(cursor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1158,10 +1158,10 @@ static int _uscript_func_cursor_uncut(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_editor_bview_edit_count(lua_State* L) {
+static int _uscript_func_editor_bview_edit_count(lua_State *L) {
     int rv;
-    editor_t* editor;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
+    editor_t *editor;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
     rv = editor_bview_edit_count(editor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1171,13 +1171,13 @@ static int _uscript_func_editor_bview_edit_count(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_editor_close_bview(lua_State* L) {
+static int _uscript_func_editor_close_bview(lua_State *L) {
     int rv;
-    editor_t* editor;
-    bview_t* bview;
+    editor_t *editor;
+    bview_t *bview;
     int optret_num_closed = 0;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
-    bview = (bview_t*)luaL_checkpointer(L, 2);
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    bview = (bview_t *)luaL_checkpointer(L, 2);
     rv = editor_close_bview(editor, bview, &optret_num_closed);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -1190,12 +1190,12 @@ static int _uscript_func_editor_close_bview(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_editor_count_bviews_by_buffer(lua_State* L) {
+static int _uscript_func_editor_count_bviews_by_buffer(lua_State *L) {
     int rv;
-    editor_t* editor;
-    buffer_t* buffer;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
-    buffer = (buffer_t*)luaL_checkpointer(L, 2);
+    editor_t *editor;
+    buffer_t *buffer;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    buffer = (buffer_t *)luaL_checkpointer(L, 2);
     rv = editor_count_bviews_by_buffer(editor, buffer);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1205,12 +1205,12 @@ static int _uscript_func_editor_count_bviews_by_buffer(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_editor_destroy_observer(lua_State* L) {
+static int _uscript_func_editor_destroy_observer(lua_State *L) {
     int rv;
-    editor_t* editor;
-    observer_t* observer;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
-    observer = (observer_t*)luaL_checkpointer(L, 2);
+    editor_t *editor;
+    observer_t *observer;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    observer = (observer_t *)luaL_checkpointer(L, 2);
     rv = editor_destroy_observer(editor, observer);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1220,10 +1220,10 @@ static int _uscript_func_editor_destroy_observer(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_editor_display(lua_State* L) {
+static int _uscript_func_editor_display(lua_State *L) {
     int rv;
-    editor_t* editor;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
+    editor_t *editor;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
     rv = editor_display(editor);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1233,23 +1233,23 @@ static int _uscript_func_editor_display(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_editor_get_input(lua_State* L) {
+// static int _uscript_func_editor_get_input(lua_State *L) {
 // }
 
-// static int _uscript_func_editor_input_to_key(lua_State* L) {
+// static int _uscript_func_editor_input_to_key(lua_State *L) {
 // }
 
-// static int _uscript_func_editor_menu(lua_State* L) {
+// static int _uscript_func_editor_menu(lua_State *L) {
 // }
 
-static int _uscript_func_editor_notify_observers(lua_State* L) {
+static int _uscript_func_editor_notify_observers(lua_State *L) {
     int rv;
-    editor_t* editor;
-    char* event_name;
-    void* event_data;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
-    event_name = (char*)luaL_checkstring(L, 2);
-    event_data = (void*)luaL_checkpointer(L, 3);
+    editor_t *editor;
+    char *event_name;
+    void *event_data;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    event_name = (char *)luaL_checkstring(L, 2);
+    event_data = (void *)luaL_checkpointer(L, 3);
     rv = editor_notify_observers(editor, event_name, event_data);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1259,27 +1259,27 @@ static int _uscript_func_editor_notify_observers(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_editor_open_bview(lua_State* L) {
+static int _uscript_func_editor_open_bview(lua_State *L) {
     int rv;
-    editor_t* editor;
-    bview_t* opt_parent;
+    editor_t *editor;
+    bview_t *opt_parent;
     int type;
-    char* opt_path;
+    char *opt_path;
     int opt_path_len;
     int make_active;
     bint_t linenum;
     int skip_resize;
-    buffer_t* opt_buffer;
-    bview_t* optret_bview = NULL;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
-    opt_parent = (bview_t*)luaL_optpointer(L, 2, NULL);
+    buffer_t *opt_buffer;
+    bview_t *optret_bview = NULL;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    opt_parent = (bview_t *)luaL_optpointer(L, 2, NULL);
     type = (int)luaL_checkinteger(L, 3);
-    opt_path = (char*)luaL_optstring(L, 4, NULL);
+    opt_path = (char *)luaL_optstring(L, 4, NULL);
     opt_path_len = (int)luaL_optinteger(L, 5, 0);
     make_active = (int)luaL_checkinteger(L, 6);
     linenum = (bint_t)luaL_checkinteger(L, 7);
     skip_resize = (int)luaL_checkinteger(L, 8);
-    opt_buffer = (buffer_t*)luaL_optpointer(L, 9, NULL);
+    opt_buffer = (buffer_t *)luaL_optpointer(L, 9, NULL);
     rv = editor_open_bview(editor, opt_parent, type, opt_path, opt_path_len, make_active, linenum, skip_resize, opt_buffer, &optret_bview);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -1292,21 +1292,21 @@ static int _uscript_func_editor_open_bview(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_editor_prompt(lua_State* L) {
+// static int _uscript_func_editor_prompt(lua_State *L) {
 // }
 
-// static int _uscript_func_editor_register_cmd(lua_State* L) {
+// static int _uscript_func_editor_register_cmd(lua_State *L) {
 // }
 
-// static int _uscript_func_editor_register_observer(lua_State* L) {
+// static int _uscript_func_editor_register_observer(lua_State *L) {
 // }
 
-static int _uscript_func_editor_set_active(lua_State* L) {
+static int _uscript_func_editor_set_active(lua_State *L) {
     int rv;
-    editor_t* editor;
-    bview_t* bview;
-    editor = (editor_t*)luaL_checkpointer(L, 1);
-    bview = (bview_t*)luaL_checkpointer(L, 2);
+    editor_t *editor;
+    bview_t *bview;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    bview = (bview_t *)luaL_checkpointer(L, 2);
     rv = editor_set_active(editor, bview);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1316,11 +1316,11 @@ static int _uscript_func_editor_set_active(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_clone(lua_State* L) {
+static int _uscript_func_mark_clone(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* ret_mark = NULL;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    mark_t *ret_mark = NULL;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_clone(self, &ret_mark);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -1333,12 +1333,12 @@ static int _uscript_func_mark_clone(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_clone_w_letter(lua_State* L) {
+static int _uscript_func_mark_clone_w_letter(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     char letter;
-    mark_t* ret_mark = NULL;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *ret_mark = NULL;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     letter = (char)luaL_checkinteger(L, 2);
     rv = mark_clone_w_letter(self, letter, &ret_mark);
     lua_createtable(L, 0, 2);
@@ -1352,11 +1352,11 @@ static int _uscript_func_mark_clone_w_letter(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_delete_after(lua_State* L) {
+static int _uscript_func_mark_delete_after(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t num_chars;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     num_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_delete_after(self, num_chars);
     lua_createtable(L, 0, 1);
@@ -1367,11 +1367,11 @@ static int _uscript_func_mark_delete_after(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_delete_before(lua_State* L) {
+static int _uscript_func_mark_delete_before(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t num_chars;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     num_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_delete_before(self, num_chars);
     lua_createtable(L, 0, 1);
@@ -1382,12 +1382,12 @@ static int _uscript_func_mark_delete_before(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_delete_between_mark(lua_State* L) {
+static int _uscript_func_mark_delete_between_mark(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_delete_between_mark(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1397,10 +1397,10 @@ static int _uscript_func_mark_delete_between_mark(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_destroy(lua_State* L) {
+static int _uscript_func_mark_destroy(lua_State *L) {
     int rv;
-    mark_t* self;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_destroy(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1410,14 +1410,14 @@ static int _uscript_func_mark_destroy(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_find_bracket_pair(lua_State* L) {
+static int _uscript_func_mark_find_bracket_pair(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t max_chars;
-    bline_t* ret_line = NULL;
+    bline_t *ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_brkt = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_find_bracket_pair(self, max_chars, &ret_line, &ret_col, &ret_brkt);
     lua_createtable(L, 0, 4);
@@ -1437,14 +1437,14 @@ static int _uscript_func_mark_find_bracket_pair(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_find_bracket_top(lua_State* L) {
+static int _uscript_func_mark_find_bracket_top(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t max_chars;
-    bline_t* ret_line = NULL;
+    bline_t *ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_brkt = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_find_bracket_top(self, max_chars, &ret_line, &ret_col, &ret_brkt);
     lua_createtable(L, 0, 4);
@@ -1464,16 +1464,16 @@ static int _uscript_func_mark_find_bracket_top(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_find_next_re(lua_State* L) {
+static int _uscript_func_mark_find_next_re(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* re;
+    mark_t *self;
+    char *re;
     bint_t re_len;
-    bline_t* ret_line = NULL;
+    bline_t *ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    re = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    re = (char *)luaL_checkstring(L, 2);
     re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_next_re(self, re, re_len, &ret_line, &ret_col, &ret_num_chars);
     lua_createtable(L, 0, 4);
@@ -1493,16 +1493,16 @@ static int _uscript_func_mark_find_next_re(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_find_next_str(lua_State* L) {
+static int _uscript_func_mark_find_next_str(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* str;
+    mark_t *self;
+    char *str;
     bint_t str_len;
-    bline_t* ret_line = NULL;
+    bline_t *ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    str = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    str = (char *)luaL_checkstring(L, 2);
     str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_next_str(self, str, str_len, &ret_line, &ret_col, &ret_num_chars);
     lua_createtable(L, 0, 4);
@@ -1522,16 +1522,16 @@ static int _uscript_func_mark_find_next_str(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_find_prev_re(lua_State* L) {
+static int _uscript_func_mark_find_prev_re(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* re;
+    mark_t *self;
+    char *re;
     bint_t re_len;
-    bline_t* ret_line = NULL;
+    bline_t *ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    re = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    re = (char *)luaL_checkstring(L, 2);
     re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_prev_re(self, re, re_len, &ret_line, &ret_col, &ret_num_chars);
     lua_createtable(L, 0, 4);
@@ -1551,16 +1551,16 @@ static int _uscript_func_mark_find_prev_re(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_find_prev_str(lua_State* L) {
+static int _uscript_func_mark_find_prev_str(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* str;
+    mark_t *self;
+    char *str;
     bint_t str_len;
-    bline_t* ret_line = NULL;
+    bline_t *ret_line = NULL;
     bint_t ret_col = 0;
     bint_t ret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    str = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    str = (char *)luaL_checkstring(L, 2);
     str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_find_prev_str(self, str, str_len, &ret_line, &ret_col, &ret_num_chars);
     lua_createtable(L, 0, 4);
@@ -1580,14 +1580,14 @@ static int _uscript_func_mark_find_prev_str(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_get_between_mark(lua_State* L) {
+static int _uscript_func_mark_get_between_mark(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    char* ret_str = NULL;
+    mark_t *self;
+    mark_t *other;
+    char *ret_str = NULL;
     bint_t ret_str_len = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_get_between_mark(self, other, &ret_str, &ret_str_len);
     lua_createtable(L, 0, 3);
     lua_pushstring(L, "rv");
@@ -1603,11 +1603,11 @@ static int _uscript_func_mark_get_between_mark(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_get_char_after(lua_State* L) {
+static int _uscript_func_mark_get_char_after(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     uint32_t ret_char = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_get_char_after(self, &ret_char);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -1620,11 +1620,11 @@ static int _uscript_func_mark_get_char_after(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_get_char_before(lua_State* L) {
+static int _uscript_func_mark_get_char_before(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     uint32_t ret_char = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_get_char_before(self, &ret_char);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -1637,11 +1637,11 @@ static int _uscript_func_mark_get_char_before(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_get_offset(lua_State* L) {
+static int _uscript_func_mark_get_offset(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t ret_offset = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_get_offset(self, &ret_offset);
     lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
@@ -1654,13 +1654,13 @@ static int _uscript_func_mark_get_offset(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_insert_after(lua_State* L) {
+static int _uscript_func_mark_insert_after(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* data;
+    mark_t *self;
+    char *data;
     bint_t data_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    data = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    data = (char *)luaL_checkstring(L, 2);
     data_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_insert_after(self, data, data_len);
     lua_createtable(L, 0, 1);
@@ -1671,13 +1671,13 @@ static int _uscript_func_mark_insert_after(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_insert_before(lua_State* L) {
+static int _uscript_func_mark_insert_before(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* data;
+    mark_t *self;
+    char *data;
     bint_t data_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    data = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    data = (char *)luaL_checkstring(L, 2);
     data_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_insert_before(self, data, data_len);
     lua_createtable(L, 0, 1);
@@ -1688,11 +1688,11 @@ static int _uscript_func_mark_insert_before(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_after_col_minus_lefties(lua_State* L) {
+static int _uscript_func_mark_is_after_col_minus_lefties(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t col;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     col = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_is_after_col_minus_lefties(self, col);
     lua_createtable(L, 0, 1);
@@ -1703,10 +1703,10 @@ static int _uscript_func_mark_is_after_col_minus_lefties(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_at_bol(lua_State* L) {
+static int _uscript_func_mark_is_at_bol(lua_State *L) {
     int rv;
-    mark_t* self;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_is_at_bol(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1716,10 +1716,10 @@ static int _uscript_func_mark_is_at_bol(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_at_eol(lua_State* L) {
+static int _uscript_func_mark_is_at_eol(lua_State *L) {
     int rv;
-    mark_t* self;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_is_at_eol(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1729,11 +1729,11 @@ static int _uscript_func_mark_is_at_eol(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_at_word_bound(lua_State* L) {
+static int _uscript_func_mark_is_at_word_bound(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     int side;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     side = (int)luaL_checkinteger(L, 2);
     rv = mark_is_at_word_bound(self, side);
     lua_createtable(L, 0, 1);
@@ -1744,12 +1744,12 @@ static int _uscript_func_mark_is_at_word_bound(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_eq(lua_State* L) {
+static int _uscript_func_mark_is_eq(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_is_eq(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1759,12 +1759,12 @@ static int _uscript_func_mark_is_eq(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_gt(lua_State* L) {
+static int _uscript_func_mark_is_gt(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_is_gt(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1774,12 +1774,12 @@ static int _uscript_func_mark_is_gt(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_gte(lua_State* L) {
+static int _uscript_func_mark_is_gte(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_is_gte(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1789,12 +1789,12 @@ static int _uscript_func_mark_is_gte(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_lt(lua_State* L) {
+static int _uscript_func_mark_is_lt(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_is_lt(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1804,12 +1804,12 @@ static int _uscript_func_mark_is_lt(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_is_lte(lua_State* L) {
+static int _uscript_func_mark_is_lte(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_is_lte(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1819,12 +1819,12 @@ static int _uscript_func_mark_is_lte(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_join(lua_State* L) {
+static int _uscript_func_mark_join(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_join(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1834,10 +1834,10 @@ static int _uscript_func_mark_join(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_beginning(lua_State* L) {
+static int _uscript_func_mark_move_beginning(lua_State *L) {
     int rv;
-    mark_t* self;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_move_beginning(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1847,10 +1847,10 @@ static int _uscript_func_mark_move_beginning(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_bol(lua_State* L) {
+static int _uscript_func_mark_move_bol(lua_State *L) {
     int rv;
-    mark_t* self;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_move_bol(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1860,11 +1860,11 @@ static int _uscript_func_mark_move_bol(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_bracket_pair(lua_State* L) {
+static int _uscript_func_mark_move_bracket_pair(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t max_chars;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_pair(self, max_chars);
     lua_createtable(L, 0, 1);
@@ -1875,14 +1875,14 @@ static int _uscript_func_mark_move_bracket_pair(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_bracket_pair_ex(lua_State* L) {
+static int _uscript_func_mark_move_bracket_pair_ex(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t max_chars;
-    bline_t* optret_line = NULL;
+    bline_t *optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_pair_ex(self, max_chars, &optret_line, &optret_col, &optret_num_chars);
     lua_createtable(L, 0, 4);
@@ -1902,11 +1902,11 @@ static int _uscript_func_mark_move_bracket_pair_ex(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_bracket_top(lua_State* L) {
+static int _uscript_func_mark_move_bracket_top(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t max_chars;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_top(self, max_chars);
     lua_createtable(L, 0, 1);
@@ -1917,14 +1917,14 @@ static int _uscript_func_mark_move_bracket_top(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_bracket_top_ex(lua_State* L) {
+static int _uscript_func_mark_move_bracket_top_ex(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t max_chars;
-    bline_t* optret_line = NULL;
+    bline_t *optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     max_chars = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_bracket_top_ex(self, max_chars, &optret_line, &optret_col, &optret_num_chars);
     lua_createtable(L, 0, 4);
@@ -1944,11 +1944,11 @@ static int _uscript_func_mark_move_bracket_top_ex(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_by(lua_State* L) {
+static int _uscript_func_mark_move_by(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t char_delta;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     char_delta = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_by(self, char_delta);
     lua_createtable(L, 0, 1);
@@ -1959,11 +1959,11 @@ static int _uscript_func_mark_move_by(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_col(lua_State* L) {
+static int _uscript_func_mark_move_col(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t col;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     col = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_col(self, col);
     lua_createtable(L, 0, 1);
@@ -1974,10 +1974,10 @@ static int _uscript_func_mark_move_col(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_end(lua_State* L) {
+static int _uscript_func_mark_move_end(lua_State *L) {
     int rv;
-    mark_t* self;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_move_end(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -1987,10 +1987,10 @@ static int _uscript_func_mark_move_end(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_eol(lua_State* L) {
+static int _uscript_func_mark_move_eol(lua_State *L) {
     int rv;
-    mark_t* self;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    mark_t *self;
+    self = (mark_t *)luaL_checkpointer(L, 1);
     rv = mark_move_eol(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -2000,13 +2000,13 @@ static int _uscript_func_mark_move_eol(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_next_re(lua_State* L) {
+static int _uscript_func_mark_move_next_re(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* re;
+    mark_t *self;
+    char *re;
     bint_t re_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    re = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    re = (char *)luaL_checkstring(L, 2);
     re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_re(self, re, re_len);
     lua_createtable(L, 0, 1);
@@ -2017,16 +2017,16 @@ static int _uscript_func_mark_move_next_re(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_next_re_ex(lua_State* L) {
+static int _uscript_func_mark_move_next_re_ex(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* re;
+    mark_t *self;
+    char *re;
     bint_t re_len;
-    bline_t* optret_line = NULL;
+    bline_t *optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    re = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    re = (char *)luaL_checkstring(L, 2);
     re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_re_ex(self, re, re_len, &optret_line, &optret_col, &optret_num_chars);
     lua_createtable(L, 0, 4);
@@ -2046,13 +2046,13 @@ static int _uscript_func_mark_move_next_re_ex(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_next_re_nudge(lua_State* L) {
+static int _uscript_func_mark_move_next_re_nudge(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* re;
+    mark_t *self;
+    char *re;
     bint_t re_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    re = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    re = (char *)luaL_checkstring(L, 2);
     re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_re_nudge(self, re, re_len);
     lua_createtable(L, 0, 1);
@@ -2063,13 +2063,13 @@ static int _uscript_func_mark_move_next_re_nudge(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_next_str(lua_State* L) {
+static int _uscript_func_mark_move_next_str(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* str;
+    mark_t *self;
+    char *str;
     bint_t str_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    str = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    str = (char *)luaL_checkstring(L, 2);
     str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_str(self, str, str_len);
     lua_createtable(L, 0, 1);
@@ -2080,16 +2080,16 @@ static int _uscript_func_mark_move_next_str(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_next_str_ex(lua_State* L) {
+static int _uscript_func_mark_move_next_str_ex(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* str;
+    mark_t *self;
+    char *str;
     bint_t str_len;
-    bline_t* optret_line = NULL;
+    bline_t *optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    str = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    str = (char *)luaL_checkstring(L, 2);
     str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_str_ex(self, str, str_len, &optret_line, &optret_col, &optret_num_chars);
     lua_createtable(L, 0, 4);
@@ -2109,13 +2109,13 @@ static int _uscript_func_mark_move_next_str_ex(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_next_str_nudge(lua_State* L) {
+static int _uscript_func_mark_move_next_str_nudge(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* str;
+    mark_t *self;
+    char *str;
     bint_t str_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    str = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    str = (char *)luaL_checkstring(L, 2);
     str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_next_str_nudge(self, str, str_len);
     lua_createtable(L, 0, 1);
@@ -2126,11 +2126,11 @@ static int _uscript_func_mark_move_next_str_nudge(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_offset(lua_State* L) {
+static int _uscript_func_mark_move_offset(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t offset;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     offset = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_offset(self, offset);
     lua_createtable(L, 0, 1);
@@ -2141,13 +2141,13 @@ static int _uscript_func_mark_move_offset(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_prev_re(lua_State* L) {
+static int _uscript_func_mark_move_prev_re(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* re;
+    mark_t *self;
+    char *re;
     bint_t re_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    re = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    re = (char *)luaL_checkstring(L, 2);
     re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_re(self, re, re_len);
     lua_createtable(L, 0, 1);
@@ -2158,16 +2158,16 @@ static int _uscript_func_mark_move_prev_re(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_prev_re_ex(lua_State* L) {
+static int _uscript_func_mark_move_prev_re_ex(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* re;
+    mark_t *self;
+    char *re;
     bint_t re_len;
-    bline_t* optret_line = NULL;
+    bline_t *optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    re = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    re = (char *)luaL_checkstring(L, 2);
     re_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_re_ex(self, re, re_len, &optret_line, &optret_col, &optret_num_chars);
     lua_createtable(L, 0, 4);
@@ -2187,13 +2187,13 @@ static int _uscript_func_mark_move_prev_re_ex(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_prev_str(lua_State* L) {
+static int _uscript_func_mark_move_prev_str(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* str;
+    mark_t *self;
+    char *str;
     bint_t str_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    str = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    str = (char *)luaL_checkstring(L, 2);
     str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_str(self, str, str_len);
     lua_createtable(L, 0, 1);
@@ -2204,16 +2204,16 @@ static int _uscript_func_mark_move_prev_str(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_prev_str_ex(lua_State* L) {
+static int _uscript_func_mark_move_prev_str_ex(lua_State *L) {
     int rv;
-    mark_t* self;
-    char* str;
+    mark_t *self;
+    char *str;
     bint_t str_len;
-    bline_t* optret_line = NULL;
+    bline_t *optret_line = NULL;
     bint_t optret_col = 0;
     bint_t optret_num_chars = 0;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    str = (char*)luaL_checkstring(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    str = (char *)luaL_checkstring(L, 2);
     str_len = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_prev_str_ex(self, str, str_len, &optret_line, &optret_col, &optret_num_chars);
     lua_createtable(L, 0, 4);
@@ -2233,12 +2233,12 @@ static int _uscript_func_mark_move_prev_str_ex(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_to(lua_State* L) {
+static int _uscript_func_mark_move_to(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t line_index;
     bint_t col;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     line_index = (bint_t)luaL_checkinteger(L, 2);
     col = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_to(self, line_index, col);
@@ -2250,13 +2250,13 @@ static int _uscript_func_mark_move_to(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_to_w_bline(lua_State* L) {
+static int _uscript_func_mark_move_to_w_bline(lua_State *L) {
     int rv;
-    mark_t* self;
-    bline_t* bline;
+    mark_t *self;
+    bline_t *bline;
     bint_t col;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    bline = (bline_t*)luaL_checkpointer(L, 2);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    bline = (bline_t *)luaL_checkpointer(L, 2);
     col = (bint_t)luaL_checkinteger(L, 3);
     rv = mark_move_to_w_bline(self, bline, col);
     lua_createtable(L, 0, 1);
@@ -2267,11 +2267,11 @@ static int _uscript_func_mark_move_to_w_bline(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_move_vert(lua_State* L) {
+static int _uscript_func_mark_move_vert(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t line_delta;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     line_delta = (bint_t)luaL_checkinteger(L, 2);
     rv = mark_move_vert(self, line_delta);
     lua_createtable(L, 0, 1);
@@ -2282,15 +2282,15 @@ static int _uscript_func_mark_move_vert(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_replace(lua_State* L) {
+static int _uscript_func_mark_replace(lua_State *L) {
     int rv;
-    mark_t* self;
+    mark_t *self;
     bint_t num_chars;
-    char* data;
+    char *data;
     bint_t data_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
+    self = (mark_t *)luaL_checkpointer(L, 1);
     num_chars = (bint_t)luaL_checkinteger(L, 2);
-    data = (char*)luaL_checkstring(L, 3);
+    data = (char *)luaL_checkstring(L, 3);
     data_len = (bint_t)luaL_checkinteger(L, 4);
     rv = mark_replace(self, num_chars, data, data_len);
     lua_createtable(L, 0, 1);
@@ -2301,15 +2301,15 @@ static int _uscript_func_mark_replace(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_replace_between_mark(lua_State* L) {
+static int _uscript_func_mark_replace_between_mark(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    char* data;
+    mark_t *self;
+    mark_t *other;
+    char *data;
     bint_t data_len;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
-    data = (char*)luaL_checkstring(L, 3);
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
+    data = (char *)luaL_checkstring(L, 3);
     data_len = (bint_t)luaL_checkinteger(L, 4);
     rv = mark_replace_between_mark(self, other, data, data_len);
     lua_createtable(L, 0, 1);
@@ -2320,12 +2320,12 @@ static int _uscript_func_mark_replace_between_mark(lua_State* L) {
     return 1;
 }
 
-static int _uscript_func_mark_swap_with_mark(lua_State* L) {
+static int _uscript_func_mark_swap_with_mark(lua_State *L) {
     int rv;
-    mark_t* self;
-    mark_t* other;
-    self = (mark_t*)luaL_checkpointer(L, 1);
-    other = (mark_t*)luaL_checkpointer(L, 2);
+    mark_t *self;
+    mark_t *other;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
     rv = mark_swap_with_mark(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
@@ -2335,10 +2335,10 @@ static int _uscript_func_mark_swap_with_mark(lua_State* L) {
     return 1;
 }
 
-// static int _uscript_func_util_escape_shell_arg(lua_State* L) {
+// static int _uscript_func_util_escape_shell_arg(lua_State *L) {
 // }
 
-// static int _uscript_func_util_shell_exec(lua_State* L) {
+// static int _uscript_func_util_shell_exec(lua_State *L) {
 // }
 
 static const struct luaL_Reg mle_lib[] = {

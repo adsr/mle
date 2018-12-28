@@ -10,7 +10,7 @@
 
 // Run a shell command, optionally feeding stdin, collecting stdout
 // Specify timeout_s=-1 for no timeout
-int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, size_t input_len, int setsid, char* opt_shell, char** optret_output, size_t* optret_output_len) {
+int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, size_t input_len, int setsid, char *opt_shell, char **optret_output, size_t *optret_output_len) {
     // TODO clean this crap up
     int rv;
     int do_read;
@@ -21,7 +21,7 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
     ssize_t nbytes;
     fd_set readfds;
     struct timeval timeout;
-    struct timeval* timeoutptr;
+    struct timeval *timeoutptr;
     pid_t pid;
     str_t readbuf = {0};
 
@@ -122,7 +122,7 @@ int util_shell_exec(editor_t* editor, char* cmd, long timeout_s, char* input, si
 }
 
 // Like popen, but more control over pipes. Returns 1 on success, 0 on failure.
-int util_popen2(char* cmd, int do_setsid, char* opt_shell, int* optret_fdread, int* optret_fdwrite, pid_t* optret_pid) {
+int util_popen2(char *cmd, int do_setsid, char *opt_shell, int *optret_fdread, int *optret_fdwrite, pid_t *optret_pid) {
     pid_t pid;
     int do_read;
     int do_write;
@@ -175,7 +175,7 @@ int util_popen2(char* cmd, int do_setsid, char* opt_shell, int* optret_fdread, i
 }
 
 // Return paired bracket if ch is a bracket, else return 0
-int util_get_bracket_pair(uint32_t ch, int* optret_is_closing) {
+int util_get_bracket_pair(uint32_t ch, int *optret_is_closing) {
     switch (ch) {
         case '[': if (optret_is_closing) *optret_is_closing = 0; return ']';
         case '(': if (optret_is_closing) *optret_is_closing = 0; return ')';
@@ -189,7 +189,7 @@ int util_get_bracket_pair(uint32_t ch, int* optret_is_closing) {
 }
 
 // Return 1 if path is file
-int util_is_file(char* path, char* opt_mode, FILE** optret_file) {
+int util_is_file(char *path, char *opt_mode, FILE **optret_file) {
     struct stat sb;
     if (stat(path, &sb) != 0 || !S_ISREG(sb.st_mode)) return 0;
     if (opt_mode && optret_file) {
@@ -200,16 +200,16 @@ int util_is_file(char* path, char* opt_mode, FILE** optret_file) {
 }
 
 // Return 1 if path is dir
-int util_is_dir(char* path) {
+int util_is_dir(char *path) {
     struct stat sb;
     if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)) return 0;
     return 1;
 }
 
 // Return 1 if re matches subject
-int util_pcre_match(char* re, char* subject, int subject_len, char** optret_capture, int* optret_capture_len) {
+int util_pcre_match(char *re, char *subject, int subject_len, char **optret_capture, int *optret_capture_len) {
     int rc;
-    pcre* cre;
+    pcre *cre;
     const char *error;
     int erroffset;
     int ovector[3];
@@ -232,9 +232,9 @@ int util_pcre_match(char* re, char* subject, int subject_len, char** optret_capt
 // Perform a regex replace with back-references. Return number of replacements
 // made. If regex is invalid, `ret_result` is set to NULL, `ret_result_len` is
 // set to 0 and 0 is returned.
-int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* ret_result_len) {
+int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *ret_result_len) {
     int rc;
-    pcre* cre;
+    pcre *cre;
     const char *error;
     int erroffset;
     int subj_offset;
@@ -300,7 +300,7 @@ int util_pcre_replace(char* re, char* subj, char* repl, char** ret_result, int* 
 }
 
 // Return 1 if a > b, else return 0.
-int util_timeval_is_gt(struct timeval* a, struct timeval* b) {
+int util_timeval_is_gt(struct timeval *a, struct timeval *b) {
     if (a->tv_sec > b->tv_sec) {
         return 1;
     } else if (a->tv_sec == b->tv_sec) {
@@ -311,7 +311,7 @@ int util_timeval_is_gt(struct timeval* a, struct timeval* b) {
 
 // Ported from php_escape_shell_arg
 // https://github.com/php/php-src/blob/master/ext/standard/exec.c
-char* util_escape_shell_arg(char* str, int l) {
+char *util_escape_shell_arg(char *str, int l) {
     int x, y = 0;
     char *cmd;
 
@@ -377,7 +377,7 @@ int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const c
 // reset that attribute.
 int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
     char bufo[4096];
-    char* buf;
+    char *buf;
     int fg;
     int bg;
     int tfg;
@@ -428,8 +428,8 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
 
 
 // Zero-fill realloc
-void* recalloc(void* ptr, size_t orig_num, size_t new_num, size_t el_size) {
-    void* newptr;
+void *recalloc(void *ptr, size_t orig_num, size_t new_num, size_t el_size) {
+    void *newptr;
     newptr = realloc(ptr, new_num * el_size);
     if (!newptr) return NULL;
     if (new_num > orig_num) {
@@ -439,51 +439,51 @@ void* recalloc(void* ptr, size_t orig_num, size_t new_num, size_t el_size) {
 }
 
 // Append from data up until data_stop to str
-void str_append_stop(str_t* str, char* data, char* data_stop) {
+void str_append_stop(str_t *str, char *data, char *data_stop) {
     size_t data_len;
     data_len = data_stop >= data ? data_stop - data : 0;
     str_append_len(str, data, data_len);
 }
 
 // Append data to str
-void str_append(str_t* str, char* data) {
+void str_append(str_t *str, char *data) {
     str_append_len(str, data, strlen(data));
 }
 
 // Append data_len bytes of data to str
-void str_append_len(str_t* str, char* data, size_t data_len) {
+void str_append_len(str_t *str, char *data, size_t data_len) {
     str_put_len(str, data, data_len, 0);
 }
 
 // Append char to str
-void str_append_char(str_t* str, char c) {
+void str_append_char(str_t *str, char c) {
     str_put_len(str, &c, 1, 0);
 }
 
 // Prepend from data up until data_stop to str
-void str_prepend_stop(str_t* str, char* data, char* data_stop) {
+void str_prepend_stop(str_t *str, char *data, char *data_stop) {
     size_t data_len;
     data_len = data_stop >= data ? data_stop - data : 0;
     str_prepend_len(str, data, data_len);
 }
 
 // Prepend data to str
-void str_prepend(str_t* str, char* data) {
+void str_prepend(str_t *str, char *data) {
     str_prepend_len(str, data, strlen(data));
 }
 
 // Prepend data_len bytes of data to str
-void str_prepend_len(str_t* str, char* data, size_t data_len) {
+void str_prepend_len(str_t *str, char *data, size_t data_len) {
     str_put_len(str, data, data_len, 1);
 }
 
 // Set str to data
-void str_set(str_t* str, char* data) {
+void str_set(str_t *str, char *data) {
     str_set_len(str, data, strlen(data));
 }
 
 // Set str to data for data_len bytes
-void str_set_len(str_t* str, char* data, size_t data_len) {
+void str_set_len(str_t *str, char *data, size_t data_len) {
     str_ensure_cap(str, data_len+1);
     memcpy(str->data, data, data_len);
     str->len = data_len;
@@ -491,7 +491,7 @@ void str_set_len(str_t* str, char* data, size_t data_len) {
 }
 
 // Append/prepend data_len bytes of data to str
-void str_put_len(str_t* str, char* data, size_t data_len, int is_prepend) {
+void str_put_len(str_t *str, char *data, size_t data_len, int is_prepend) {
     size_t req_cap;
     req_cap = str->len + data_len + 1;
     if (req_cap > str->cap) {
@@ -508,7 +508,7 @@ void str_put_len(str_t* str, char* data, size_t data_len, int is_prepend) {
 }
 
 // Ensure space in str
-void str_ensure_cap(str_t* str, size_t cap) {
+void str_ensure_cap(str_t *str, size_t cap) {
     if (cap > str->cap) {
         if (str->inc >= 0) {
             // If inc is positive, grow linearly
@@ -523,12 +523,12 @@ void str_ensure_cap(str_t* str, size_t cap) {
 }
 
 // Clear str
-void str_clear(str_t* str) {
+void str_clear(str_t *str) {
     str->len = 0;
 }
 
 // Free str
-void str_free(str_t* str) {
+void str_free(str_t *str) {
     if (str->data) free(str->data);
     memset(str, 0, sizeof(str_t));
 }
@@ -543,15 +543,15 @@ void str_free(str_t* str) {
 //   pcre_ovector  ovector used with pcre_exec
 //   pcre_ovecsize size of pcre_ovector
 //
-void str_append_replace_with_backrefs(str_t* str, char* subj, char* repl, int pcre_rc, int* pcre_ovector, int pcre_ovecsize) {
-    char* repl_stop;
-    char* repl_cur;
-    char* repl_z;
-    char* repl_backref;
+void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, int *pcre_ovector, int pcre_ovecsize) {
+    char *repl_stop;
+    char *repl_cur;
+    char *repl_z;
+    char *repl_backref;
     int repl_delta;
     int ibackref;
-    char* term;
-    char* term_stop;
+    char *term;
+    char *term_stop;
     char hex[3];
     char byte;
 

@@ -5,12 +5,12 @@ typedef struct {
     int b;
 } thing_t;
 
-char* str = "";
+char *str = "";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     int i;
     int is_all_zero;
-    thing_t* things;
+    thing_t *things;
     int nsize = 1024;
 
     things = calloc(1, sizeof(thing_t));

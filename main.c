@@ -9,7 +9,7 @@
 
 editor_t _editor;
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     memset(&_editor, 0, sizeof(editor_t));
     setlocale(LC_ALL, "");
     if (editor_init(&_editor, argc, argv) == MLE_OK) {

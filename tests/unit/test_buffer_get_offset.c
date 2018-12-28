@@ -1,8 +1,8 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     bint_t offset;
 
     buffer_get_offset(buf, buf->first_line, 0, &offset);

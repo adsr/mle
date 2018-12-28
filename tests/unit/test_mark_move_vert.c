@@ -1,8 +1,8 @@
 #include "test.h"
 
-char* str = "hi\nworld";
+char *str = "hi\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     mark_move_end(cur);
 
     mark_move_vert(cur, 1);

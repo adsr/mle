@@ -1,9 +1,9 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
-    char* data;
+void test(buffer_t *buf, mark_t *cur) {
+    char *data;
     bint_t data_len;
     mark_move_end(cur);
     mark_delete_before(cur, 1);

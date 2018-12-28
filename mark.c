@@ -4,18 +4,18 @@
 #include <pcre.h>
 #include "mlbuf.h"
 
-typedef char* (*mark_find_match_fn)(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* u1, void* u2, bint_t* ret_needle_len);
-static int mark_find_match(mark_t* self, mark_find_match_fn matchfn, void* u1, void* u2, int reverse, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars);
-static int mark_find_re(mark_t* self, char* re, bint_t re_len, int reverse, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars);
-static char* mark_find_match_prev(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, mark_find_match_fn matchfn, void* u1, void* u2);
-static char* mark_find_next_str_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* needle, void* needle_len, bint_t* ret_needle_len);
-static char* mark_find_prev_str_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* needle, void* needle_len, bint_t* ret_needle_len);
-static char* mark_find_next_cre_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* cre, void* unused, bint_t* ret_needle_len);
-static char* mark_find_prev_cre_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* cre, void* unused, bint_t* ret_needle_len);
+typedef char* (*mark_find_match_fn)(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *u1, void *u2, bint_t *ret_needle_len);
+static int mark_find_match(mark_t *self, mark_find_match_fn matchfn, void *u1, void *u2, int reverse, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
+static int mark_find_re(mark_t *self, char *re, bint_t re_len, int reverse, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
+static char *mark_find_match_prev(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, mark_find_match_fn matchfn, void *u1, void *u2);
+static char *mark_find_next_str_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *needle, void *needle_len, bint_t *ret_needle_len);
+static char *mark_find_prev_str_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *needle, void *needle_len, bint_t *ret_needle_len);
+static char *mark_find_next_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len);
+static char *mark_find_prev_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len);
 
-static int* pcre_ovector = NULL;
+static int *pcre_ovector = NULL;
 static int pcre_ovector_size = 0;
-static int* pcre_rc;
+static int *pcre_rc;
 static char bracket_pairs[8] = {
     '[', ']',
     '(', ')',
@@ -23,24 +23,24 @@ static char bracket_pairs[8] = {
 };
 
 // Return a clone (same position) of an existing mark
-int mark_clone(mark_t* self, mark_t** ret_mark) {
+int mark_clone(mark_t *self, mark_t **ret_mark) {
     *ret_mark = buffer_add_mark(self->bline->buffer, self->bline, self->col);
     return MLBUF_OK;
 }
 
 // Return a lettered clone (same position) of an existing mark
-int mark_clone_w_letter(mark_t* self, char letter, mark_t** ret_mark) {
+int mark_clone_w_letter(mark_t *self, char letter, mark_t **ret_mark) {
     *ret_mark = buffer_add_mark_ex(self->bline->buffer, letter, self->bline, self->col);
     return MLBUF_OK;
 }
 
 // Insert data before mark
-int mark_insert_before(mark_t* self, char* data, bint_t data_len) {
+int mark_insert_before(mark_t *self, char *data, bint_t data_len) {
     return bline_insert(self->bline, self->col, data, data_len, NULL);
 }
 
 // Insert data after mark
-int mark_insert_after(mark_t* self, char* data, bint_t data_len) {
+int mark_insert_after(mark_t *self, char *data, bint_t data_len) {
     int rc;
     bint_t num_chars;
     if ((rc = bline_insert(self->bline, self->col, data, data_len, &num_chars)) == MLBUF_OK) {
@@ -50,12 +50,12 @@ int mark_insert_after(mark_t* self, char* data, bint_t data_len) {
 }
 
 // Delete data after mark
-int mark_delete_after(mark_t* self, bint_t num_chars) {
+int mark_delete_after(mark_t *self, bint_t num_chars) {
     return bline_delete(self->bline, self->col, num_chars);
 }
 
 // Delete data before mark
-int mark_delete_before(mark_t* self, bint_t num_chars) {
+int mark_delete_before(mark_t *self, bint_t num_chars) {
     int rc;
     if ((rc = mark_move_by(self, -1 * num_chars)) == MLBUF_OK) {
         rc = mark_delete_after(self, num_chars);
@@ -64,12 +64,12 @@ int mark_delete_before(mark_t* self, bint_t num_chars) {
 }
 
 // Replace data
-int mark_replace(mark_t* self, bint_t num_chars, char* data, bint_t data_len) {
+int mark_replace(mark_t *self, bint_t num_chars, char *data, bint_t data_len) {
     return bline_replace(self->bline, self->col, num_chars, data, data_len);
 }
 
 // Replace data between marks
-int mark_replace_between_mark(mark_t* self, mark_t* other, char* data, bint_t data_len) {
+int mark_replace_between_mark(mark_t *self, mark_t *other, char *data, bint_t data_len) {
     bint_t offset_a;
     bint_t offset_b;
     buffer_get_offset(self->bline->buffer, self->bline, self->col, &offset_a);
@@ -81,35 +81,35 @@ int mark_replace_between_mark(mark_t* self, mark_t* other, char* data, bint_t da
 }
 
 // Move mark to bline:col
-int mark_move_to_w_bline(mark_t* self, bline_t* bline, bint_t col) {
+int mark_move_to_w_bline(mark_t *self, bline_t *bline, bint_t col) {
     _mark_mark_move_inner(self, bline, col, 1, 1);
     return MLBUF_OK;
 }
 
 // Move mark to line_index:col
-int mark_move_to(mark_t* self, bint_t line_index, bint_t col) {
-    bline_t* bline;
+int mark_move_to(mark_t *self, bint_t line_index, bint_t col) {
+    bline_t *bline;
     buffer_get_bline(self->bline->buffer, line_index, &bline);
     _mark_mark_move_inner(self, bline, col, 1, 1);
     return MLBUF_OK;
 }
 
 // Move mark by a character delta
-int mark_move_by(mark_t* self, bint_t char_delta) {
+int mark_move_by(mark_t *self, bint_t char_delta) {
     bint_t offset;
     buffer_get_offset(self->bline->buffer, self->bline, self->col, &offset);
     return mark_move_offset(self, offset + char_delta);
 }
 
 // Get mark offset
-int mark_get_offset(mark_t* self, bint_t* ret_offset) {
+int mark_get_offset(mark_t *self, bint_t *ret_offset) {
     return buffer_get_offset(self->bline->buffer, self->bline, self->col, ret_offset);
 }
 
 // Move mark by line delta
-int mark_move_vert(mark_t* self, bint_t line_delta) {
-    bline_t* cur_line;
-    bline_t* tmp_line;
+int mark_move_vert(mark_t *self, bint_t line_delta) {
+    bline_t *cur_line;
+    bline_t *tmp_line;
     cur_line = self->bline;
     while (line_delta != 0) {
         tmp_line = line_delta > 0 ? cur_line->next : cur_line->prev;
@@ -127,40 +127,40 @@ int mark_move_vert(mark_t* self, bint_t line_delta) {
 }
 
 // Move mark to beginning of line
-int mark_move_bol(mark_t* self) {
+int mark_move_bol(mark_t *self) {
     _mark_mark_move_inner(self, self->bline, 0, 1, 1);
     return MLBUF_OK;
 }
 
 // Move mark to end of line
-int mark_move_eol(mark_t* self) {
+int mark_move_eol(mark_t *self) {
     MLBUF_BLINE_ENSURE_CHARS(self->bline);
     _mark_mark_move_inner(self, self->bline, self->bline->char_count, 1, 1);
     return MLBUF_OK;
 }
 
 // Move mark to a column on the current line
-int mark_move_col(mark_t* self, bint_t col) {
+int mark_move_col(mark_t *self, bint_t col) {
     _mark_mark_move_inner(self, self->bline, col, 1, 1);
     return MLBUF_OK;
 }
 
 // Move mark to beginning of buffer
-int mark_move_beginning(mark_t* self) {
+int mark_move_beginning(mark_t *self) {
     _mark_mark_move_inner(self, self->bline->buffer->first_line, 0, 1, 1);
     return MLBUF_OK;
 }
 
 // Move mark to end of buffer
-int mark_move_end(mark_t* self) {
+int mark_move_end(mark_t *self) {
     MLBUF_BLINE_ENSURE_CHARS(self->bline->buffer->last_line);
     _mark_mark_move_inner(self, self->bline->buffer->last_line, self->bline->buffer->last_line->char_count, 1, 1);
     return MLBUF_OK;
 }
 
 // Move mark to a particular offset
-int mark_move_offset(mark_t* self, bint_t offset) {
-    bline_t* dest_line;
+int mark_move_offset(mark_t *self, bint_t offset) {
+    bline_t *dest_line;
     bint_t dest_col;
     buffer_get_bline_col(self->bline->buffer, offset, &dest_line, &dest_col);
     _mark_mark_move_inner(self, dest_line, dest_col, 1, 1);
@@ -168,37 +168,37 @@ int mark_move_offset(mark_t* self, bint_t offset) {
 }
 
 // Find next occurrence of string from mark
-int mark_find_next_str(mark_t* self, char* str, bint_t str_len, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
+int mark_find_next_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_match(self, mark_find_next_str_matchfn, (void*)str, (void*)&str_len, 0, ret_line, ret_col, ret_num_chars);
 }
 
 // Find prev occurrence of string from mark
-int mark_find_prev_str(mark_t* self, char* str, bint_t str_len, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
+int mark_find_prev_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_match(self, mark_find_prev_str_matchfn, (void*)str, (void*)&str_len, 1, ret_line, ret_col, ret_num_chars);
 }
 
 // Find next occurence of regex from mark
-int mark_find_next_cre(mark_t* self, pcre* cre, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
+int mark_find_next_cre(mark_t *self, pcre *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_match(self, mark_find_next_cre_matchfn, (void*)cre, NULL, 0, ret_line, ret_col, ret_num_chars);
 }
 
 // Find prev occurence of regex from mark
-int mark_find_prev_cre(mark_t* self, pcre* cre, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
+int mark_find_prev_cre(mark_t *self, pcre *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_match(self, mark_find_prev_cre_matchfn, (void*)cre, NULL, 1, ret_line, ret_col, ret_num_chars);
 }
 
 // Find next occurence of uncompiled regex str from mark
-int mark_find_next_re(mark_t* self, char* re, bint_t re_len, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
+int mark_find_next_re(mark_t *self, char *re, bint_t re_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_re(self, re, re_len, 0, ret_line, ret_col, ret_num_chars);
 }
 
 // Find prev occurence of uncompiled regex str from mark
-int mark_find_prev_re(mark_t* self, char* re, bint_t re_len, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
+int mark_find_prev_re(mark_t *self, char *re, bint_t re_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_re(self, re, re_len, 1, ret_line, ret_col, ret_num_chars);
 }
 
 // Return 1 if self is before other, otherwise return 0
-int mark_is_lt(mark_t* self, mark_t* other) {
+int mark_is_lt(mark_t *self, mark_t *other) {
     if (self->bline->line_index == other->bline->line_index) {
         return self->col < other->col ? 1 : 0;
     } else if (self->bline->line_index < other->bline->line_index) {
@@ -208,7 +208,7 @@ int mark_is_lt(mark_t* self, mark_t* other) {
 }
 
 // Return 1 if self is past other, otherwise return 0
-int mark_is_gt(mark_t* self, mark_t* other) {
+int mark_is_gt(mark_t *self, mark_t *other) {
     if (self->bline->line_index == other->bline->line_index) {
         return self->col > other->col ? 1 : 0;
     } else if (self->bline->line_index > other->bline->line_index) {
@@ -218,7 +218,7 @@ int mark_is_gt(mark_t* self, mark_t* other) {
 }
 
 // Return 1 if self is at same position as other, otherwise return 0
-int mark_is_eq(mark_t* self, mark_t* other) {
+int mark_is_eq(mark_t *self, mark_t *other) {
     if (self->bline->line_index == other->bline->line_index) {
         return self->col == other->col ? 1 : 0;
     }
@@ -226,20 +226,20 @@ int mark_is_eq(mark_t* self, mark_t* other) {
 }
 
 // Return 1 if self >= other
-int mark_is_gte(mark_t* self, mark_t* other) {
+int mark_is_gte(mark_t *self, mark_t *other) {
     return !mark_is_lt(self, other);
 }
 
 // Return 1 if self <= other
-int mark_is_lte(mark_t* self, mark_t* other) {
+int mark_is_lte(mark_t *self, mark_t *other) {
     return !mark_is_gt(self, other);
 }
 
 // Find top-level bracket to the left examining no more than max_chars
-int mark_find_bracket_top(mark_t* self, bint_t max_chars, bline_t** ret_line, bint_t* ret_col, bint_t* ret_brkt) {
-    bline_t* cur_line;
+int mark_find_bracket_top(mark_t *self, bint_t max_chars, bline_t **ret_line, bint_t *ret_col, bint_t *ret_brkt) {
+    bline_t *cur_line;
     bint_t col;
-    int* stacks;
+    int *stacks;
     int found;
     int i;
     int i_left;
@@ -276,7 +276,7 @@ int mark_find_bracket_top(mark_t* self, bint_t max_chars, bline_t** ret_line, bi
 
 // Find the matching bracket character under the mark, examining no more than
 // max_chars.
-int mark_find_bracket_pair(mark_t* self, bint_t max_chars, bline_t** ret_line, bint_t* ret_col, bint_t* ret_brkt) {
+int mark_find_bracket_pair(mark_t *self, bint_t max_chars, bline_t **ret_line, bint_t *ret_col, bint_t *ret_brkt) {
     char brkt;
     char targ;
     char cur;
@@ -285,7 +285,7 @@ int mark_find_bracket_pair(mark_t* self, bint_t max_chars, bline_t** ret_line, b
     int nest;
     bint_t col;
     bint_t nchars;
-    bline_t* cur_line;
+    bline_t *cur_line;
     MLBUF_BLINE_ENSURE_CHARS(self->bline);
 
     // If we're at eol, there's nothing to match
@@ -353,7 +353,7 @@ int mark_find_bracket_pair(mark_t* self, bint_t max_chars, bline_t** ret_line, b
 }
 
 // Delete data between self and other
-int mark_delete_between_mark(mark_t* self, mark_t* other) {
+int mark_delete_between_mark(mark_t *self, mark_t *other) {
     bint_t offset_a;
     bint_t offset_b;
     buffer_get_offset(self->bline->buffer, self->bline, self->col, &offset_a);
@@ -367,7 +367,7 @@ int mark_delete_between_mark(mark_t* self, mark_t* other) {
 }
 
 // Return data between self and other
-int mark_get_between_mark(mark_t* self, mark_t* other, char** ret_str, bint_t* ret_str_len) {
+int mark_get_between_mark(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len) {
     bint_t ig;
     if (mark_is_gt(self, other)) {
         return buffer_substr(
@@ -390,13 +390,13 @@ int mark_get_between_mark(mark_t* self, mark_t* other, char** ret_str, bint_t* r
 }
 
 // Move self to other
-int mark_join(mark_t* self, mark_t* other) {
+int mark_join(mark_t *self, mark_t *other) {
     _mark_mark_move_inner(self, other->bline, other->col, 1, 1);
     return MLBUF_OK;
 }
 
 // Swap positions of self and other
-int mark_swap_with_mark(mark_t* self, mark_t* other) {
+int mark_swap_with_mark(mark_t *self, mark_t *other) {
     mark_t tmp_mark;
     tmp_mark.bline = other->bline;
     tmp_mark.col = other->col;
@@ -406,24 +406,24 @@ int mark_swap_with_mark(mark_t* self, mark_t* other) {
 }
 
 // Return 1 if mark is at eol, else return 0
-int mark_is_at_eol(mark_t* self) {
+int mark_is_at_eol(mark_t *self) {
     MLBUF_BLINE_ENSURE_CHARS(self->bline);
     return self->col >= self->bline->char_count ? 1 : 0;
 }
 
 // Return 1 if mark is at bol, else return 0
-int mark_is_at_bol(mark_t* self) {
+int mark_is_at_bol(mark_t *self) {
     return self->col <= 0;
 }
 
 // Destroy a mark
-int mark_destroy(mark_t* self) {
+int mark_destroy(mark_t *self) {
     return buffer_destroy_mark(self->bline->buffer, self);
 }
 
 #define MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(mark, findfn, ...) do { \
     int rc; \
-    bline_t* line = NULL; \
+    bline_t *line = NULL; \
     bint_t col = 0; \
     bint_t char_count = 0; \
     if ((rc = (findfn)((mark), __VA_ARGS__, &line, &col, &char_count)) == MLBUF_OK) { \
@@ -438,7 +438,7 @@ int mark_destroy(mark_t* self) {
 
 #define MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(mark, findfn, ...) do { \
     int rc; \
-    bline_t* line = NULL; \
+    bline_t *line = NULL; \
     bint_t col = 0; \
     bint_t char_count = 0; \
     if ((rc = (findfn)((mark), __VA_ARGS__, &line, &col, &char_count)) == MLBUF_OK) { \
@@ -449,10 +449,10 @@ int mark_destroy(mark_t* self) {
 
 #define MLBUF_MARK_IMPLEMENT_NUDGE_VIA_FIND(mark, findfn, ...) do { \
     int rc; \
-    bline_t* line = NULL; \
+    bline_t *line = NULL; \
     bint_t col = 0; \
     bint_t char_count = 0; \
-    mark_t* tmark = NULL; \
+    mark_t *tmark = NULL; \
     mark_clone((mark), &tmark); \
     mark_move_by(tmark, 1); \
     if ((rc = (findfn)(tmark, __VA_ARGS__, &line, &col, &char_count)) == MLBUF_OK) { \
@@ -462,86 +462,86 @@ int mark_destroy(mark_t* self) {
     return rc; \
 } while(0)
 
-int mark_move_next_str(mark_t* self, char* str, bint_t str_len) {
+int mark_move_next_str(mark_t *self, char *str, bint_t str_len) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_next_str, str, str_len);
 }
 
-int mark_move_prev_str(mark_t* self, char* str, bint_t str_len) {
+int mark_move_prev_str(mark_t *self, char *str, bint_t str_len) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_prev_str, str, str_len);
 }
 
-int mark_move_next_cre(mark_t* self, pcre* cre) {
+int mark_move_next_cre(mark_t *self, pcre *cre) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_next_cre, cre);
 }
 
-int mark_move_prev_cre(mark_t* self, pcre* cre) {
+int mark_move_prev_cre(mark_t *self, pcre *cre) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_prev_cre, cre);
 }
 
-int mark_move_next_re(mark_t* self, char* re, bint_t re_len) {
+int mark_move_next_re(mark_t *self, char *re, bint_t re_len) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_next_re, re, re_len);
 }
 
-int mark_move_prev_re(mark_t* self, char* re, bint_t re_len) {
+int mark_move_prev_re(mark_t *self, char *re, bint_t re_len) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_prev_re, re, re_len);
 }
 
-int mark_move_next_str_nudge(mark_t* self, char* str, bint_t str_len) {
+int mark_move_next_str_nudge(mark_t *self, char *str, bint_t str_len) {
     MLBUF_MARK_IMPLEMENT_NUDGE_VIA_FIND(self, mark_find_next_str, str, str_len);
 }
 
-int mark_move_next_cre_nudge(mark_t* self, pcre* cre) {
+int mark_move_next_cre_nudge(mark_t *self, pcre *cre) {
     MLBUF_MARK_IMPLEMENT_NUDGE_VIA_FIND(self, mark_find_next_cre, cre);
 }
 
-int mark_move_next_re_nudge(mark_t* self, char* re, bint_t re_len) {
+int mark_move_next_re_nudge(mark_t *self, char *re, bint_t re_len) {
     MLBUF_MARK_IMPLEMENT_NUDGE_VIA_FIND(self, mark_find_next_re, re, re_len);
 }
 
-int mark_move_bracket_pair(mark_t* self, bint_t max_chars) {
+int mark_move_bracket_pair(mark_t *self, bint_t max_chars) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_bracket_pair, max_chars);
 }
 
-int mark_move_bracket_top(mark_t* self, bint_t max_chars) {
+int mark_move_bracket_top(mark_t *self, bint_t max_chars) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_bracket_top, max_chars);
 }
 
-int mark_move_next_str_ex(mark_t* self, char* str, bint_t str_len, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_next_str_ex(mark_t *self, char *str, bint_t str_len, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_next_str, str, str_len);
 }
 
-int mark_move_prev_str_ex(mark_t* self, char* str, bint_t str_len, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_prev_str_ex(mark_t *self, char *str, bint_t str_len, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_prev_str, str, str_len);
 }
 
-int mark_move_next_cre_ex(mark_t* self, pcre* cre, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_next_cre_ex(mark_t *self, pcre *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_next_cre, cre);
 }
 
-int mark_move_prev_cre_ex(mark_t* self, pcre* cre, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_prev_cre_ex(mark_t *self, pcre *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_prev_cre, cre);
 }
 
-int mark_move_next_re_ex(mark_t* self, char* re, bint_t re_len, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_next_re_ex(mark_t *self, char *re, bint_t re_len, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_next_re, re, re_len);
 }
 
-int mark_move_prev_re_ex(mark_t* self, char* re, bint_t re_len, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_prev_re_ex(mark_t *self, char *re, bint_t re_len, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_prev_re, re, re_len);
 }
 
-int mark_move_bracket_pair_ex(mark_t* self, bint_t max_chars, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_bracket_pair_ex(mark_t *self, bint_t max_chars, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_bracket_pair, max_chars);
 }
 
-int mark_move_bracket_top_ex(mark_t* self, bint_t max_chars, bline_t** optret_line, bint_t* optret_col, bint_t* optret_char_count) {
+int mark_move_bracket_top_ex(mark_t *self, bint_t max_chars, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_bracket_top, max_chars);
 }
 
 // Return 1 if mark is at a word boundary. If side <= -1, return 1 only for
 // left word boundary (i.e., \W\w). If side >= 1, return 1 only for right word
 // boundary (i.e., \w\W). If side == 0, return 1 for either case.
-int mark_is_at_word_bound(mark_t* self, int side) {
+int mark_is_at_word_bound(mark_t *self, int side) {
     uint32_t before, after;
     MLBUF_BLINE_ENSURE_CHARS(self->bline);
     before = self->col > 0 && self->col - 1 < self->bline->char_count ? self->bline->chars[self->col - 1].ch : 0;
@@ -566,7 +566,7 @@ int mark_is_at_word_bound(mark_t* self, int side) {
 }
 
 // Set ovector for capturing substrs
-int mark_set_pcre_capture(int* rc, int* ovector, int ovector_size) {
+int mark_set_pcre_capture(int *rc, int *ovector, int ovector_size) {
     if (rc == NULL || ovector == NULL || ovector_size == 0) {
         rc = NULL;
         pcre_ovector = NULL;
@@ -585,7 +585,7 @@ int mark_set_pcre_capture(int* rc, int* ovector, int ovector_size) {
 }
 
 // Return char after mark, or 0 if at eol.
-int mark_get_char_after(mark_t* self, uint32_t* ret_char) {
+int mark_get_char_after(mark_t *self, uint32_t *ret_char) {
     if (mark_is_at_eol(self)) {
         *ret_char = 0;
     } else {
@@ -596,7 +596,7 @@ int mark_get_char_after(mark_t* self, uint32_t* ret_char) {
 }
 
 // Return char before mark, or 0 if at bol.
-int mark_get_char_before(mark_t* self, uint32_t* ret_char) {
+int mark_get_char_before(mark_t *self, uint32_t *ret_char) {
     if (mark_is_at_bol(self)) {
         *ret_char = 0;
     } else {
@@ -609,7 +609,7 @@ int mark_get_char_before(mark_t* self, uint32_t* ret_char) {
 // Return 1 if mark is after col, else 0. Lefty marks are considered 'after' col
 // if `mark->col > col`. Righty marks (the default) are considered 'after' col
 // if `mark->col >= col`.
-int mark_is_after_col_minus_lefties(mark_t* self, bint_t col) {
+int mark_is_after_col_minus_lefties(mark_t *self, bint_t col) {
     if (self->lefty) {
         return self->col > col ? 1 : 0;
     }
@@ -618,9 +618,9 @@ int mark_is_after_col_minus_lefties(mark_t* self, bint_t col) {
 
 // Find first occurrence of match according to matchfn. Search backwards if
 // reverse is truthy.
-static int mark_find_match(mark_t* self, mark_find_match_fn matchfn, void* u1, void* u2, int reverse, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
-    bline_t* search_line = NULL;
-    char* match = NULL;
+static int mark_find_match(mark_t *self, mark_find_match_fn matchfn, void *u1, void *u2, int reverse, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
+    bline_t *search_line = NULL;
+    char *match = NULL;
     bint_t look_offset = 0;
     bint_t match_col = 0;
     bint_t match_col_end = 0;
@@ -674,10 +674,10 @@ static int mark_find_match(mark_t* self, mark_find_match_fn matchfn, void* u1, v
 
 // Move mark to target:col, setting target_col if do_set_target is truthy,
 // restyling if do_style is truthy
-void _mark_mark_move_inner(mark_t* mark, bline_t* bline_target, bint_t col, int do_set_target, int do_style) {
-    bline_t* bline_orig;
+void _mark_mark_move_inner(mark_t *mark, bline_t *bline_target, bint_t col, int do_set_target, int do_style) {
+    bline_t *bline_orig;
     int is_changing_line;
-    bline_t* bline_restyle;
+    bline_t *bline_restyle;
     bint_t min_restylelines;
     do_style = do_style && mark->range_srule ? 1 : 0;
     is_changing_line = mark->bline != bline_target ? 1 : 0;
@@ -713,9 +713,9 @@ void _mark_mark_move_inner(mark_t* mark, bline_t* bline_target, bint_t col, int 
 }
 
 // Return the last occurrence of a match given a forward-searching matchfn
-static char* mark_find_match_prev(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, mark_find_match_fn matchfn, void* u1, void* u2) {
-    char* match;
-    char* last_match;
+static char *mark_find_match_prev(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, mark_find_match_fn matchfn, void *u1, void *u2) {
+    char *match;
+    char *last_match;
     bint_t match_len;
     last_match = NULL;
     while (1) {
@@ -739,10 +739,10 @@ static char* mark_find_match_prev(char* haystack, bint_t haystack_len, bint_t lo
 }
 
 // Find uncompiled regex from mark. Search backwards if reverse is truthy.
-static int mark_find_re(mark_t* self, char* re, bint_t re_len, int reverse, bline_t** ret_line, bint_t* ret_col, bint_t* ret_num_chars) {
+static int mark_find_re(mark_t *self, char *re, bint_t re_len, int reverse, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     int rc;
-    char* regex;
-    pcre* cre;
+    char *regex;
+    pcre *cre;
     const char *error;
     int erroffset;
     MLBUF_MAKE_GT_EQ0(re_len);
@@ -764,21 +764,21 @@ static int mark_find_re(mark_t* self, char* re, bint_t re_len, int reverse, blin
     return rc;
 }
 
-static char* mark_find_next_str_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* needle, void* needle_len, bint_t* ret_needle_len) {
+static char *mark_find_next_str_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *needle, void *needle_len, bint_t *ret_needle_len) {
     if (ret_needle_len) *ret_needle_len = *((bint_t*)needle_len);
     if (look_offset >= haystack_len) return NULL;
     return memmem(haystack + look_offset, haystack_len - look_offset, needle, *((bint_t*)needle_len));
 }
 
-static char* mark_find_prev_str_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* needle, void* needle_len, bint_t* ret_needle_len) {
+static char *mark_find_prev_str_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *needle, void *needle_len, bint_t *ret_needle_len) {
     return mark_find_match_prev(haystack, haystack_len, look_offset, max_offset, mark_find_next_str_matchfn, needle, needle_len);
 }
 
-static char* mark_find_next_cre_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* cre, void* unused, bint_t* ret_needle_len) {
+static char *mark_find_next_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len) {
     int rc;
     int substrs[3];
-    int* use_rc;
-    int* use_substrs;
+    int *use_rc;
+    int *use_substrs;
     int use_substrs_size;
     if (!haystack || haystack_len == 0) {
         haystack = "";
@@ -801,6 +801,6 @@ static char* mark_find_next_cre_matchfn(char* haystack, bint_t haystack_len, bin
     return NULL;
 }
 
-static char* mark_find_prev_cre_matchfn(char* haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void* cre, void* unused, bint_t* ret_needle_len) {
+static char *mark_find_prev_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len) {
     return mark_find_match_prev(haystack, haystack_len, look_offset, max_offset, mark_find_next_cre_matchfn, cre, unused);
 }

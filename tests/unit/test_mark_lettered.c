@@ -1,11 +1,11 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
-    mark_t* lett1;
-    mark_t* lett2;
-    mark_t* lett3;
+void test(buffer_t *buf, mark_t *cur) {
+    mark_t *lett1;
+    mark_t *lett2;
+    mark_t *lett3;
 
     mark_clone_w_letter(cur, 'a', &lett1);
     ASSERT("neq1", 1, lett1 != cur ? 1 : 0);

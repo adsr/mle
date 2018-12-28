@@ -16,9 +16,9 @@ class CodeGen {
     }
 
     function getProtoMap() {
-        $mlbuf_h = __DIR__ . '/mlbuf/mlbuf.h';
+        $mlbuf_h = __DIR__ . '/mlbuf.h';
         $mle_h = __DIR__ . '/mle.h';
-        $grep_re = '^\S+ (editor|bview|buffer|cursor|mark)_.*\);$';
+        $grep_re = '^\S+ \*?(editor|bview|buffer|cursor|mark)_.*\);$';
         $grep_cmd = sprintf(
             'grep -hP %s %s %s',
             escapeshellarg($grep_re),
@@ -61,7 +61,7 @@ class CodeGen {
             }
             $params = preg_split('@\s*,\s*@', $m['params']);
             $params = array_map(function($param) {
-                return sprintf("void* %s", $param);
+                return sprintf("void *%s", $param);
             }, $params);
             $params_str = implode(', ', $params);
             $proto_str = sprintf("void %s(%s);", $m['name'], $params_str);
@@ -93,17 +93,17 @@ class CodeGen {
     function printFunc($proto) {
         $is_hardcoded = $proto->is_hardcoded;
         printf(
-            "%sstatic int %s(lua_State* L) {\n",
+            "%sstatic int %s(lua_State *L) {\n",
             $is_hardcoded ? '// ' : '',
             $proto->c_func
         );
         if (!$is_hardcoded) {
-            printf("    %s rv;\n", $proto->ret_type);
+            printf("    %s%srv;\n", $proto->ret_type, $proto->ret_is_pointer ? '' : ' ');
             foreach ($proto->params as $param) {
                 if ($param->is_ret) {
-                    printf("    %s %s = %s;\n", $param->ret_type, $param->name, $param->zero_val);
+                    printf("    %s%s%s = %s;\n", $param->ret_type, $param->ret_is_pointer ? '' : ' ', $param->name, $param->ret_zero_val);
                 } else {
-                    printf("    %s %s;\n", $param->type, $param->name);
+                    printf("    %s%s%s;\n", $param->type, $param->is_pointer ? '' : ' ', $param->name);
                 }
             }
             $param_num = 1;
@@ -131,7 +131,7 @@ class CodeGen {
         printf('    lua_pushstring(L, "%s");' . "\n", $name);
         if (strpos($type, 'int') !== false || $type === 'char') {
             printf("    lua_pushinteger(L, (lua_Integer)%s);\n", $name);
-        } else if ($type === 'char*' || $type === 'const char*') {
+        } else if ($type === 'char *' || $type === 'const char *') {
             printf("    lua_pushstring(L, (const char*)%s);\n", $name);
         } else if (preg_match($this->valid_pointer_re, $type)) {
             printf("    lua_pushpointer(L, (void*)%s);\n", $name);
@@ -156,7 +156,7 @@ class CodeGen {
             } else {
                 printf("    %s = (%s)luaL_checknumber(L, %d);\n", $name, $type, $slot);
             }
-        } else if ($type === 'char*' || $type === 'const char*') {
+        } else if ($type === 'char *' || $type === 'const char *') {
             if ($param->is_opt) {
                 printf("    %s = (%s)luaL_optstring(L, %d, NULL);\n", $name, $type, $slot);
             } else {
@@ -176,14 +176,15 @@ class CodeGen {
 
 class Proto {
     function __construct($proto_str) {
-        $parse_re = '@^(?<ret_type>\S+) (?<name>[^\(]+)\((?<params>.*?)\);$@';
+        $parse_re = '@^(?<ret_type>\S+) (?<ret_type_ptr>\*?)(?<name>[^\(]+)\((?<params>.*?)\);$@';
         $match = [];
         if (!preg_match($parse_re, $proto_str, $match)) {
             throw new RuntimeException("Could not parse proto: $proto_str");
         }
         $this->name = $match['name'];
         $this->c_func = '_uscript_func_' . $this->name;
-        $this->ret_type = $match['ret_type'];
+        $this->ret_type = trim($match['ret_type'] . ' ' . $match['ret_type_ptr']);
+        $this->ret_is_pointer = substr($this->ret_type, -1) === '*';
         $this->params = [];
         $this->ret_count = 1;
         $this->has_funcs = false;
@@ -208,24 +209,32 @@ class Proto {
 class Param {
     function __construct($param_str) {
         $parts = preg_split('@\s+@', $param_str);
-        $this->name = current(array_slice($parts, -1));
-        $this->type = implode(' ', array_slice($parts, 0, -1));
+        $name_w_ptr = current(array_slice($parts, -1));
+        $type_wout_ptr = implode(' ', array_slice($parts, 0, -1));
+        $ptr_i = 0;
+        while (substr($name_w_ptr, $ptr_i, 1) === '*') $ptr_i += 1;
+        $ptr = substr($name_w_ptr, 0, $ptr_i);
+        $this->type = trim($type_wout_ptr . ' ' . $ptr);
+        $this->name = substr($name_w_ptr, $ptr_i);
         $this->is_func = preg_match('@^fn_@', $this->name);
         $this->is_opt = preg_match('@^opt(ret)?_@', $this->name);
         $this->is_ret = preg_match('@^(opt)?ret_@', $this->name);
         $this->is_optret = preg_match('@^optret_@', $this->name);
         $this->is_pointer = strpos($this->type, '*') !== false;
-        $this->is_string = $this->type === 'char*';
+        $this->is_string = $this->type === 'char *';
         if ($this->is_ret) {
-            if (substr($this->type, -1) !== '*') {
+            if (!$this->is_pointer) {
                 throw new RuntimeException("Expected ret param ptr: $param_str");
             }
-            $this->ret_type = substr($this->type, 0, -1);
+            $this->ret_type = trim(substr($this->type, 0, -1));
+            $this->ret_is_pointer = strpos($this->ret_type, '*') !== false;
+            $this->ret_zero_val = $this->ret_is_pointer ? 'NULL' : '0';
         } else {
             $this->ret_type = null;
+            $this->ret_is_pointer = false;
+            $this->ret_zero_val = '0';
         }
         $this->call_name = ($this->is_ret ? '&' : '') . $this->name;
-        $this->zero_val = strpos($this->ret_type, '*') !== false ? 'NULL' : '0';
     }
 }
 

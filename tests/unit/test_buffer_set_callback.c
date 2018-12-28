@@ -1,9 +1,9 @@
 #include "test.h"
 
-buffer_t* global_buf;
-int* global_udata;
+buffer_t *global_buf;
+int *global_udata;
 
-static void callback_fn(buffer_t* buf, baction_t* bac, void* udata) {
+static void callback_fn(buffer_t *buf, baction_t *bac, void *udata) {
     ASSERT("bufp", global_buf, buf);
     ASSERT("udata", (void*)global_udata, udata);
     ASSERT("bac_type", MLBUF_BACTION_TYPE_INSERT, bac->type);
@@ -20,9 +20,9 @@ static void callback_fn(buffer_t* buf, baction_t* bac, void* udata) {
     ASSERT("bac_data", 0, strncmp("te\nst", bac->data, bac->data_len));
 }
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     int udata;
     udata = 42;
     global_buf = buf;

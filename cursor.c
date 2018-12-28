@@ -3,8 +3,8 @@
 #include "mle.h"
 
 // Clone cursor
-int cursor_clone(cursor_t* cursor, int use_srules, cursor_t** ret_clone) {
-    cursor_t* clone;
+int cursor_clone(cursor_t *cursor, int use_srules, cursor_t **ret_clone) {
+    cursor_t *clone;
     bview_add_cursor(cursor->bview, cursor->mark->bline, cursor->mark->col, &clone);
     if (cursor->is_anchored) {
         cursor_toggle_anchor(clone, use_srules);
@@ -15,12 +15,12 @@ int cursor_clone(cursor_t* cursor, int use_srules, cursor_t** ret_clone) {
 }
 
 // Remove cursor
-int cursor_destroy(cursor_t* cursor) {
+int cursor_destroy(cursor_t *cursor) {
     return bview_remove_cursor(cursor->bview, cursor);
 }
 
 // Select by mark
-int cursor_select_between(cursor_t* cursor, mark_t* a, mark_t* b, int use_srules) {
+int cursor_select_between(cursor_t *cursor, mark_t *a, mark_t *b, int use_srules) {
     cursor_drop_anchor(cursor, use_srules);
     if (mark_is_lt(a, b)) {
         mark_join(cursor->mark, a);
@@ -33,7 +33,7 @@ int cursor_select_between(cursor_t* cursor, mark_t* a, mark_t* b, int use_srules
 }
 
 // Toggle cursor anchor
-int cursor_toggle_anchor(cursor_t* cursor, int use_srules) {
+int cursor_toggle_anchor(cursor_t *cursor, int use_srules) {
     if (!cursor->is_anchored) {
         mark_clone(cursor->mark, &(cursor->anchor));
         if (use_srules) {
@@ -54,19 +54,19 @@ int cursor_toggle_anchor(cursor_t* cursor, int use_srules) {
 }
 
 // Drop cursor anchor
-int cursor_drop_anchor(cursor_t* cursor, int use_srules) {
+int cursor_drop_anchor(cursor_t *cursor, int use_srules) {
     if (cursor->is_anchored) return MLE_OK;
     return cursor_toggle_anchor(cursor, use_srules);
 }
 
 // Lift cursor anchor
-int cursor_lift_anchor(cursor_t* cursor) {
+int cursor_lift_anchor(cursor_t *cursor) {
     if (!cursor->is_anchored) return MLE_OK;
     return cursor_toggle_anchor(cursor, cursor->sel_rule ? 1 : 0);
 }
 
 // Get lo and hi marks in a is_anchored=1 cursor
-int cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
+int cursor_get_lo_hi(cursor_t *cursor, mark_t **ret_lo, mark_t **ret_hi) {
     if (!cursor->is_anchored) {
         return MLE_ERR;
     }
@@ -81,19 +81,19 @@ int cursor_get_lo_hi(cursor_t* cursor, mark_t** ret_lo, mark_t** ret_hi) {
 }
 
 // Get mark
-int cursor_get_mark(cursor_t* cursor, mark_t** ret_mark) {
+int cursor_get_mark(cursor_t *cursor, mark_t **ret_mark) {
     *ret_mark = cursor->mark;
     return MLE_OK;
 }
 
 // Get anchor if anchored
-int cursor_get_anchor(cursor_t* cursor, mark_t** ret_anchor) {
+int cursor_get_anchor(cursor_t *cursor, mark_t **ret_anchor) {
     *ret_anchor = cursor->is_anchored ? cursor->anchor : NULL;
     return MLE_OK;
 }
 
 // Make selection by strat
-int cursor_select_by(cursor_t* cursor, const char* strat) {
+int cursor_select_by(cursor_t *cursor, const char *strat) {
     if (cursor->is_anchored) {
         return MLE_ERR;
     }
@@ -120,8 +120,8 @@ int cursor_select_by(cursor_t* cursor, const char* strat) {
 }
 
 // Select by bracket
-int cursor_select_by_bracket(cursor_t* cursor) {
-    mark_t* orig;
+int cursor_select_by_bracket(cursor_t *cursor) {
+    mark_t *orig;
     mark_clone(cursor->mark, &orig);
     if (mark_move_bracket_top(cursor->mark, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
         mark_destroy(orig);
@@ -140,7 +140,7 @@ int cursor_select_by_bracket(cursor_t* cursor) {
 }
 
 // Select by word-back
-int cursor_select_by_word_back(cursor_t* cursor) {
+int cursor_select_by_word_back(cursor_t *cursor) {
     if (mark_is_at_word_bound(cursor->mark, -1)) return MLE_ERR;
     cursor_toggle_anchor(cursor, 0);
     mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
@@ -148,7 +148,7 @@ int cursor_select_by_word_back(cursor_t* cursor) {
 }
 
 // Select by word-forward
-int cursor_select_by_word_forward(cursor_t* cursor) {
+int cursor_select_by_word_forward(cursor_t *cursor) {
     if (mark_is_at_word_bound(cursor->mark, 1)) return MLE_ERR;
     cursor_toggle_anchor(cursor, 0);
     mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
@@ -156,10 +156,10 @@ int cursor_select_by_word_forward(cursor_t* cursor) {
 }
 
 // Select by string
-int cursor_select_by_string(cursor_t* cursor) {
-    mark_t* orig;
+int cursor_select_by_string(cursor_t *cursor) {
+    mark_t *orig;
     uint32_t qchar;
-    char* qre;
+    char *qre;
     mark_clone(cursor->mark, &orig);
     if (mark_move_prev_re(cursor->mark, "(?<!\\\\)[`'\"]", strlen("(?<!\\\\)[`'\"]")) != MLBUF_OK) {
         mark_destroy(orig);
@@ -186,7 +186,7 @@ int cursor_select_by_string(cursor_t* cursor) {
 }
 
 // Select by word
-int cursor_select_by_word(cursor_t* cursor) {
+int cursor_select_by_word(cursor_t *cursor) {
     uint32_t after;
     if (mark_is_at_eol(cursor->mark)) return MLE_ERR;
     mark_get_char_after(cursor->mark, &after);
@@ -200,8 +200,8 @@ int cursor_select_by_word(cursor_t* cursor) {
 }
 
 // Cut or copy text
-int cursor_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append) {
-    char* cutbuf;
+int cursor_cut_copy(cursor_t *cursor, int is_cut, int use_srules, int append) {
+    char *cutbuf;
     bint_t cutbuf_len;
     bint_t cur_len;
     if (!append && cursor->cut_buffer) {
@@ -234,8 +234,8 @@ int cursor_cut_copy(cursor_t* cursor, int is_cut, int use_srules, int append) {
 }
 
 // Uncut (paste) text
-int cursor_uncut(cursor_t* cursor) {
-    char* cut_buffer;
+int cursor_uncut(cursor_t *cursor) {
+    char *cut_buffer;
     cut_buffer = cursor->cut_buffer ? cursor->cut_buffer : cursor->bview->editor->cut_buffer;
     if (!cut_buffer) return MLE_ERR;
     mark_insert_before(cursor->mark, cut_buffer, strlen(cut_buffer));
@@ -243,20 +243,20 @@ int cursor_uncut(cursor_t* cursor) {
 }
 
 // Regex search and replace
-int cursor_replace(cursor_t* cursor, int interactive, char* opt_regex, char* opt_replacement) {
-    char* regex;
-    char* replacement;
+int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt_replacement) {
+    char *regex;
+    char *replacement;
     int wrapped;
     int all;
-    char* yn;
-    mark_t* lo_mark;
-    mark_t* hi_mark;
-    mark_t* orig_mark;
-    mark_t* search_mark;
-    mark_t* search_mark_end;
+    char *yn;
+    mark_t *lo_mark;
+    mark_t *hi_mark;
+    mark_t *orig_mark;
+    mark_t *search_mark;
+    mark_t *search_mark_end;
     int anchored_before;
-    srule_t* highlight;
-    bline_t* bline;
+    srule_t *highlight;
+    bline_t *bline;
     bint_t col;
     bint_t char_count;
     bint_t orig_viewport_y;

@@ -1,11 +1,11 @@
 #include "test.h"
 
-char* str = "hello\nworld";
+char *str = "hello\nworld";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     bint_t i;
-    srule_t* srule1;
-    srule_t* srule2;
+    srule_t *srule1;
+    srule_t *srule2;
 
     srule1 = srule_new_single("world", sizeof("world")-1, 0, 1, 2);
     srule2 = srule_new_multi("lo", sizeof("lo")-1, "wo", sizeof("wo")-1, 3, 4);

@@ -7,14 +7,14 @@
 #include "mlbuf.h"
 
 editor_t _editor;
-extern char* str;
-void test(buffer_t* buf, mark_t* cur);
+extern char *str;
+void test(buffer_t *buf, mark_t *cur);
 
 // TODO run each test with buffer_set_slabbed + buffer_insert
 
 int main(int argc, char **argv) {
-    buffer_t* buf;
-    mark_t* cur;
+    buffer_t *buf;
+    mark_t *cur;
     memset(&_editor, 0, sizeof(editor_t));
     setlocale(LC_ALL, "");
     buf = buffer_new();

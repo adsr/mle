@@ -3,27 +3,27 @@
 #include <wctype.h>
 #include "mle.h"
 
-static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
-static void _bview_init(bview_t* self, buffer_t* buffer);
-static void _bview_init_resized(bview_t* self);
-static kmap_t* _bview_get_init_kmap(editor_t* editor);
-static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata);
-static int _bview_set_linenum_width(bview_t* self);
-static void _bview_deinit(bview_t* self);
-static void _bview_set_tab_width(bview_t* self, int tab_width);
-static void _bview_fix_path(bview_t* self, char* path, int path_len, char** ret_path, int* ret_path_len, bint_t* ret_line_num);
-static void _bview_expand_tilde(bview_t* self, char* path, int path_len, char** ret_path, int* ret_path_len);
-static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_len);
-static void _bview_draw_prompt(bview_t* self);
-static void _bview_draw_status(bview_t* self);
-static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h);
-static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t** optret_bline, int* optret_rect_y);
-static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark);
+static int _bview_rectify_viewport_dim(bview_t *self, bline_t *bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
+static void _bview_init(bview_t *self, buffer_t *buffer);
+static void _bview_init_resized(bview_t *self);
+static kmap_t *_bview_get_init_kmap(editor_t *editor);
+static void _bview_buffer_callback(buffer_t *buffer, baction_t *action, void *udata);
+static int _bview_set_linenum_width(bview_t *self);
+static void _bview_deinit(bview_t *self);
+static void _bview_set_tab_width(bview_t *self, int tab_width);
+static void _bview_fix_path(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len, bint_t *ret_line_num);
+static void _bview_expand_tilde(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len);
+static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_len);
+static void _bview_draw_prompt(bview_t *self);
+static void _bview_draw_status(bview_t *self);
+static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h);
+static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t **optret_bline, int *optret_rect_y);
+static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark);
 
 // Create a new bview
-bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t* opt_buffer) {
-    bview_t* self;
-    buffer_t* buffer;
+bview_t *bview_new(editor_t *editor, char *opt_path, int opt_path_len, buffer_t *opt_buffer) {
+    bview_t *self;
+    buffer_t *buffer;
 
     // Allocate and init bview
     self = calloc(1, sizeof(bview_t));
@@ -54,8 +54,8 @@ bview_t* bview_new(editor_t* editor, char* opt_path, int opt_path_len, buffer_t*
 }
 
 // Open a buffer in an existing bview
-int bview_open(bview_t* self, char* path, int path_len) {
-    buffer_t* buffer;
+int bview_open(bview_t *self, char *path, int path_len) {
+    buffer_t *buffer;
     buffer = _bview_open_buffer(self, path, path_len);
     if (self->path) free(self->path);
     self->path = strndup(path, path_len);
@@ -65,7 +65,7 @@ int bview_open(bview_t* self, char* path, int path_len) {
 }
 
 // Free a bview
-int bview_destroy(bview_t* self) {
+int bview_destroy(bview_t *self) {
     _bview_deinit(self);
     if (self->path) free(self->path);
     // TODO ensure everything freed
@@ -74,7 +74,7 @@ int bview_destroy(bview_t* self) {
 }
 
 // Move and resize a bview to the given position and dimensions
-int bview_resize(bview_t* self, int x, int y, int w, int h) {
+int bview_resize(bview_t *self, int x, int y, int w, int h) {
     int aw, ah;
 
     self->x = x;
@@ -146,8 +146,8 @@ int bview_resize(bview_t* self, int x, int y, int w, int h) {
 }
 
 // Return top-most split_parent of a bview
-bview_t* bview_get_split_root(bview_t* self) {
-    bview_t* root;
+bview_t *bview_get_split_root(bview_t *self) {
+    bview_t *root;
     root = self;
     while (root->split_parent) {
         root = root->split_parent;
@@ -156,7 +156,7 @@ bview_t* bview_get_split_root(bview_t* self) {
 }
 
 // Draw bview to screen
-int bview_draw(bview_t* self) {
+int bview_draw(bview_t *self) {
     if (MLE_BVIEW_IS_PROMPT(self)) {
         _bview_draw_prompt(self);
     } else if (MLE_BVIEW_IS_STATUS(self)) {
@@ -167,12 +167,12 @@ int bview_draw(bview_t* self) {
 }
 
 // Set cursor to screen
-int bview_draw_cursor(bview_t* self, int set_real_cursor) {
-    cursor_t* cursor;
-    mark_t* mark;
+int bview_draw_cursor(bview_t *self, int set_real_cursor) {
+    cursor_t *cursor;
+    mark_t *mark;
     int screen_x;
     int screen_y;
-    struct tb_cell* cell;
+    struct tb_cell *cell;
     DL_FOREACH(self->cursors, cursor) {
         mark = cursor->mark;
         if (bview_get_screen_coords(self, mark, &screen_x, &screen_y, &cell) != MLE_OK) {
@@ -194,8 +194,8 @@ int bview_draw_cursor(bview_t* self, int set_real_cursor) {
 }
 
 // Push a kmap
-int bview_push_kmap(bview_t* bview, kmap_t* kmap) {
-    kmap_node_t* node;
+int bview_push_kmap(bview_t *bview, kmap_t *kmap) {
+    kmap_node_t *node;
     node = calloc(1, sizeof(kmap_node_t));
     node->kmap = kmap;
     node->bview = bview;
@@ -205,8 +205,8 @@ int bview_push_kmap(bview_t* bview, kmap_t* kmap) {
 }
 
 // Pop a kmap
-int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap) {
-    kmap_node_t* node_to_pop;
+int bview_pop_kmap(bview_t *bview, kmap_t **optret_kmap) {
+    kmap_node_t *node_to_pop;
     node_to_pop = bview->kmap_tail;
     if (!node_to_pop) {
         return MLE_ERR;
@@ -221,8 +221,8 @@ int bview_pop_kmap(bview_t* bview, kmap_t** optret_kmap) {
 }
 
 // Split a bview
-int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_bview) {
-    bview_t* child;
+int bview_split(bview_t *self, int is_vertical, float factor, bview_t **optret_bview) {
+    bview_t *child;
 
     if (self->split_child) {
         MLE_RETURN_ERR(self->editor, "bview %p is already split", (void*)self);
@@ -251,9 +251,9 @@ int bview_split(bview_t* self, int is_vertical, float factor, bview_t** optret_b
 }
 
 // Return number of active cursors
-int bview_get_active_cursor_count(bview_t* self) {
+int bview_get_active_cursor_count(bview_t *self) {
     int count;
-    cursor_t* cursor;
+    cursor_t *cursor;
     count = 0;
     DL_FOREACH(self->cursors, cursor) {
         if (!cursor->is_asleep) {
@@ -264,8 +264,8 @@ int bview_get_active_cursor_count(bview_t* self) {
 }
 
 // Add a cursor to a bview
-int bview_add_cursor(bview_t* self, bline_t* opt_bline, bint_t opt_col, cursor_t** optret_cursor) {
-    cursor_t* cursor;
+int bview_add_cursor(bview_t *self, bline_t *opt_bline, bint_t opt_col, cursor_t **optret_cursor) {
+    cursor_t *cursor;
     cursor = calloc(1, sizeof(cursor_t));
     cursor->bview = self;
     if (!opt_bline) opt_bline = self->buffer->first_line;
@@ -282,8 +282,8 @@ int bview_add_cursor(bview_t* self, bline_t* opt_bline, bint_t opt_col, cursor_t
 }
 
 // Add sleeping cursor
-int bview_add_cursor_asleep(bview_t* self, bline_t* opt_bline, bint_t opt_col, cursor_t** optret_cursor) {
-    cursor_t* cursor;
+int bview_add_cursor_asleep(bview_t *self, bline_t *opt_bline, bint_t opt_col, cursor_t **optret_cursor) {
+    cursor_t *cursor;
     bview_add_cursor(self, opt_bline, opt_col, &cursor);
     cursor->is_asleep = 1;
     if (optret_cursor) *optret_cursor = cursor;
@@ -291,8 +291,8 @@ int bview_add_cursor_asleep(bview_t* self, bline_t* opt_bline, bint_t opt_col, c
 }
 
 // Wake all sleeping cursors
-int bview_wake_sleeping_cursors(bview_t* self) {
-    cursor_t* cursor;
+int bview_wake_sleeping_cursors(bview_t *self) {
+    cursor_t *cursor;
     DL_FOREACH(self->cursors, cursor) {
         if (cursor->is_asleep) {
             cursor->is_asleep = 0;
@@ -302,9 +302,9 @@ int bview_wake_sleeping_cursors(bview_t* self) {
 }
 
 // Remove all cursors except one
-int bview_remove_cursors_except(bview_t* self, cursor_t* one) {
-    cursor_t* cursor;
-    cursor_t* cursor_tmp;
+int bview_remove_cursors_except(bview_t *self, cursor_t *one) {
+    cursor_t *cursor;
+    cursor_t *cursor_tmp;
     DL_FOREACH_SAFE(self->cursors, cursor, cursor_tmp) {
         if (cursor != one) {
             bview_remove_cursor(self, cursor);
@@ -314,9 +314,9 @@ int bview_remove_cursors_except(bview_t* self, cursor_t* one) {
 }
 
 // Remove a cursor from a bview
-int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
-    cursor_t* el;
-    cursor_t* tmp;
+int bview_remove_cursor(bview_t *self, cursor_t *cursor) {
+    cursor_t *el;
+    cursor_t *tmp;
     DL_FOREACH_SAFE(self->cursors, el, tmp) {
         if (el == cursor) {
             self->active_cursor = el->prev && el->prev != el ? el->prev : el->next;
@@ -335,7 +335,7 @@ int bview_remove_cursor(bview_t* self, cursor_t* cursor) {
 }
 
 // Set viewport y safely
-int bview_set_viewport_y(bview_t* self, bint_t y, int do_rectify) {
+int bview_set_viewport_y(bview_t *self, bint_t y, int do_rectify) {
     if (y < 0) {
         y = 0;
     } else if (y >= self->buffer->line_count) {
@@ -348,7 +348,7 @@ int bview_set_viewport_y(bview_t* self, bint_t y, int do_rectify) {
 }
 
 // Center the viewport vertically
-int bview_center_viewport_y(bview_t* self) {
+int bview_center_viewport_y(bview_t *self) {
     bint_t center;
     center = self->active_cursor->mark->bline->line_index - self->rect_buffer.h/2;
     if (center < 0) center = 0;
@@ -356,12 +356,12 @@ int bview_center_viewport_y(bview_t* self) {
 }
 
 // Zero the viewport vertically
-int bview_zero_viewport_y(bview_t* self) {
+int bview_zero_viewport_y(bview_t *self) {
     return bview_set_viewport_y(self, self->active_cursor->mark->bline->line_index, 1);
 }
 
 // Maximize the viewport vertically
-int bview_max_viewport_y(bview_t* self) {
+int bview_max_viewport_y(bview_t *self) {
     bint_t max;
     max = self->active_cursor->mark->bline->line_index - self->rect_buffer.h;
     if (max < 0) max = 0;
@@ -369,8 +369,8 @@ int bview_max_viewport_y(bview_t* self) {
 }
 
 // Rectify the viewport
-int bview_rectify_viewport(bview_t* self) {
-    mark_t* mark;
+int bview_rectify_viewport(bview_t *self) {
+    mark_t *mark;
     mark = self->active_cursor->mark;
 
     // Rectify each dimension of the viewport
@@ -388,8 +388,8 @@ int bview_rectify_viewport(bview_t* self) {
 }
 
 // Add a listener
-int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata) {
-    bview_listener_t* listener;
+int bview_add_listener(bview_t *self, bview_listener_cb_t callback, void *udata) {
+    bview_listener_t *listener;
     listener = calloc(1, sizeof(bview_listener_t));
     listener->callback = callback;
     listener->udata = udata;
@@ -398,14 +398,14 @@ int bview_add_listener(bview_t* self, bview_listener_cb_t callback, void* udata)
 }
 
 // Remove and free a listener
-int bview_destroy_listener(bview_t* self, bview_listener_t* listener) {
+int bview_destroy_listener(bview_t *self, bview_listener_t *listener) {
     DL_DELETE(self->listeners, listener);
     free(listener);
     return MLE_OK;
 }
 
 // Rectify a viewport dimension. Return 1 if changed, else 0.
-static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos) {
+static int _bview_rectify_viewport_dim(bview_t *self, bline_t *bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos) {
     int rc;
     bint_t vpos_start;
     bint_t vpos_stop;
@@ -440,9 +440,9 @@ static int _bview_rectify_viewport_dim(bview_t* self, bline_t* bline, bint_t vpo
 }
 
 // Init a bview with a buffer
-static void _bview_init(bview_t* self, buffer_t* buffer) {
-    cursor_t* cursor_tmp;
-    kmap_t* kmap_init;
+static void _bview_init(bview_t *self, buffer_t *buffer) {
+    cursor_t *cursor_tmp;
+    kmap_t *kmap_init;
 
     _bview_deinit(self);
 
@@ -467,7 +467,7 @@ static void _bview_init(bview_t* self, buffer_t* buffer) {
 }
 
 // Invoked once after a bview has been resized for the first time
-static void _bview_init_resized(bview_t* self) {
+static void _bview_init_resized(bview_t *self) {
     // Move cursor to startup line if present
     if (self->startup_linenum > 0) {
         mark_move_to(self->active_cursor->mark, self->startup_linenum, 0);
@@ -476,7 +476,7 @@ static void _bview_init_resized(bview_t* self) {
 }
 
 // Return initial kmap to use
-static kmap_t* _bview_get_init_kmap(editor_t* editor) {
+static kmap_t *_bview_get_init_kmap(editor_t *editor) {
     if (!editor->kmap_init) {
         if (editor->kmap_init_name) {
             HASH_FIND_STR(editor->kmap_map, editor->kmap_init_name, editor->kmap_init);
@@ -489,11 +489,11 @@ static kmap_t* _bview_get_init_kmap(editor_t* editor) {
 }
 
 // Called by mlbuf after edits
-static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* udata) {
-    editor_t* editor;
-    bview_t* self;
-    bview_t* active;
-    bview_listener_t* listener;
+static void _bview_buffer_callback(buffer_t *buffer, baction_t *action, void *udata) {
+    editor_t *editor;
+    bview_t *self;
+    bview_t *active;
+    bview_listener_t *listener;
 
     self = (bview_t*)udata;
     editor = self->editor;
@@ -505,9 +505,9 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
     }
 
     if (action && action->line_delta != 0) {
-        bview_t* bview;
-        bview_t* tmp1;
-        bview_t* tmp2;
+        bview_t *bview;
+        bview_t *tmp1;
+        bview_t *tmp2;
         CDL_FOREACH_SAFE2(editor->all_bviews, bview, tmp1, tmp2, all_prev, all_next) {
             if (bview->buffer == buffer) {
                 // Adjust linenum_width
@@ -530,7 +530,7 @@ static void _bview_buffer_callback(buffer_t* buffer, baction_t* action, void* ud
 }
 
 // Set linenum_width and return 1 if changed
-static int _bview_set_linenum_width(bview_t* self) {
+static int _bview_set_linenum_width(bview_t *self) {
     int orig;
     orig = self->linenum_width;
     self->abs_linenum_width = MLE_MAX(1, (int)(floor(log10((double)self->buffer->line_count))) + 1);
@@ -553,9 +553,9 @@ static int _bview_set_linenum_width(bview_t* self) {
 }
 
 // Deinit a bview
-static void _bview_deinit(bview_t* self) {
-    bview_listener_t* listener;
-    bview_listener_t* listener_tmp;
+static void _bview_deinit(bview_t *self) {
+    bview_listener_t *listener;
+    bview_listener_t *listener_tmp;
 
     // Remove all kmaps
     while (self->kmap_tail) {
@@ -564,7 +564,7 @@ static void _bview_deinit(bview_t* self) {
 
     // Remove all syntax rules
     if (self->syntax) {
-        srule_node_t* srule_node;
+        srule_node_t *srule_node;
         buffer_set_styles_enabled(self->buffer, 0);
         DL_FOREACH(self->syntax->srules, srule_node) {
             buffer_remove_srule(self->buffer, srule_node->srule);
@@ -603,11 +603,11 @@ static void _bview_deinit(bview_t* self) {
 }
 
 // Set syntax on bview buffer
-int bview_set_syntax(bview_t* self, char* opt_syntax) {
-    syntax_t* syntax;
-    syntax_t* syntax_tmp;
-    syntax_t* use_syntax;
-    srule_node_t* srule_node;
+int bview_set_syntax(bview_t *self, char *opt_syntax) {
+    syntax_t *syntax;
+    syntax_t *syntax_tmp;
+    syntax_t *use_syntax;
+    srule_node_t *srule_node;
 
     // Only set syntax on edit bviews
     if (!MLE_BVIEW_IS_EDIT(self)) {
@@ -661,7 +661,7 @@ int bview_set_syntax(bview_t* self, char* opt_syntax) {
     return use_syntax ? MLE_OK : MLE_ERR;
 }
 
-static void _bview_set_tab_width(bview_t* self, int tab_width) {
+static void _bview_set_tab_width(bview_t *self, int tab_width) {
     self->tab_width = tab_width;
     if (self->buffer && self->buffer->tab_width != self->tab_width) {
         buffer_set_tab_width(self->buffer, self->tab_width);
@@ -669,9 +669,9 @@ static void _bview_set_tab_width(bview_t* self, int tab_width) {
 }
 
 // Attempt to replace leading ~/ with $HOME
-static void _bview_expand_tilde(bview_t* self, char* path, int path_len, char** ret_path, int* ret_path_len) {
-    char* homedir;
-    char* newpath;
+static void _bview_expand_tilde(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len) {
+    char *homedir;
+    char *newpath;
     (void)self;
     if (!util_is_file("~", NULL, NULL)
         && strncmp(path, "~/", 2) == 0
@@ -689,10 +689,10 @@ static void _bview_expand_tilde(bview_t* self, char* path, int path_len, char** 
 
 // Attempt to fix path by stripping away git-style diff prefixes ([ab/]) and/or
 // by extracting a trailing line number after a colon (:)
-static void _bview_fix_path(bview_t* self, char* path, int path_len, char** ret_path, int* ret_path_len, bint_t* ret_line_num) {
-    char* tmp;
+static void _bview_fix_path(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len, bint_t *ret_line_num) {
+    char *tmp;
     int tmp_len;
-    char* colon;
+    char *colon;
     int is_valid;
     int fix_nudge;
     int fix_len;
@@ -755,11 +755,11 @@ _bview_fix_path_ret:
 }
 
 // Open a buffer with an optional path to load, otherwise empty
-static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_len) {
-    buffer_t* buffer;
+static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_len) {
+    buffer_t *buffer;
     int has_path;
-    char* fix_path;
-    char* exp_path;
+    char *fix_path;
+    char *exp_path;
     int fix_path_len;
     int exp_path_len;
     bint_t startup_line_num;
@@ -786,15 +786,15 @@ static buffer_t* _bview_open_buffer(bview_t* self, char* opt_path, int opt_path_
     return buffer;
 }
 
-static void _bview_draw_prompt(bview_t* self) {
+static void _bview_draw_prompt(bview_t *self) {
     _bview_draw_bline(self, self->buffer->first_line, 0, NULL, NULL);
 }
 
-static void _bview_draw_status(bview_t* self) {
-    editor_t* editor;
-    bview_t* active;
-    bview_t* active_edit;
-    mark_t* mark;
+static void _bview_draw_status(bview_t *self) {
+    editor_t *editor;
+    bview_t *active;
+    bview_t *active_edit;
+    mark_t *mark;
 
     editor = self->editor;
     active = editor->active;
@@ -809,7 +809,7 @@ static void _bview_draw_status(bview_t* self) {
 
     // Macro indicator
     int i_macro_fg, i_macro_bg;
-    char* i_macro;
+    char *i_macro;
     if (editor->is_recording_macro) {
         i_macro_fg = TB_RED | TB_BOLD;
         i_macro_bg = TB_BLACK;
@@ -827,8 +827,8 @@ static void _bview_draw_status(bview_t* self) {
     // Anchor indicator
     int i_anchor_fg, i_anchor_bg;
     bint_t anchor_len, anchor_nlines, anchor_tmp;
-    char* i_anchor;
-    cursor_t* cursor;
+    char *i_anchor;
+    cursor_t *cursor;
     if (active_edit->active_cursor->is_anchored) {
         i_anchor_fg = TB_WHITE | TB_BOLD;
         i_anchor_bg = TB_BLACK;
@@ -850,7 +850,7 @@ static void _bview_draw_status(bview_t* self) {
 
     // Async indicator
     int i_async_fg, i_async_bg;
-    char* i_async;
+    char *i_async;
     if (editor->aprocs) {
         i_async_fg = TB_YELLOW | TB_BOLD;
         i_async_bg = TB_BLACK;
@@ -864,7 +864,7 @@ static void _bview_draw_status(bview_t* self) {
     // Need-more-input icon
     int i_needinput_fg;
     int i_needinput_bg;
-    char* i_needinput;
+    char *i_needinput;
     if (editor->loop_ctx->need_more_input) {
         i_needinput_fg = TB_BLUE | TB_BOLD;
         i_needinput_bg = TB_BLACK;
@@ -876,7 +876,7 @@ static void _bview_draw_status(bview_t* self) {
     }
 
     // Bview num TODO pre-compute this
-    bview_t* bview_tmp;
+    bview_t *bview_tmp;
     int bview_count = 0;
     int bview_num = 0;
     CDL_FOREACH2(editor->all_bviews, bview_tmp, all_next) {
@@ -925,7 +925,7 @@ _bview_draw_status_end:
     }
 }
 
-static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
+static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
     int split_w;
     int split_h;
     int min_w;
@@ -933,7 +933,7 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     int rect_y;
     int fg_attr;
     int bg_attr;
-    bline_t* bline;
+    bline_t *bline;
 
     // Handle split
     if (self->split_child) {
@@ -1002,7 +1002,7 @@ static void _bview_draw_edit(bview_t* self, int x, int y, int w, int h) {
     }
 }
 
-static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t** optret_bline, int* optret_rect_y) {
+static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t **optret_bline, int *optret_rect_y) {
     int rect_x;
     bint_t char_col;
     int fg;
@@ -1101,14 +1101,14 @@ static void _bview_draw_bline(bview_t* self, bline_t* bline, int rect_y, bline_t
 }
 
 // Highlight matching bracket pair under mark
-static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
-    bline_t* line;
+static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark) {
+    bline_t *line;
     bint_t brkt;
     bint_t col;
     mark_t pair;
     int screen_x;
     int screen_y;
-    struct tb_cell* cell;
+    struct tb_cell *cell;
 
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
 
@@ -1135,7 +1135,7 @@ static void _bview_highlight_bracket_pair(bview_t* self, mark_t* mark) {
 }
 
 // Find screen coordinates for a mark
-int bview_get_screen_coords(bview_t* self, mark_t* mark, int* ret_x, int* ret_y, struct tb_cell** optret_cell) {
+int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y, struct tb_cell **optret_cell) {
     int screen_x;
     int screen_y;
     int is_soft_wrapped;

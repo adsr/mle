@@ -2,7 +2,7 @@
 #include "mlbuf.h"
 
 // Move self/col forward until col fits on current line
-static void _bline_advance_col(bline_t** self, bint_t* col) {
+static void _bline_advance_col(bline_t **self, bint_t *col) {
     while (1) {
         MLBUF_BLINE_ENSURE_CHARS(*self);
         if (*col > (*self)->char_count) {
@@ -20,8 +20,8 @@ static void _bline_advance_col(bline_t** self, bint_t* col) {
 }
 
 // Count multi-byte characters and character widths of this line
-int bline_count_chars(bline_t* bline) {
-    char* c;
+int bline_count_chars(bline_t *bline) {
+    char *c;
     int char_len;
     uint32_t ch;
     int char_w;
@@ -100,25 +100,25 @@ int bline_count_chars(bline_t* bline) {
 }
 
 // Insert data on a line
-int bline_insert(bline_t* self, bint_t col, char* data, bint_t data_len, bint_t* ret_num_chars) {
+int bline_insert(bline_t *self, bint_t col, char *data, bint_t data_len, bint_t *ret_num_chars) {
     _bline_advance_col(&self, &col);
     return buffer_insert_w_bline(self->buffer, self, col, data, data_len, ret_num_chars);
 }
 
 // Delete data from a line
-int bline_delete(bline_t* self, bint_t col, bint_t num_chars) {
+int bline_delete(bline_t *self, bint_t col, bint_t num_chars) {
     _bline_advance_col(&self, &col);
     return buffer_delete_w_bline(self->buffer, self, col, num_chars);
 }
 
 // Replace data on a line
-int bline_replace(bline_t* self, bint_t col, bint_t num_chars, char* data, bint_t data_len) {
+int bline_replace(bline_t *self, bint_t col, bint_t num_chars, char *data, bint_t data_len) {
     _bline_advance_col(&self, &col);
     return buffer_replace_w_bline(self->buffer, self, col, num_chars, data, data_len);
 }
 
 // Return a col given a byte index
-int bline_get_col(bline_t* self, bint_t index, bint_t* ret_col) {
+int bline_get_col(bline_t *self, bint_t index, bint_t *ret_col) {
     bint_t col;
     MLBUF_MAKE_GT_EQ0(index);
     MLBUF_BLINE_ENSURE_CHARS(self);
@@ -143,7 +143,7 @@ int bline_get_col(bline_t* self, bint_t index, bint_t* ret_col) {
 }
 
 // Convert a vcol to a col
-int bline_get_col_from_vcol(bline_t* bline, bint_t vcol, bint_t* ret_col) {
+int bline_get_col_from_vcol(bline_t *bline, bint_t vcol, bint_t *ret_col) {
     bint_t i;
     MLBUF_BLINE_ENSURE_CHARS(bline);
     for (i = 0; i < bline->char_count; i++) {

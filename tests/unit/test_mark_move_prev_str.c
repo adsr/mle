@@ -1,8 +1,8 @@
 #include "test.h"
 
-char* str = "hi\nana\nbanana";
+char *str = "hi\nana\nbanana";
 
-void test(buffer_t* buf, mark_t* cur) {
+void test(buffer_t *buf, mark_t *cur) {
     mark_move_end(cur);
 
     mark_move_prev_str(cur, "ana", strlen("ana"));
