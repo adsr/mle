@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hi",
+char* str = "hi";
+
+void test(buffer_t* buf, mark_t* cur) {
     char* data;
     bint_t data_len;
 
@@ -13,4 +15,4 @@ MAIN("hi",
     buffer_undo(buf);
     buffer_get(buf, &data, &data_len);
     ASSERT("ins", 0, strncmp(data, "hi", data_len));
-)
+}

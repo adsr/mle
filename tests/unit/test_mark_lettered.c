@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     mark_t* lett1;
     mark_t* lett2;
     mark_t* lett3;
@@ -17,4 +19,4 @@ MAIN("hello\nworld",
     ASSERT("null", 1, lett3 == NULL ? 1 : 0);
 
     mark_destroy(lett2);
-)
+}

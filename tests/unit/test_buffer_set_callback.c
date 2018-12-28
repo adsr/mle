@@ -20,11 +20,13 @@ static void callback_fn(buffer_t* buf, baction_t* bac, void* udata) {
     ASSERT("bac_data", 0, strncmp("te\nst", bac->data, bac->data_len));
 }
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     int udata;
     udata = 42;
     global_buf = buf;
     global_udata = &udata;
     buffer_set_callback(buf, callback_fn, (void*)global_udata);
     buffer_insert(buf, 0, "te\nst", 5, NULL);
-)
+}

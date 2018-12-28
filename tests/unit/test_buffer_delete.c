@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     char *data;
     bint_t data_len;
 
@@ -19,5 +21,5 @@ MAIN("hello\nworld",
     buffer_delete(buf, 0, 7);
     buffer_get(buf, &data, &data_len);
     ASSERT("all", 0, strncmp(data, "", data_len));
-)
+}
 

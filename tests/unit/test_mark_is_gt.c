@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     mark_t* other;
     other = buffer_add_mark(buf, NULL, 0);
 
@@ -12,4 +14,4 @@ MAIN("hello\nworld",
     mark_move_beginning(other);
     ASSERT("ngt2", 0, mark_is_gt(other, cur));
     ASSERT("ngt3", 0, mark_is_gt(cur, other));
-)
+}

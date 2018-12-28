@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("0\n1\n2\n3\n4\n",
+char* str = "0\n1\n2\n3\n4\n";
+
+void test(buffer_t* buf, mark_t* cur) {
     bint_t i;
     bline_t* line;
     bline_t* line2;
@@ -8,4 +10,4 @@ MAIN("0\n1\n2\n3\n4\n",
         buffer_get_bline(buf, i, &line2);
         ASSERT("line", line, line2);
     }
-)
+}

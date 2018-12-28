@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("  hello {\n    world\n  }",
+char* str = "  hello {\n    world\n  }";
+
+void test(buffer_t* buf, mark_t* cur) {
     mark_t* other;
     other = buffer_add_mark(buf, NULL, 0);
     mark_move_next_str(cur, "{", 1);
@@ -14,4 +16,4 @@ MAIN("  hello {\n    world\n  }",
     ASSERT("olin", 0, cur->bline->line_index);
     ASSERT("ocol", 9, cur->col);
     mark_destroy(other);
-)
+}

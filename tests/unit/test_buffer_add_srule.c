@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     bint_t i;
     srule_t* srule1;
     srule_t* srule2;
@@ -31,4 +33,4 @@ MAIN("hello\nworld",
 
     srule_destroy(srule1);
     srule_destroy(srule2);
-)
+}

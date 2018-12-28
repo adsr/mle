@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hi\nanna\nbanana",
+char* str = "hi\nanna\nbanana";
+
+void test(buffer_t* buf, mark_t* cur) {
     mark_move_beginning(cur);
 
     mark_move_next_re(cur, "an+a", strlen("an+a"));
@@ -23,4 +25,4 @@ MAIN("hi\nanna\nbanana",
     mark_move_next_re(cur, "hi", strlen("hi"));
     ASSERT("line4", buf->first_line, cur->bline);
     ASSERT("col4", 0, cur->col);
-)
+}

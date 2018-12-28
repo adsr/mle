@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     char *data;
     bint_t data_len;
 
@@ -27,4 +29,4 @@ MAIN("hello\nworld",
     bline_delete(buf->first_line, 2, 3);
     buffer_get(buf, &data, &data_len);
     ASSERT("eatnl", 0, strncmp(data, "eol", data_len));
-)
+}

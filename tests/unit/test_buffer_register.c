@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hi",
+char* str = "hi";
+
+void test(buffer_t* buf, mark_t* cur) {
     char* reg;
     size_t reg_len;
 
@@ -20,4 +22,4 @@ MAIN("hi",
     buffer_register_get(buf, 'a', 0, &reg, &reg_len);
     ASSERT("clr1", 0, reg_len);
     ASSERT("clr2", 1, reg != NULL ? 1 : 0);
-)
+}

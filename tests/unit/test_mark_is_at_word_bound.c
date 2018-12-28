@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("obj->method() yes bob",
+char* str = "obj->method() yes bob";
+
+void test(buffer_t* buf, mark_t* cur) {
     mark_move_beginning(cur); // |obj->method() yes bob
     ASSERT("l_bol", 1, mark_is_at_word_bound(cur, -1));
     ASSERT("x_bol", 1, mark_is_at_word_bound(cur, 0));
@@ -45,4 +47,4 @@ MAIN("obj->method() yes bob",
     ASSERT("l_eow2", 0, mark_is_at_word_bound(cur, -1));
     ASSERT("x_eow2", 1, mark_is_at_word_bound(cur, 0));
     ASSERT("r_eow2", 1, mark_is_at_word_bound(cur, 1));
-)
+}

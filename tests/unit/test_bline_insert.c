@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     char *data;
     bint_t data_len;
 
@@ -23,4 +25,4 @@ MAIN("hello\nworld",
     bline_insert(buf->first_line->next, 6, " ", 1, NULL);
     buffer_get(buf, &data, &data_len);
     ASSERT("oob", 0, strncmp(data, "hello\namy's\n world", data_len));
-)
+}

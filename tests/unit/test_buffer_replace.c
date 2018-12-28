@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("lineA\n\nline2\nline3\n",
+char* str = "lineA\n\nline2\nline3\n";
+
+void test(buffer_t* buf, mark_t* cur) {
     char *data;
     bint_t data_len;
 
@@ -75,4 +77,4 @@ MAIN("lineA\n\nline2\nline3\n",
     buffer_undo(buf);
     buffer_get(buf, &data, &data_len);
     ASSERT("undo", 0, strncmp(data, "\nblixey\nbjerkX", data_len));
-)
+}

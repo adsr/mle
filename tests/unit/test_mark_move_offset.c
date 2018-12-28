@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     mark_move_offset(cur, 11);
     ASSERT("col1", 5, cur->col);
     ASSERT("line1", buf->first_line->next, cur->bline);
@@ -12,5 +14,5 @@ MAIN("hello\nworld",
     mark_move_offset(cur, 12);
     ASSERT("oobcol", 5, cur->col);
     ASSERT("oobline", buf->first_line->next, cur->bline);
-)
+}
 

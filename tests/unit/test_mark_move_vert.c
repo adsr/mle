@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hi\nworld",
+char* str = "hi\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     mark_move_end(cur);
 
     mark_move_vert(cur, 1);
@@ -13,4 +15,4 @@ MAIN("hi\nworld",
     ASSERT("noop", buf->first_line, cur->bline);
     ASSERT("col", 2, cur->col);
     ASSERT("tcol", 5, cur->target_col);
-)
+}

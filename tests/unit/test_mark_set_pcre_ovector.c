@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("Ervin won gold at age 35!",
+char* str = "Ervin won gold at age 35!";
+
+void test(buffer_t* buf, mark_t* cur) {
     int ovector[6] = {0};
     int rc = 0;
     bline_t* bline;
@@ -20,4 +22,4 @@ MAIN("Ervin won gold at age 35!",
     ASSERT("vec1b", 24, ovector[1]);
     ASSERT("vec2a", 22, ovector[2]);
     ASSERT("vec2b", 24, ovector[3]);
-)
+}

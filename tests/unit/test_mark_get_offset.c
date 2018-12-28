@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     bint_t offset;
 
     mark_move_end(cur);
@@ -10,4 +12,4 @@ MAIN("hello\nworld",
     mark_move_beginning(cur);
     mark_get_offset(cur, &offset);
     ASSERT("offset", 0, offset);
-)
+}

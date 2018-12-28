@@ -5,7 +5,9 @@ typedef struct {
     int b;
 } thing_t;
 
-MAIN("",
+char* str = "";
+
+void test(buffer_t* buf, mark_t* cur) {
     int i;
     int is_all_zero;
     thing_t* things;
@@ -28,4 +30,4 @@ MAIN("",
     }
     ASSERT("zerod", 1, is_all_zero);
 
-)
+}

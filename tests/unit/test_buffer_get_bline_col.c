@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     bline_t* line;
     bint_t col;
 
@@ -23,5 +25,5 @@ MAIN("hello\nworld",
     buffer_get_bline_col(buf, 99, &line, &col);
     ASSERT("oobline", buf->first_line->next, line);
     ASSERT("oobcol", 5, col);
-)
+}
 

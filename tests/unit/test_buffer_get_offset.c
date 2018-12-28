@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     bint_t offset;
 
     buffer_get_offset(buf, buf->first_line, 0, &offset);
@@ -17,4 +19,4 @@ MAIN("hello\nworld",
 
     buffer_get_offset(buf, buf->first_line->next, 6, &offset);
     ASSERT("noob", 11, offset);
-)
+}

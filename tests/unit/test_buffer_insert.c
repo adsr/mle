@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("hello\nworld",
+char* str = "hello\nworld";
+
+void test(buffer_t* buf, mark_t* cur) {
     char *data;
     bint_t data_len;
     bint_t nchars;
@@ -23,5 +25,5 @@ MAIN("hello\nworld",
     buffer_insert(buf, 20, "!", 1, NULL);
     buffer_get(buf, &data, &data_len);
     ASSERT("oob", 0, strncmp(data, "\xe4\xb8\x96\xe7\x95\x8c\nshel\n\nlo\nworld!", data_len));
-)
+}
 
