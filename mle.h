@@ -197,6 +197,9 @@ struct bview_s {
     aproc_t *aproc;
     cmd_func_t menu_callback;
     int is_menu;
+    #ifndef PATH_MAX
+    #define PATH_MAX 4096
+    #endif
     char init_cwd[PATH_MAX + 1];
     bview_listener_t *listeners;
     bview_t *top_next;
