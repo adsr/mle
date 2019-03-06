@@ -111,7 +111,7 @@ int bview_resize(bview_t *self, int x, int y, int w, int h) {
 
         self->rect_buffer.x = x + self->linenum_width + 1;
         self->rect_buffer.y = y + 1;
-        self->rect_buffer.w = aw - (self->linenum_width + 1 + 1);
+        self->rect_buffer.w = MLE_MAX(1, aw - (self->linenum_width + 1 + 1));
         self->rect_buffer.h = ah - 1;
 
         self->rect_margin_right.x = x + (aw - 1);
