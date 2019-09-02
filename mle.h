@@ -455,16 +455,17 @@ int cursor_get_anchor(cursor_t *cursor, mark_t **ret_anchor);
 int cursor_lift_anchor(cursor_t *cursor);
 int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt_replacement);
 int cursor_select_between(cursor_t *cursor, mark_t *a, mark_t *b, int use_srules);
-int cursor_select_by(cursor_t *cursor, const char *strat);
-int cursor_select_by_bracket(cursor_t *cursor);
-int cursor_select_by_string(cursor_t *cursor);
-int cursor_select_by_word_back(cursor_t *cursor);
-int cursor_select_by_word(cursor_t *cursor);
-int cursor_select_by_word_forward(cursor_t *cursor);
+int cursor_select_by(cursor_t *cursor, const char *strat, int use_srules);
+int cursor_select_by_bracket(cursor_t *cursor, int use_srules);
+int cursor_select_by_string(cursor_t *cursor, int use_srules);
+int cursor_select_by_word_back(cursor_t *cursor, int use_srules);
+int cursor_select_by_word(cursor_t *cursor, int use_srules);
+int cursor_select_by_word_forward(cursor_t *cursor, int use_srules);
 int cursor_toggle_anchor(cursor_t *cursor, int use_srules);
 int cursor_uncut(cursor_t *cursor);
 
 // cmd functions
+int cmd_anchor_by(cmd_context_t *ctx);
 int cmd_apply_macro_by(cmd_context_t *ctx);
 int cmd_apply_macro(cmd_context_t *ctx);
 int cmd_browse(cmd_context_t *ctx);

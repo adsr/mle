@@ -965,11 +965,64 @@ static int _uscript_func_bview_zero_viewport_y(lua_State *L) {
     return 1;
 }
 
+static int _uscript_func_cursor_clone(lua_State *L) {
+    int rv;
+    cursor_t *cursor;
+    int use_srules;
+    cursor_t *ret_clone = NULL;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_clone(cursor, use_srules, &ret_clone);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_clone");
+    lua_pushpointer(L, (void*)ret_clone);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_cursor_cut_copy(lua_State *L) {
+    int rv;
+    cursor_t *cursor;
+    int is_cut;
+    int use_srules;
+    int append;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
+    is_cut = (int)luaL_checkinteger(L, 2);
+    use_srules = (int)luaL_checkinteger(L, 3);
+    append = (int)luaL_checkinteger(L, 4);
+    rv = cursor_cut_copy(cursor, is_cut, use_srules, append);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 static int _uscript_func_cursor_destroy(lua_State *L) {
     int rv;
     cursor_t *cursor;
     cursor = (cursor_t *)luaL_checkpointer(L, 1);
     rv = cursor_destroy(cursor);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_cursor_drop_anchor(lua_State *L) {
+    int rv;
+    cursor_t *cursor;
+    int use_srules;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_drop_anchor(cursor, use_srules);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1065,13 +1118,34 @@ static int _uscript_func_cursor_replace(lua_State *L) {
     return 1;
 }
 
+static int _uscript_func_cursor_select_between(lua_State *L) {
+    int rv;
+    cursor_t *cursor;
+    mark_t *a;
+    mark_t *b;
+    int use_srules;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
+    a = (mark_t *)luaL_checkpointer(L, 2);
+    b = (mark_t *)luaL_checkpointer(L, 3);
+    use_srules = (int)luaL_checkinteger(L, 4);
+    rv = cursor_select_between(cursor, a, b, use_srules);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 static int _uscript_func_cursor_select_by(lua_State *L) {
     int rv;
     cursor_t *cursor;
     const char *strat;
+    int use_srules;
     cursor = (cursor_t *)luaL_checkpointer(L, 1);
     strat = (const char *)luaL_checkstring(L, 2);
-    rv = cursor_select_by(cursor, strat);
+    use_srules = (int)luaL_checkinteger(L, 3);
+    rv = cursor_select_by(cursor, strat, use_srules);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1083,8 +1157,10 @@ static int _uscript_func_cursor_select_by(lua_State *L) {
 static int _uscript_func_cursor_select_by_bracket(lua_State *L) {
     int rv;
     cursor_t *cursor;
+    int use_srules;
     cursor = (cursor_t *)luaL_checkpointer(L, 1);
-    rv = cursor_select_by_bracket(cursor);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_select_by_bracket(cursor, use_srules);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1096,8 +1172,10 @@ static int _uscript_func_cursor_select_by_bracket(lua_State *L) {
 static int _uscript_func_cursor_select_by_string(lua_State *L) {
     int rv;
     cursor_t *cursor;
+    int use_srules;
     cursor = (cursor_t *)luaL_checkpointer(L, 1);
-    rv = cursor_select_by_string(cursor);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_select_by_string(cursor, use_srules);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1109,8 +1187,10 @@ static int _uscript_func_cursor_select_by_string(lua_State *L) {
 static int _uscript_func_cursor_select_by_word(lua_State *L) {
     int rv;
     cursor_t *cursor;
+    int use_srules;
     cursor = (cursor_t *)luaL_checkpointer(L, 1);
-    rv = cursor_select_by_word(cursor);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_select_by_word(cursor, use_srules);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1122,8 +1202,10 @@ static int _uscript_func_cursor_select_by_word(lua_State *L) {
 static int _uscript_func_cursor_select_by_word_back(lua_State *L) {
     int rv;
     cursor_t *cursor;
+    int use_srules;
     cursor = (cursor_t *)luaL_checkpointer(L, 1);
-    rv = cursor_select_by_word_back(cursor);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_select_by_word_back(cursor, use_srules);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1135,8 +1217,25 @@ static int _uscript_func_cursor_select_by_word_back(lua_State *L) {
 static int _uscript_func_cursor_select_by_word_forward(lua_State *L) {
     int rv;
     cursor_t *cursor;
+    int use_srules;
     cursor = (cursor_t *)luaL_checkpointer(L, 1);
-    rv = cursor_select_by_word_forward(cursor);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_select_by_word_forward(cursor, use_srules);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_cursor_toggle_anchor(lua_State *L) {
+    int rv;
+    cursor_t *cursor;
+    int use_srules;
+    cursor = (cursor_t *)luaL_checkpointer(L, 1);
+    use_srules = (int)luaL_checkinteger(L, 2);
+    rv = cursor_toggle_anchor(cursor, use_srules);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -2403,18 +2502,23 @@ static const struct luaL_Reg mle_lib[] = {
     { "bview_split", _uscript_func_bview_split },
     { "bview_wake_sleeping_cursors", _uscript_func_bview_wake_sleeping_cursors },
     { "bview_zero_viewport_y", _uscript_func_bview_zero_viewport_y },
+    { "cursor_clone", _uscript_func_cursor_clone },
+    { "cursor_cut_copy", _uscript_func_cursor_cut_copy },
     { "cursor_destroy", _uscript_func_cursor_destroy },
+    { "cursor_drop_anchor", _uscript_func_cursor_drop_anchor },
     { "cursor_get_anchor", _uscript_func_cursor_get_anchor },
     { "cursor_get_lo_hi", _uscript_func_cursor_get_lo_hi },
     { "cursor_get_mark", _uscript_func_cursor_get_mark },
     { "cursor_lift_anchor", _uscript_func_cursor_lift_anchor },
     { "cursor_replace", _uscript_func_cursor_replace },
+    { "cursor_select_between", _uscript_func_cursor_select_between },
     { "cursor_select_by", _uscript_func_cursor_select_by },
     { "cursor_select_by_bracket", _uscript_func_cursor_select_by_bracket },
     { "cursor_select_by_string", _uscript_func_cursor_select_by_string },
     { "cursor_select_by_word", _uscript_func_cursor_select_by_word },
     { "cursor_select_by_word_back", _uscript_func_cursor_select_by_word_back },
     { "cursor_select_by_word_forward", _uscript_func_cursor_select_by_word_forward },
+    { "cursor_toggle_anchor", _uscript_func_cursor_toggle_anchor },
     { "cursor_uncut", _uscript_func_cursor_uncut },
     { "editor_bview_edit_count", _uscript_func_editor_bview_edit_count },
     { "editor_close_bview", _uscript_func_editor_close_bview },

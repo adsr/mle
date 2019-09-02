@@ -460,7 +460,7 @@ int cmd_find_word(cmd_context_t *ctx) {
     bint_t re_len;
     bint_t word_len;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (cursor_select_by(cursor, "word") == MLE_OK) {
+        if (cursor_select_by(cursor, "word", 0) == MLE_OK) {
             mark_get_between_mark(cursor->mark, cursor->anchor, &word, &word_len);
             re_len = asprintf(&re, "\\b%s\\b", word);
             free(word);
@@ -519,7 +519,7 @@ int cmd_uncut(cmd_context_t *ctx) {
 // Copy in between chars
 int cmd_copy_by(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (cursor_select_by(cursor, ctx->static_param) == MLE_OK) {
+        if (cursor_select_by(cursor, ctx->static_param, 0) == MLE_OK) {
             cursor_cut_copy(cursor, 0, 0, 0);
         }
     );
@@ -529,9 +529,17 @@ int cmd_copy_by(cmd_context_t *ctx) {
 // Cut in between chars
 int cmd_cut_by(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (cursor_select_by(cursor, ctx->static_param) == MLE_OK) {
+        if (cursor_select_by(cursor, ctx->static_param, 0) == MLE_OK) {
             cursor_cut_copy(cursor, 1, 0, 0);
         }
+    );
+    return MLE_OK;
+}
+
+// Anchor between chars
+int cmd_anchor_by(cmd_context_t *ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        cursor_select_by(cursor, ctx->static_param, 1);
     );
     return MLE_OK;
 }
@@ -630,7 +638,7 @@ int cmd_ctag(cmd_context_t *ctx) {
     char *word_arg;
     char *cmd;
     bint_t word_len;
-    if (cursor_select_by(ctx->cursor, "word") != MLE_OK) {
+    if (cursor_select_by(ctx->cursor, "word", 0) != MLE_OK) {
         MLE_RETURN_ERR(ctx->editor, "%s", "Failed to select word under cursor");
     }
     mark_get_between_mark(ctx->cursor->mark, ctx->cursor->anchor, &word, &word_len);

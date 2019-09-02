@@ -1,7 +1,7 @@
 <?php
 
 class CodeGen {
-    public $blacklist_re = '@(editor_(init|deinit|run|debug_dump)|cre|srule|listener)@';
+    public $blacklist_re = '@(editor_(init|deinit|run|debug_dump)|cre|listener)@';
     public $valid_pointer_re = '@(bline_t|buffer_t|bview_t|cursor_t|editor_t|mark_t|observer_t|void|char|size_t|int)@';
 
     function run() {

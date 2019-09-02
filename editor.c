@@ -1385,6 +1385,7 @@ static void _editor_graceful_exit(int signum) {
 
 // Register built-in commands
 static void _editor_register_cmds(editor_t *editor) {
+    _editor_register_cmd_fn(editor, "cmd_anchor_by", cmd_anchor_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
     _editor_register_cmd_fn(editor, "cmd_browse", cmd_browse);
@@ -1541,6 +1542,13 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF_EX("cmd_cut_by", "C-d a", "bol"),
         MLE_KBINDING_DEF_EX("cmd_cut_by", "C-d e", "eol"),
         MLE_KBINDING_DEF_EX("cmd_cut_by", "C-d c", "string"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 d", "bracket"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 w", "word"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 s", "word_back"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 f", "word_forward"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 a", "bol"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 e", "eol"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 c", "string"),
         MLE_KBINDING_DEF("cmd_delete_word_before", "C-w"),
         MLE_KBINDING_DEF("cmd_delete_word_after", "M-d"),
         MLE_KBINDING_DEF("cmd_toggle_anchor", "M-a"),

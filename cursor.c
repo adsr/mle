@@ -93,26 +93,26 @@ int cursor_get_anchor(cursor_t *cursor, mark_t **ret_anchor) {
 }
 
 // Make selection by strat
-int cursor_select_by(cursor_t *cursor, const char *strat) {
+int cursor_select_by(cursor_t *cursor, const char *strat, int use_srules) {
     if (cursor->is_anchored) {
         return MLE_ERR;
     }
     if (strcmp(strat, "bracket") == 0) {
-        return cursor_select_by_bracket(cursor);
+        return cursor_select_by_bracket(cursor, use_srules);
     } else if (strcmp(strat, "word") == 0) {
-        return cursor_select_by_word(cursor);
+        return cursor_select_by_word(cursor, use_srules);
     } else if (strcmp(strat, "word_back") == 0) {
-        return cursor_select_by_word_back(cursor);
+        return cursor_select_by_word_back(cursor, use_srules);
     } else if (strcmp(strat, "word_forward") == 0) {
-        return cursor_select_by_word_forward(cursor);
+        return cursor_select_by_word_forward(cursor, use_srules);
     } else if (strcmp(strat, "eol") == 0 && !mark_is_at_eol(cursor->mark)) {
-        cursor_toggle_anchor(cursor, 0);
+        cursor_toggle_anchor(cursor, use_srules);
         mark_move_eol(cursor->anchor);
     } else if (strcmp(strat, "bol") == 0 && !mark_is_at_bol(cursor->mark)) {
-        cursor_toggle_anchor(cursor, 0);
+        cursor_toggle_anchor(cursor, use_srules);
         mark_move_bol(cursor->anchor);
     } else if (strcmp(strat, "string") == 0) {
-        return cursor_select_by_string(cursor);
+        return cursor_select_by_string(cursor, use_srules);
     } else {
         MLE_RETURN_ERR(cursor->bview->editor, "Unrecognized cursor_select_by strat '%s'", strat);
     }
@@ -120,14 +120,14 @@ int cursor_select_by(cursor_t *cursor, const char *strat) {
 }
 
 // Select by bracket
-int cursor_select_by_bracket(cursor_t *cursor) {
+int cursor_select_by_bracket(cursor_t *cursor, int use_srules) {
     mark_t *orig;
     mark_clone(cursor->mark, &orig);
     if (mark_move_bracket_top(cursor->mark, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
         mark_destroy(orig);
         return MLE_ERR;
     }
-    cursor_toggle_anchor(cursor, 0);
+    cursor_toggle_anchor(cursor, use_srules);
     if (mark_move_bracket_pair(cursor->anchor, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
         cursor_toggle_anchor(cursor, 0);
         mark_join(cursor->mark, orig);
@@ -140,23 +140,23 @@ int cursor_select_by_bracket(cursor_t *cursor) {
 }
 
 // Select by word-back
-int cursor_select_by_word_back(cursor_t *cursor) {
+int cursor_select_by_word_back(cursor_t *cursor, int use_srules) {
     if (mark_is_at_word_bound(cursor->mark, -1)) return MLE_ERR;
-    cursor_toggle_anchor(cursor, 0);
+    cursor_toggle_anchor(cursor, use_srules);
     mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     return MLE_OK;
 }
 
 // Select by word-forward
-int cursor_select_by_word_forward(cursor_t *cursor) {
+int cursor_select_by_word_forward(cursor_t *cursor, int use_srules) {
     if (mark_is_at_word_bound(cursor->mark, 1)) return MLE_ERR;
-    cursor_toggle_anchor(cursor, 0);
+    cursor_toggle_anchor(cursor, use_srules);
     mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     return MLE_OK;
 }
 
 // Select by string
-int cursor_select_by_string(cursor_t *cursor) {
+int cursor_select_by_string(cursor_t *cursor, int use_srules) {
     mark_t *orig;
     uint32_t qchar;
     char *qre;
@@ -165,7 +165,7 @@ int cursor_select_by_string(cursor_t *cursor) {
         mark_destroy(orig);
         return MLE_ERR;
     }
-    cursor_toggle_anchor(cursor, 0);
+    cursor_toggle_anchor(cursor, use_srules);
     mark_get_char_after(cursor->mark, &qchar);
     mark_move_by(cursor->mark, 1);
     if (qchar == '"') {
@@ -176,7 +176,7 @@ int cursor_select_by_string(cursor_t *cursor) {
         qre = "(?<!\\\\)`";
     }
     if (mark_move_next_re_nudge(cursor->anchor, qre, strlen(qre)) != MLBUF_OK) {
-        cursor_toggle_anchor(cursor, 0);
+        cursor_toggle_anchor(cursor, use_srules);
         mark_join(cursor->mark, orig);
         mark_destroy(orig);
         return MLE_ERR;
@@ -186,7 +186,7 @@ int cursor_select_by_string(cursor_t *cursor) {
 }
 
 // Select by word
-int cursor_select_by_word(cursor_t *cursor) {
+int cursor_select_by_word(cursor_t *cursor, int use_srules) {
     uint32_t after;
     if (mark_is_at_eol(cursor->mark)) return MLE_ERR;
     mark_get_char_after(cursor->mark, &after);
@@ -194,7 +194,7 @@ int cursor_select_by_word(cursor_t *cursor) {
     if (!mark_is_at_word_bound(cursor->mark, -1)) {
         mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     }
-    cursor_toggle_anchor(cursor, 0);
+    cursor_toggle_anchor(cursor, use_srules);
     mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     return MLE_OK;
 }
