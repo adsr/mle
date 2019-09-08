@@ -3,10 +3,10 @@ lua_objects:=$(patsubst lua/%.c,lua/%.o,$(filter-out lua/lua.c, $(wildcard lua/*
 termbox_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-unused-result -g -O3 -D_XOPEN_SOURCE $(CFLAGS)
 termbox_objects:=$(patsubst termbox/src/%.c,termbox/src/%.o,$(wildcard termbox/src/*.c))
 
-all: uthash/.git pcre/.libs/libpcre.a lua/liblua5.3.a termbox/src/libtermbox.a
+all: uthash/src/utlist.h pcre/.libs/libpcre.a lua/liblua5.3.a termbox/src/libtermbox.a
 
-uthash/.git:
-	git submodule update --init
+uthash/src/utlist.h:
+	command -v git && git submodule update --init
 
 pcre/.libs/libpcre.a:
 	cd pcre && ./autogen.sh && ./configure && $(MAKE)
