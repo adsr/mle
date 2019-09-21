@@ -1241,7 +1241,7 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
         // Look for numeric .. TODO can be more efficient about this
         if (input->ch >= '0' && input->ch <= '9') {
             if (!loop_ctx->numeric_node) {
-                input_tmp = MLE_KINPUT_NUMERIC;
+                MLE_KINPUT_SET_NUMERIC(input_tmp);
                 HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
                 loop_ctx->numeric_node = binding;
             }
@@ -1281,7 +1281,7 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
 
     if (!is_peek) {
         // Look for wildcard
-        input_tmp = MLE_KINPUT_WILDCARD;
+        MLE_KINPUT_SET_WILDCARD(input_tmp);
         HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
         if (binding) {
             if (loop_ctx->wildcard_params_len < MLE_LOOP_CTX_MAX_WILDCARD_PARAMS) {
@@ -1701,9 +1701,9 @@ static int _editor_init_kmap_add_binding_to_trie(kbinding_t **trie, char *cmd_na
     // Parse cur_key_patt token as input
     memset(&input, 0, sizeof(kinput_t));
     if (strcmp("##", cur_key_patt) == 0) {
-        input = MLE_KINPUT_NUMERIC;
+        MLE_KINPUT_SET_NUMERIC(input);
     } else if (strcmp("**", cur_key_patt) == 0) {
-        input = MLE_KINPUT_WILDCARD;
+        MLE_KINPUT_SET_WILDCARD(input);
     } else if (_editor_key_to_input(cur_key_patt, &input) == MLE_OK) {
         // Hi mom!
     } else {

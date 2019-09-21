@@ -637,9 +637,13 @@ extern editor_t _editor;
     : ( (pcol) <= 0 ? 0 : (pline)->chars[(pcol)].vcol ) \
 )
 
-// Sentinel values for numeric and wildcard kinputs
-#define MLE_KINPUT_NUMERIC (kinput_t){ 0x40, 0xffffffff, 0xffff }
-#define MLE_KINPUT_WILDCARD (kinput_t){ 0x80, 0xffffffff, 0xffff }
+// Sentinel initializers for numeric and wildcard kinputs
+#define MLE_KINPUT_SET_SPECIAL(pi, pmod) do { \
+    memset(&(pi), 0xff, sizeof(pi)); \
+    pi.mod = (pmod); \
+} while(0)
+#define MLE_KINPUT_SET_NUMERIC(pi) MLE_KINPUT_SET_SPECIAL(pi, 0x40);
+#define MLE_KINPUT_SET_WILDCARD(pi) MLE_KINPUT_SET_SPECIAL(pi, 0x80);
 
 #define MLE_LINENUM_TYPE_ABS 0
 #define MLE_LINENUM_TYPE_REL 1
