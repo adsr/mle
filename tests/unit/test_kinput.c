@@ -6,7 +6,7 @@
 char *str = "";
 
 void test(buffer_t *buf, mark_t *cur) {
-    kinput_t garbage[NUM_KINPUTS];
+    kinput_t weird_input[NUM_KINPUTS];
     kinput_t input;
     int result;
     size_t i, j;
@@ -16,28 +16,32 @@ void test(buffer_t *buf, mark_t *cur) {
     offsetof_ch  = OFFSETOF(kinput_t, ch);
     offsetof_key = OFFSETOF(kinput_t, key);
 
-    // Fill garbage inputs
+    // Fill weird_input values
     for (i = 0; i < sizeof(kinput_t) * NUM_KINPUTS; i++) {
-        *(((uint8_t*)garbage) + i) = (uint8_t)i;
+        *(((uint8_t*)weird_input) + i) = (uint8_t)i;
     }
 
-    // Ensure MLE_KINPUT_COPY preserves padding bytes
+    // Ensure MLE_KINPUT_COPY *preserves* padding bytes
     result = 0;
     for (i = 0; i < NUM_KINPUTS; i++) {
-        MLE_KINPUT_COPY(input, garbage[i]);
-        result |= memcmp(&input, &garbage[i], sizeof(kinput_t));
+        MLE_KINPUT_COPY(input, weird_input[i]);
+        result |= memcmp(&input, &weird_input[i], sizeof(kinput_t));
     }
     ASSERT("cmp_kinput_assign", 0, result);
 
-    // Ensure MLE_KINPUT_SET zeroes padding bytes
+    // Ensure MLE_KINPUT_SET *zeroes* padding bytes
     result = 0;
     for (i = 0; i < NUM_KINPUTS; i++) {
-        MLE_KINPUT_SET(input, garbage[i].mod, garbage[i].ch, garbage[i].key);
+        // Fill input with non-sense; 42 is a good choice
+        memset(&input, 42, sizeof(input));
 
-        // Ensure fields are equal
-        result |= memcmp(&input.mod, &garbage[i].mod, sizeof(input.mod));
-        result |= memcmp(&input.ch,  &garbage[i].ch,  sizeof(input.ch));
-        result |= memcmp(&input.key, &garbage[i].key, sizeof(input.key));
+        // Set input to weird_input[i]
+        MLE_KINPUT_SET(input, weird_input[i].mod, weird_input[i].ch, weird_input[i].key);
+
+        // Ensure all fields are equal
+        result |= memcmp(&input.mod, &weird_input[i].mod, sizeof(input.mod));
+        result |= memcmp(&input.ch,  &weird_input[i].ch,  sizeof(input.ch));
+        result |= memcmp(&input.key, &weird_input[i].key, sizeof(input.key));
 
         // Ensure bytes between mod and ch are zero
         for (j = offsetof_mod + sizeof(input.mod); j < offsetof_ch; j++) {
