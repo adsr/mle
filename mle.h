@@ -581,7 +581,7 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "1.4.1"
+#define MLE_VERSION "1.4.2"
 
 #define MLE_OK 0
 #define MLE_ERR 1
@@ -637,13 +637,18 @@ extern editor_t _editor;
     : ( (pcol) <= 0 ? 0 : (pline)->chars[(pcol)].vcol ) \
 )
 
-// Sentinel initializers for numeric and wildcard kinputs
-#define MLE_KINPUT_SET_SPECIAL(pi, pmod) do { \
-    memset(&(pi), 0xff, sizeof(pi)); \
-    pi.mod = (pmod); \
+// Setter macros for kinput structs
+#define MLE_KINPUT_SET_EX(pi, pfill, pmod, pch, pkey) do { \
+    memset(&(pi), (pfill), sizeof(pi)); \
+    (pi).mod = (pmod); \
+    (pi).ch = (pch); \
+    (pi).key = (pkey); \
 } while(0)
-#define MLE_KINPUT_SET_NUMERIC(pi) MLE_KINPUT_SET_SPECIAL(pi, 0x40);
-#define MLE_KINPUT_SET_WILDCARD(pi) MLE_KINPUT_SET_SPECIAL(pi, 0x80);
+#define MLE_KINPUT_SET(pi, pmod, pch, pkey) MLE_KINPUT_SET_EX(pi, 0x00, pmod, pch, pkey)
+#define MLE_KINPUT_SET_SPECIAL(pi, pmod)    MLE_KINPUT_SET_EX(pi, 0xff, pmod, 0xffffffff, 0xffff)
+#define MLE_KINPUT_SET_NUMERIC(pi)          MLE_KINPUT_SET_SPECIAL(pi, 0x40)
+#define MLE_KINPUT_SET_WILDCARD(pi)         MLE_KINPUT_SET_SPECIAL(pi, 0x80)
+#define MLE_KINPUT_COPY(pi, pj)             memcpy(&(pi), &(pj), sizeof(pi))
 
 #define MLE_LINENUM_TYPE_ABS 0
 #define MLE_LINENUM_TYPE_REL 1
@@ -689,7 +694,7 @@ TODO BACKLOG
 [ ] review use of MLE_RETURN_ERR
 [ ] move single-use macros out of mle.h
 TODO REWRITE
-[ ] rewrite kmap, trie code is hard to read, ** and ## is not elegantb
+[ ] rewrite kmap, trie code is hard to read, ** and ## is not elegant, do not use kinput as hash key
 [ ] rewrite hili code (use_srules sucks; overlapping multi rules bug; test_buffer_srule_overlap.c.todo)
 [ ] rewrite aproc and menu code
 [ ] rewrite buffer_set_mmapped to avoid huge mallocs

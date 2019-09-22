@@ -501,7 +501,7 @@ int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *
         && editor->macro_apply_input_index < editor->macro_apply->inputs_len
     ) {
         // Get input from macro
-        ctx->input = editor->macro_apply->inputs[editor->macro_apply_input_index];
+        MLE_KINPUT_COPY(ctx->input, editor->macro_apply->inputs[editor->macro_apply_input_index]);
         editor->macro_apply_input_index += 1;
     } else {
         // Get input from user
@@ -1075,7 +1075,7 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
 
     // Use pastebuf_leftover is present
     if (ctx->has_pastebuf_leftover) {
-        ctx->input = ctx->pastebuf_leftover;
+        MLE_KINPUT_COPY(ctx->input, ctx->pastebuf_leftover);
         ctx->has_pastebuf_leftover = 0;
         return;
     }
@@ -1091,7 +1091,7 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
             editor_display(editor);
             continue;
         }
-        ctx->input = (kinput_t){ ev.mod, ev.ch, ev.key };
+        MLE_KINPUT_SET(ctx->input, ev.mod, ev.ch, ev.key);
         break;
     }
 }
@@ -1102,7 +1102,6 @@ static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
     tb_event_t ev;
     kinput_t input;
     cmd_t *cmd;
-    memset(&input, 0, sizeof(kinput_t));
 
     // Reset pastebuf
     ctx->pastebuf_len = 0;
@@ -1127,7 +1126,7 @@ static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
             editor_display(editor);
             break;
         }
-        input = (kinput_t){ ev.mod, ev.ch, ev.key };
+        MLE_KINPUT_SET(input, ev.mod, ev.ch, ev.key);
         // TODO check for macro key
         cmd = _editor_get_command(editor, ctx, &input);
         if (cmd && cmd->func == cmd_insert_data) {
@@ -1715,7 +1714,7 @@ static int _editor_init_kmap_add_binding_to_trie(kbinding_t **trie, char *cmd_na
     HASH_FIND(hh, *trie, &input, sizeof(kinput_t), node);
     if (!node) {
         node = calloc(1, sizeof(kbinding_t));
-        node->input = input;
+        MLE_KINPUT_COPY(node->input, input);
         HASH_ADD(hh, *trie, input, sizeof(kinput_t), node);
     }
 
@@ -1783,7 +1782,7 @@ static int _editor_add_macro_by_str(editor_t *editor, char *str) {
     int has_input;
     char *token;
     kmacro_t *macro;
-    kinput_t input = { 0, 0, 0 };
+    kinput_t input;
 
     has_input = 0;
     macro = NULL;

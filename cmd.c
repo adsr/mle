@@ -1686,9 +1686,9 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
 // Get one kinput_t, saving original input on cmd_context_t
 static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input) {
     kinput_t oinput;
-    oinput = ctx->input;
+    MLE_KINPUT_COPY(oinput, ctx->input);
     memset(ret_input, 0, sizeof(kinput_t));
     editor_get_input(ctx->editor, ctx->loop_ctx, ctx);
-    *ret_input = ctx->input;
-    ctx->input = oinput;
+    MLE_KINPUT_COPY(*ret_input, ctx->input);
+    MLE_KINPUT_COPY(ctx->input, oinput);
 }
