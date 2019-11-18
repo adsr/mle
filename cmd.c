@@ -46,6 +46,7 @@ static void _cmd_insert_auto_indent_newline(cmd_context_t *ctx);
 static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t *ctx);
 static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd);
 static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input);
+static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd);
 
 // Insert data
 int cmd_insert_data(cmd_context_t *ctx) {
@@ -576,30 +577,17 @@ int cmd_split_horizontal(cmd_context_t *ctx) {
 
 // Fuzzy path search via fzf
 int cmd_fsearch(cmd_context_t *ctx) {
-    char *path;
-    size_t path_len;
-    path = NULL;
-    if (util_shell_exec(ctx->editor, "fzf", -1, NULL, 0, 0, NULL, &path, &path_len) == MLE_ERR) {
-        return MLE_ERR;
-    }
-    _cmd_force_redraw(ctx);
-    if (path && path_len > 0) {
-        while (path[path_len-1] == '\n') {
-            // Strip trailing newlines
-            path_len -= 1;
-        }
-        if (path_len > 0) {
-            if (ctx->static_param && strcmp(ctx->static_param, "replace") == 0) {
-                if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_OK) {
-                    bview_open(ctx->bview, path, path_len);
-                }
-            } else {
-                editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, 0, NULL, NULL);
-            }
-        }
-    }
-    free(path);
-    return MLE_OK;
+    return _cmd_fsearch_inner(ctx, "fzf");
+}
+
+// Fuzzy path search via fzy
+int cmd_fsearch_fzy(cmd_context_t *ctx) {
+    char shell_cmd[32];
+    int nlines;
+    nlines = tb_height();
+    nlines = MLE_MAX(MLE_MIN(nlines, 9999), 3);
+    sprintf(shell_cmd, "find . -type f | fzy -l %d", nlines);
+    return _cmd_fsearch_inner(ctx, shell_cmd);
 }
 
 // Grep for pattern in cwd
@@ -1691,4 +1679,34 @@ static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input) {
     editor_get_input(ctx->editor, ctx->loop_ctx, ctx);
     MLE_KINPUT_COPY(*ret_input, ctx->input);
     MLE_KINPUT_COPY(ctx->input, oinput);
+}
+
+// Perform a fuzzy search using fzf/fzy
+// `shell_cmd` is expected to return a path on stdout
+static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd) {
+    char *path;
+    size_t path_len;
+    path = NULL;
+    if (tb_width() >= 0) tb_shutdown();
+    if (util_shell_exec(ctx->editor, shell_cmd, -1, NULL, 0, 0, NULL, &path, &path_len) == MLE_ERR) {
+        return MLE_ERR;
+    }
+    _cmd_force_redraw(ctx);
+    if (path && path_len > 0) {
+        while (path[path_len-1] == '\n') {
+            // Strip trailing newlines
+            path_len -= 1;
+        }
+        if (path_len > 0) {
+            if (ctx->static_param && strcmp(ctx->static_param, "replace") == 0) {
+                if (_cmd_pre_close(ctx->editor, ctx->bview) == MLE_OK) {
+                    bview_open(ctx->bview, path, path_len);
+                }
+            } else {
+                editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, path, path_len, 1, 0, 0, NULL, NULL);
+            }
+        }
+    }
+    free(path);
+    return MLE_OK;
 }

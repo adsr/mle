@@ -483,6 +483,7 @@ int cmd_drop_cursor_column(cmd_context_t *ctx);
 int cmd_drop_sleeping_cursor(cmd_context_t *ctx);
 int cmd_find_word(cmd_context_t *ctx);
 int cmd_fsearch(cmd_context_t *ctx);
+int cmd_fsearch_fzy(cmd_context_t *ctx);
 int cmd_grep(cmd_context_t *ctx);
 int cmd_indent(cmd_context_t *ctx);
 int cmd_insert_data(cmd_context_t *ctx);

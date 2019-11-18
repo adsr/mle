@@ -41,7 +41,7 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 * Headless mode
 * Navigation via [ctags](https://github.com/universal-ctags/ctags)
 * Movement via [less](https://www.gnu.org/software/less/)
-* Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
+* Fuzzy file search via [fzy](https://github.com/jhawthorn/fzy)
 * File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
 * File grep via [grep](https://www.gnu.org/software/grep/)
 * String manip via [perl](https://www.perl.org/)
@@ -120,7 +120,7 @@ The following programs will enable or enhance certain features of mle if they
 exist in `PATH`.
 
 * [bash](https://www.gnu.org/software/bash/) (tab completion)
-* [fzf](https://github.com/junegunn/fzf) (fuzzy file search)
+* [fzy](https://github.com/jhawthorn/fzy) (fuzzy file search)
 * [grep](https://www.gnu.org/software/grep/) (file grep)
 * [less](https://www.gnu.org/software/less/) (less integration)
 * [perl](https://www.perl.org/) (perl 1-liners)

@@ -1402,6 +1402,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_drop_sleeping_cursor", cmd_drop_sleeping_cursor);
     _editor_register_cmd_fn(editor, "cmd_find_word", cmd_find_word);
     _editor_register_cmd_fn(editor, "cmd_fsearch", cmd_fsearch);
+    _editor_register_cmd_fn(editor, "cmd_fsearch_fzy", cmd_fsearch_fzy);
     _editor_register_cmd_fn(editor, "cmd_grep", cmd_grep);
     _editor_register_cmd_fn(editor, "cmd_indent", cmd_indent);
     _editor_register_cmd_fn(editor, "cmd_insert_data", cmd_insert_data);
@@ -1562,7 +1563,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_split_vertical", "M-v"),
         MLE_KBINDING_DEF("cmd_split_horizontal", "M-h"),
         MLE_KBINDING_DEF("cmd_grep", "M-q"),
-        MLE_KBINDING_DEF("cmd_fsearch", "C-p"),
+        MLE_KBINDING_DEF("cmd_fsearch_fzy", "C-p"),
         MLE_KBINDING_DEF("cmd_browse", "C-b"),
         MLE_KBINDING_DEF("cmd_undo", "C-z"),
         MLE_KBINDING_DEF("cmd_redo", "C-y"),
@@ -1576,7 +1577,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_open_file", "C-o"),
         MLE_KBINDING_DEF("cmd_open_replace_new", "C-q n"),
         MLE_KBINDING_DEF("cmd_open_replace_file", "C-q o"),
-        MLE_KBINDING_DEF_EX("cmd_fsearch", "C-q p", "replace"),
+        MLE_KBINDING_DEF_EX("cmd_fsearch_fzy", "C-q p", "replace"),
         MLE_KBINDING_DEF("cmd_indent", "M-."),
         MLE_KBINDING_DEF("cmd_outdent", "M-,"),
         MLE_KBINDING_DEF("cmd_ctag", "F3"),
