@@ -1131,7 +1131,7 @@ static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark) {
         // Out of bounds
         return;
     }
-    tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | TB_REVERSE); // TODO configurable
+    tb_change_cell(screen_x, screen_y, cell->ch, cell->fg | TB_UNDERLINE, cell->bg); // TODO configurable
 }
 
 // Find screen coordinates for a mark
