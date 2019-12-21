@@ -1568,14 +1568,14 @@ static void _cmd_insert_auto_indent_newline(cmd_context_t *ctx) {
     }
     if (prev_line_len > 0 && prev_line[prev_line_len-1] == '{') {
         // Insert extra indent if last line ends with '{'
-        if (ctx->editor->tab_to_space
+        if (ctx->bview->tab_to_space
             && indent_len % ctx->bview->tab_width == 0
             && util_pcre_match("^ *$", indent, indent_len, NULL, NULL)
         ) {
             asprintf(&tmp, "%*c", (int)ctx->bview->tab_width, ' ');
             mark_insert_before(ctx->cursor->mark, tmp, strlen(tmp));
             free(tmp);
-        } else if (!ctx->editor->tab_to_space
+        } else if (!ctx->bview->tab_to_space
             && util_pcre_match("^\\t*$", indent, indent_len, NULL, NULL)
         ) {
             mark_insert_before(ctx->cursor->mark, "\t", 1);
@@ -1619,13 +1619,13 @@ static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t *ctx) {
         ) {
             // More whitespace on prev line
             break;
-        } else if (ctx->editor->tab_to_space
+        } else if (ctx->bview->tab_to_space
             && ctx->cursor->mark->bline->data_len % ctx->bview->tab_width == 0
             && util_pcre_match("^ +$", this_line, this_line_len, NULL, NULL)
         ) {
             // Outdent with tab_width worth of spaces
             bline_delete(ctx->cursor->mark->bline, 0, ctx->bview->tab_width);
-        } else if (!ctx->editor->tab_to_space
+        } else if (!ctx->bview->tab_to_space
             && util_pcre_match("^\\t+$", this_line, this_line_len, NULL, NULL)
         ) {
             // Outdent one tab
