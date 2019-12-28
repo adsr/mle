@@ -647,14 +647,16 @@ int bview_set_syntax(bview_t *self, char *opt_syntax) {
             buffer_add_srule(self->buffer, srule_node->srule);
         }
         self->syntax = use_syntax;
-        self->tab_to_space = use_syntax->tab_to_space >= 0
-            ? use_syntax->tab_to_space
-            : self->editor->tab_to_space;
-        _bview_set_tab_width(self, use_syntax->tab_width >= 1
-            ? use_syntax->tab_width
-            : self->editor->tab_width
-        );
     }
+
+    // Set tab settings
+    self->tab_to_space = (use_syntax && use_syntax->tab_to_space >= 0)
+        ? use_syntax->tab_to_space
+        : self->editor->tab_to_space;
+    _bview_set_tab_width(self, (use_syntax && use_syntax->tab_width >= 1)
+        ? use_syntax->tab_width
+        : self->editor->tab_width
+    );
 
     buffer_set_styles_enabled(self->buffer, 1);
 
