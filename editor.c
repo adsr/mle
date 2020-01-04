@@ -302,7 +302,7 @@ int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt
             if (bview->buffer
                 && !bview->buffer->is_unsaved
                 && bview->buffer->path
-                && strncmp(opt_path, bview->buffer->path, opt_path_len) == 0
+                && strcmp(opt_path, bview->buffer->path) == 0
             ) {
                 found = 1;
                 break;
