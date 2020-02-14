@@ -1099,7 +1099,11 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
 static int _buffer_open_read(buffer_t *self, int fd, size_t size) {
     int rc;
     char *buf;
-    buf = malloc(size);
+    if (size <= PTRDIFF_MAX) {
+        buf = malloc(size);
+    } else {
+        return MLBUF_ERR;
+    }
     rc = MLBUF_OK;
     if (size != (size_t)read(fd, buf, size)) {
         rc = MLBUF_ERR;
