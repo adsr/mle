@@ -95,8 +95,11 @@ int buffer_open(buffer_t *self, char *path) {
         self->is_in_open = 1;
         if (st.st_size >= MLBUF_LARGE_FILE_SIZE) {
             if (_buffer_open_mmap(self, fd, st.st_size) != MLBUF_OK) {
-                rc = MLBUF_ERR;
-                break;
+                // mmap failed so fallback to normal read
+                if (_buffer_open_read(self, fd, st.st_size) != MLBUF_OK) {
+                    rc = MLBUF_ERR;
+                    break;
+                }
             }
         } else {
             if (_buffer_open_read(self, fd, st.st_size) != MLBUF_OK) {
