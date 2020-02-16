@@ -600,6 +600,7 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
         } else if (*(repl_backref+1) == 'x' && repl_backref+3 < repl_stop) {
             // $xNN; append byte
             strncpy(hex, repl_backref+2, 2);
+            hex[2] = '\0';
             byte = strtoul(hex, NULL, 16);
             term = &byte;
             term_stop = term + 1;
