@@ -113,6 +113,10 @@ int cursor_select_by(cursor_t *cursor, const char *strat, int use_srules) {
         mark_move_bol(cursor->anchor);
     } else if (strcmp(strat, "string") == 0) {
         return cursor_select_by_string(cursor, use_srules);
+    } else if (strcmp(strat, "all") == 0) {
+        mark_move_beginning(cursor->mark);
+        cursor_toggle_anchor(cursor, use_srules);
+        mark_move_end(cursor->mark);
     } else {
         MLE_RETURN_ERR(cursor->bview->editor, "Unrecognized cursor_select_by strat '%s'", strat);
     }

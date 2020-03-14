@@ -542,6 +542,7 @@ int cmd_anchor_by(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_select_by(cursor, ctx->static_param, 1);
     );
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
