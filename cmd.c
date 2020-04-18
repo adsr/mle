@@ -1420,7 +1420,7 @@ static void _cmd_isearch_prompt_cb(bview_t *bview_prompt, baction_t *action, voi
     regex_len = bview_prompt->buffer->first_line->data_len;
     if (regex_len < 1) return;
 
-    bview->isearch_rule = srule_new_single(regex, regex_len, 1, 0, TB_YELLOW);
+    bview->isearch_rule = srule_new_single(regex, regex_len, 1, TB_BOLD, TB_MAGENTA);
     if (!bview->isearch_rule) return;
 
     buffer_add_srule(bview->buffer, bview->isearch_rule);
