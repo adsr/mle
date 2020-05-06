@@ -48,6 +48,7 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
 static cmd_t *_editor_resolve_cmd(editor_t *editor, cmd_t **rcmd, char *cmd_name);
 static int _editor_key_to_input(char *key, kinput_t *ret_input);
 static void _editor_init_signal_handlers(editor_t *editor);
+static void _editor_continue(int signum);
 static void _editor_graceful_exit(int signum);
 static void _editor_register_cmds(editor_t *editor);
 static void _editor_init_kmaps(editor_t *editor);
@@ -991,6 +992,28 @@ int editor_notify_observers(editor_t *editor, char *event_name, void *event_data
     return MLE_OK;
 }
 
+// Force a redraw of the screen
+int editor_force_redraw(editor_t *editor) {
+    int w;
+    int h;
+    int x;
+    int y;
+    (void)editor;
+    if (tb_width() >= 0) tb_shutdown();
+    tb_init();
+    tb_select_input_mode(TB_INPUT_ALT);
+    tb_set_cursor(-1, -1);
+    w = tb_width();
+    h = tb_height();
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            tb_change_cell(x, y, 160, 0, 0);
+        }
+    }
+    tb_present();
+    return MLE_OK;
+}
+
 // If input == editor->macro_toggle_key, toggle macro mode and return 1. Else
 // return 0.
 static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input) {
@@ -1354,13 +1377,24 @@ static int _editor_key_to_input(char *key, kinput_t *ret_input) {
 static void _editor_init_signal_handlers(editor_t *editor) {
     struct sigaction action;
     (void)editor;
+
     memset(&action, 0, sizeof(struct sigaction));
+
     action.sa_handler = _editor_graceful_exit;
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGQUIT, &action, NULL);
     sigaction(SIGHUP, &action, NULL);
+
+    action.sa_handler = _editor_continue;
+    sigaction(SIGCONT, &action, NULL);
+
     signal(SIGPIPE, SIG_IGN);
+}
+
+// Resume editor after cmd_suspend
+static void _editor_continue(int signum) {
+    editor_force_redraw(&_editor);
 }
 
 // Gracefully exit
@@ -1454,6 +1488,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_show_help", cmd_show_help);
     _editor_register_cmd_fn(editor, "cmd_split_horizontal", cmd_split_horizontal);
     _editor_register_cmd_fn(editor, "cmd_split_vertical", cmd_split_vertical);
+    _editor_register_cmd_fn(editor, "cmd_suspend", cmd_suspend);
     _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
     _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
     _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
@@ -1588,6 +1623,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_perl", "M-w"),
         MLE_KBINDING_DEF("cmd_jump", "M-j"),
         MLE_KBINDING_DEF("cmd_close", "M-c"),
+        MLE_KBINDING_DEF("cmd_suspend", "F4"),
         MLE_KBINDING_DEF("cmd_quit", "C-x"),
         MLE_KBINDING_DEF(NULL, NULL)
     });

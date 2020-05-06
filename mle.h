@@ -416,6 +416,7 @@ int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *
 int editor_display(editor_t *editor);
 int editor_debug_dump(editor_t *editor, FILE *fp);
 int editor_input_to_key(editor_t *editor, kinput_t *input, char *keybuf);
+int editor_force_redraw(editor_t *editor);
 
 // bview functions
 bview_t *bview_get_split_root(bview_t *self);
@@ -538,6 +539,7 @@ int cmd_shell(cmd_context_t *ctx);
 int cmd_show_help(cmd_context_t *ctx);
 int cmd_split_horizontal(cmd_context_t *ctx);
 int cmd_split_vertical(cmd_context_t *ctx);
+int cmd_suspend(cmd_context_t *ctx);
 int cmd_toggle_anchor(cmd_context_t *ctx);
 int cmd_uncut(cmd_context_t *ctx);
 int cmd_undo(cmd_context_t *ctx);

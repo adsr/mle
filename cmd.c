@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
 #include <inttypes.h>
 #include "mle.h"
 
@@ -962,25 +963,18 @@ int cmd_jump(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Raise SIGTSTP
+int cmd_suspend(cmd_context_t *ctx) {
+    (void)ctx;
+    tb_shutdown();
+    raise(SIGTSTP);
+    return MLE_OK;
+}
+
 // Force a redraw of the screen
 static void _cmd_force_redraw(cmd_context_t *ctx) {
-    int w;
-    int h;
-    int x;
-    int y;
     (void)ctx;
-    if (tb_width() >= 0) tb_shutdown();
-    tb_init();
-    tb_select_input_mode(TB_INPUT_ALT);
-    tb_set_cursor(-1, -1);
-    w = tb_width();
-    h = tb_height();
-    for (x = 0; x < w; x++) {
-        for (y = 0; y < h; y++) {
-            tb_change_cell(x, y, 160, 0, 0);
-        }
-    }
-    tb_present();
+    editor_force_redraw(ctx->editor);
 }
 
 // Indent or outdent line(s)
