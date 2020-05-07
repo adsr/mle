@@ -14,9 +14,15 @@ actual=$(
     2>&1 >/dev/null
 );
 
+if [ "$(uname)" == "Darwin" ]; then
+    grep_args="-Eq"
+else
+    grep_args="-Pq"
+fi
+
 for testname in "${!expected[@]}"; do
     expected_re="${expected[$testname]}"
-    if grep -Eq "$expected_re" <<<"$actual"; then
+    if grep $grep_args "$expected_re" <<<"$actual"; then
         echo -e "  \x1b[32mOK \x1b[0m $testname"
     else
         echo -e "  \x1b[31mERR\x1b[0m $testname expected=$expected_re\n\n$actual"
