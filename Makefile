@@ -1,3 +1,5 @@
+UNAME_S := $(shell uname -s)
+
 prefix?=/usr/local
 
 mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O3 -D_GNU_SOURCE -I.  $(CFLAGS)
@@ -48,7 +50,12 @@ sloc:
 		wc -l
 
 install: mle
+ifeq ($(UNAME_S),Darwin)
+	install -d $(DESTDIR)$(prefix)/bin/
+	install -v -m 755 mle $(DESTDIR)$(prefix)/bin/
+else
 	install -D -v -m 755 mle $(DESTDIR)$(prefix)/bin/mle
+endif
 
 uscript:
 	php uscript.inc.php >uscript.inc
