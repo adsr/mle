@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro='f o o enter b a r backspace backspace backspace backspace'
 declare -A expected

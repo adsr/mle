@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 on_exit() { [ -n "$lua_script" ] && rm -f $lua_script; }
 trap on_exit EXIT
@@ -67,7 +67,7 @@ expected[observer_data]='^hello$'
 source 'test.sh'
 
 # mle.editor_register_observer
-macro='F11 h i enter M-e s e q space 1 space 5 | p a s t e space - s d , enter backspace backspace'
+macro='F11 h i enter M-e s e q space 1 space 5 | p a s t e space - s d , space - enter backspace backspace'
 cat >$lua_script <<"EOD"
 mark = nil
 in_callback = false

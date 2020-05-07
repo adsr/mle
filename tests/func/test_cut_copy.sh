@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro='f o o C-k'
 declare -A expected

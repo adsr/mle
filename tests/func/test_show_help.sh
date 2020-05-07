@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro='F2'
 declare -A expected

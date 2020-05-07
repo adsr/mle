@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 actual=$(
     $MLE \
@@ -16,7 +16,7 @@ actual=$(
 
 for testname in "${!expected[@]}"; do
     expected_re="${expected[$testname]}"
-    if grep -Pq "$expected_re" <<<"$actual"; then
+    if grep -Eq "$expected_re" <<<"$actual"; then
         echo -e "  \x1b[32mOK \x1b[0m $testname"
     else
         echo -e "  \x1b[31mERR\x1b[0m $testname expected=$expected_re\n\n$actual"

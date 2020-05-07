@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro='h e l l o enter w o r l d enter'
 declare -A expected

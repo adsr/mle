@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # cmd_indent
 macro='h e l l o M-.'

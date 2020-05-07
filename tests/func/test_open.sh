@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro=''
 extra_opts='test_file_w_suffix test_file'

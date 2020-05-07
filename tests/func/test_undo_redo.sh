@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro='a p p l e C-z C-z'
 declare -A expected

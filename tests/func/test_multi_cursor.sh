@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro='1 0 space 2 0 space 3 0 C-r \ d + C-/ y e s C-/ /'
 declare -A expected

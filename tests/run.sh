@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [ -z "$MLE" ]; then
     echo "Expected MLE env var defined"
@@ -7,10 +7,15 @@ fi
 
 $MLE -v
 
-for t in $(find . -mindepth 2 -executable -type f); do
+if [ "$(uname)" == "Darwin" ]; then
+    tests=$(find $(pwd -P)/ -mindepth 2 -perm +111 -type f)
+else
+    tests=$(find $(pwd -P)/ -mindepth 2 -executable -type f)
+fi
+
+for t in $tests; do
     tshort=$(basename $t)
-    tfull=$(readlink -f $t)
-    tdir=$(dirname $tfull)
+    tdir=$(dirname $t)
     tput bold 2>/dev/null; echo TEST $tshort; tput sgr0 2>/dev/null
     pushd $tdir &>/dev/null
     ./$tshort
