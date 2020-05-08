@@ -48,7 +48,8 @@ sloc:
 		wc -l
 
 install: mle
-	install -D -v -m 755 mle $(DESTDIR)$(prefix)/bin/mle
+	install -v -d $(DESTDIR)$(prefix)/bin
+	install -v -m 755 mle $(DESTDIR)$(prefix)/bin/mle
 
 uscript:
 	php uscript.inc.php >uscript.inc
