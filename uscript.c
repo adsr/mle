@@ -280,8 +280,19 @@ static int _uscript_func_editor_register_observer(lua_State *L) {
 
 // foreign static int _uscript_func_util_escape_shell_arg(arg)
 static int _uscript_func_util_escape_shell_arg(lua_State *L) {
-    (void)L;
-    return 0;
+    char *arg, *arg_escaped;
+    uscript_t *uscript;
+    MLE_USCRIPT_GET(L, uscript);
+
+    arg = (char*)luaL_checkstring(L, 1);
+    arg_escaped = util_escape_shell_arg(arg, strlen(arg));
+
+    lua_createtable(L, 0, 1);
+    luaL_pushkey(L, integer, "rv", 0);
+    luaL_pushkey2(L, lstring, "output", arg_escaped, strlen(arg_escaped));
+    lua_pushvalue(L, -1);
+    free(arg_escaped);
+    return 1;
 }
 
 // foreign static int _uscript_func_util_shell_exec(cmd, timeout_s)
