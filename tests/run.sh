@@ -9,8 +9,7 @@ $MLE -v
 
 for t in $(find . -mindepth 2 -perm /111 -type f); do
     tshort=$(basename $t)
-    tfull=$(readlink -f $t)
-    tdir=$(dirname $tfull)
+    tdir=$(dirname $t)
     tput bold 2>/dev/null; echo TEST $tshort; tput sgr0 2>/dev/null
     pushd $tdir &>/dev/null
     ./$tshort
