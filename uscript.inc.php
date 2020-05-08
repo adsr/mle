@@ -119,7 +119,7 @@ class CodeGen {
             $this->toLua('rv', $proto->ret_type);
             foreach ($proto->params as $param) {
                 if (!$param->is_ret) continue;
-                $this->toLua($param->name, $param->type);
+                $this->toLua($param->name, $param->ret_type);
             }
             printf("    lua_pushvalue(L, -1);\n");
             printf("    return 1;\n");
