@@ -23,7 +23,7 @@ touch adir/bdir/hello
 # ensure that we can browse into adir, then bdir, then select hello
 macro='C-b C-f a d i r enter enter C-f b d i r enter enter C-f h e l l o enter enter'
 declare -A expected
-expected[hello]='^bview.\d+.buffer.path=./hello$'
+expected[hello]='^bview.[[:digit:]]+.buffer.path=./hello$'
 source "$this_dir/test.sh"
 
 popd &>/dev/null

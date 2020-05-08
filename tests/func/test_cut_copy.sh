@@ -32,7 +32,7 @@ source 'test.sh'
 
 macro='a b c { x y z } C-f x y z enter C-d d C-e C-u'
 declare -A expected
-expected[cut-by-bracket_data]='^abc{}xyz$'
+expected[cut-by-bracket_data]='^abc\{\}xyz$'
 source 'test.sh'
 
 macro='a b c space x y z left C-d w C-a C-u'

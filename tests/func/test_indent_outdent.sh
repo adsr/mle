@@ -31,6 +31,6 @@ macro='M-o a 0 enter f o r space { enter i = 1 enter } enter'
 extra_opts='-i 1'
 declare -A expected
 expected[auto-indent-1]='^for {$'
-expected[auto-indent-2]='^\ti=1$'
+expected[auto-indent-2]='^'$'\t''i=1$'
 expected[auto-indent-3]='^}$'
 source 'test.sh'
