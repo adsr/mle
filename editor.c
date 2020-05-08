@@ -587,7 +587,7 @@ static int _editor_close_bview_inner(editor_t *editor, bview_t *bview, int *optr
     if (bview->split_parent) {
         bview->split_parent->split_child = NULL;
         editor_set_active(editor, bview->split_parent);
-    } else {
+    } else if (bview == editor->active_edit) {
         if (bview->all_prev && bview->all_prev != bview && MLE_BVIEW_IS_EDIT(bview->all_prev)) {
             editor_set_active(editor, bview->all_prev);
         } else if (bview->all_next && bview->all_next != bview && MLE_BVIEW_IS_EDIT(bview->all_next)) {
