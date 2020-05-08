@@ -7,7 +7,7 @@ fi
 
 $MLE -v
 
-for t in $(find . -mindepth 2 -executable -type f); do
+for t in $(find . -mindepth 2 -perm /111 -type f); do
     tshort=$(basename $t)
     tfull=$(readlink -f $t)
     tdir=$(dirname $tfull)

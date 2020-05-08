@@ -67,7 +67,7 @@ expected[observer_data]='^hello$'
 source 'test.sh'
 
 # mle.editor_register_observer
-macro='F11 h i enter M-e s e q space 1 space 5 | p a s t e space - s d , enter backspace backspace'
+macro='F11 h i enter M-e s e q space 1 space 5 | p a s t e space - s d , space - enter backspace backspace'
 cat >$lua_script <<"EOD"
 mark = nil
 in_callback = false
@@ -88,6 +88,6 @@ declare -A expected
 expected[observer_data1  ]='^hi$'
 expected[observer_data2  ]='^1,2,3,4,$'
 expected[observer_output1]='^buffer=\S+ byte_delta=1$'  # typing
-expected[observer_output1]='^buffer=\S+ byte_delta=10$' # output from `seq 1 5 | paste -sd,`
+expected[observer_output1]='^buffer=\S+ byte_delta=10$' # output from `seq 1 5 | paste -sd, -`
 expected[observer_output1]='^buffer=\S+ byte_delta=-1$' # backspacing
 source 'test.sh'
