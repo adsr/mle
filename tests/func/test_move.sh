@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # cmd_move_(left|right|up|down)
 macro='h e l l o enter w o r l d left up right down'

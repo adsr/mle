@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 on_exit() { [ -n "$lua_script" ] && rm -f $lua_script; }
 trap on_exit EXIT

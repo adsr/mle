@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # cmd_search
 macro='h e l l o enter w o r l d C-f h e l l o enter'

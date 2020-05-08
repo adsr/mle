@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 extra_opts='-t 10 -y syn_generic'
 macro='tab h e l l o'

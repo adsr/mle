@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # make tmpdir and delete at exit
 tmpdir=$(mktemp -d)

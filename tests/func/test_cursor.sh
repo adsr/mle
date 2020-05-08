@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 macro='b e g i n space { enter l i n e 1 enter l i n e 2 enter } enter C-f l i n e 1 enter C-2 d'
 declare -A expected
