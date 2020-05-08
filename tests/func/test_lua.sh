@@ -87,7 +87,7 @@ EOD
 declare -A expected
 expected[observer_data1  ]='^hi$'
 expected[observer_data2  ]='^1,2,3,4,$'
-expected[observer_output1]='^buffer=\S+ byte_delta=1$'  # typing
-expected[observer_output1]='^buffer=\S+ byte_delta=10$' # output from `seq 1 5 | paste -sd, -`
-expected[observer_output1]='^buffer=\S+ byte_delta=-1$' # backspacing
+expected[observer_output1]='^buffer=[^ ]+ byte_delta=1$'  # typing
+expected[observer_output1]='^buffer=[^ ]+ byte_delta=10$' # output from `seq 1 5 | paste -sd, -`
+expected[observer_output1]='^buffer=[^ ]+ byte_delta=-1$' # backspacing
 source 'test.sh'
