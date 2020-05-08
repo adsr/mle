@@ -604,7 +604,11 @@ int cmd_grep(cmd_context_t *ctx) {
     if (ctx->static_param) {
         grep_fmt = ctx->static_param;
     } else {
+        #ifdef __APPLE__
+        grep_fmt = "grep --color=never -E -i -I -n -r %s . 2>/dev/null";
+        #else
         grep_fmt = "grep --color=never -P -i -I -n -r %s . 2>/dev/null";
+        #endif
     }
     path_arg = util_escape_shell_arg(path, strlen(path));
     free(path);
