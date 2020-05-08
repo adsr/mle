@@ -143,7 +143,7 @@ static int _uscript_func_buffer_get(lua_State *L) {
     lua_pushinteger(L, (lua_Integer)rv);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_data");
-    lua_pushpointer(L, (void*)ret_data);
+    lua_pushstring(L, (const char*)ret_data);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_data_len");
     lua_pushinteger(L, (lua_Integer)ret_data_len);
@@ -384,7 +384,7 @@ static int _uscript_func_buffer_register_get(lua_State *L) {
     lua_pushinteger(L, (lua_Integer)rv);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_data");
-    lua_pushpointer(L, (void*)ret_data);
+    lua_pushstring(L, (const char*)ret_data);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_data_len");
     lua_pushpointer(L, (void*)ret_data_len);
@@ -598,7 +598,7 @@ static int _uscript_func_buffer_substr(lua_State *L) {
     lua_pushinteger(L, (lua_Integer)rv);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_data");
-    lua_pushpointer(L, (void*)ret_data);
+    lua_pushstring(L, (const char*)ret_data);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_data_len");
     lua_pushinteger(L, (lua_Integer)ret_data_len);
@@ -1332,6 +1332,19 @@ static int _uscript_func_editor_display(lua_State *L) {
     return 1;
 }
 
+static int _uscript_func_editor_force_redraw(lua_State *L) {
+    int rv;
+    editor_t *editor;
+    editor = (editor_t *)luaL_checkpointer(L, 1);
+    rv = editor_force_redraw(editor);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 // static int _uscript_func_editor_get_input(lua_State *L) {
 // }
 
@@ -1693,7 +1706,7 @@ static int _uscript_func_mark_get_between_mark(lua_State *L) {
     lua_pushinteger(L, (lua_Integer)rv);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_str");
-    lua_pushpointer(L, (void*)ret_str);
+    lua_pushstring(L, (const char*)ret_str);
     lua_settable(L, -3);
     lua_pushstring(L, "ret_str_len");
     lua_pushinteger(L, (lua_Integer)ret_str_len);
@@ -2525,6 +2538,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "editor_count_bviews_by_buffer", _uscript_func_editor_count_bviews_by_buffer },
     { "editor_destroy_observer", _uscript_func_editor_destroy_observer },
     { "editor_display", _uscript_func_editor_display },
+    { "editor_force_redraw", _uscript_func_editor_force_redraw },
     { "editor_get_input", _uscript_func_editor_get_input },
     { "editor_input_to_key", _uscript_func_editor_input_to_key },
     { "editor_menu", _uscript_func_editor_menu },
@@ -2593,4 +2607,3 @@ static const struct luaL_Reg mle_lib[] = {
     { "util_shell_exec", _uscript_func_util_shell_exec },
     { NULL, NULL }
 };
-
