@@ -7,7 +7,8 @@ fi
 
 $MLE -v
 
-for t in $(find . -mindepth 2 -perm /111 -type f); do
+for t in $(find . -mindepth 2 -type f); do
+    [ -x "$t" ] || continue
     tshort=$(basename $t)
     tdir=$(dirname $t)
     tput bold 2>/dev/null; echo TEST $tshort; tput sgr0 2>/dev/null
