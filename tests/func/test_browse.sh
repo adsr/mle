@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+if ! command -v tree &>/dev/null; then
+    # skip if tree is not available
+    skip='tree not in PATH'
+    source 'test.sh'
+    exit 0
+fi
+
 # make tmpdir and delete at exit
 tmpdir=$(mktemp -d)
 pushed=0
