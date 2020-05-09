@@ -43,6 +43,7 @@ bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len,
     self->soft_wrap = editor->soft_wrap;
     self->viewport_scope_x = editor->viewport_scope_x;
     self->viewport_scope_y = editor->viewport_scope_y;
+    self->id = (id++);
     getcwd(self->init_cwd, PATH_MAX + 1);
 
     // Open buffer
