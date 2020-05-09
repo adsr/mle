@@ -21,5 +21,5 @@ mle.editor_register_observer("cmd:cmd_copy:before", function (ctx)
     rv = mle.mark_get_between_mark(ctx["mark"], anchor)
     rv = mle.util_escape_shell_arg(rv["ret_str"])
 
-    mle.util_shell_exec("echo -n " .. rv["output"] .. " | xclip -sel c", 0)
+    mle.util_shell_exec("echo -n " .. rv["output"] .. " | xclip -sel c >/dev/null", 1)
 end)
