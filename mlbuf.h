@@ -295,6 +295,7 @@ void str_put_len(str_t *str, char *data, size_t data_len, int is_prepend);
 void str_ensure_cap(str_t *str, size_t cap);
 void str_clear(str_t *str);
 void str_free(str_t *str);
+void str_sprintf(str_t *str, const char *fmt, ...);
 void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, int *pcre_ovector, int pcre_ovecsize);
 
 // Macros

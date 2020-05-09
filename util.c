@@ -490,6 +490,24 @@ void str_set_len(str_t *str, char *data, size_t data_len) {
     *(str->data + str->len) = '\0';
 }
 
+// Sprintf to str
+void str_sprintf(str_t *str, const char *fmt, ...) {
+    va_list va;
+    int len;
+
+    va_start(va, fmt);
+    len = vsnprintf(NULL, 0, fmt, va);
+    va_end(va);
+
+    str_ensure_cap(str, str->len + (size_t)len + 1);
+
+    va_start(va, fmt);
+    vsprintf(str->data + str->len, fmt, va);
+    va_end(va);
+
+    str->len += (size_t)len;
+}
+
 // Append/prepend data_len bytes of data to str
 void str_put_len(str_t *str, char *data, size_t data_len, int is_prepend) {
     size_t req_cap;
