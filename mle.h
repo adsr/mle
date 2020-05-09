@@ -470,6 +470,7 @@ int cursor_uncut(cursor_t *cursor);
 int cmd_anchor_by(cmd_context_t *ctx);
 int cmd_apply_macro_by(cmd_context_t *ctx);
 int cmd_apply_macro(cmd_context_t *ctx);
+int cmd_blist(cmd_context_t *ctx);
 int cmd_browse(cmd_context_t *ctx);
 int cmd_close(cmd_context_t *ctx);
 int cmd_copy_by(cmd_context_t *ctx);

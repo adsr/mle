@@ -1390,6 +1390,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_anchor_by", cmd_anchor_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
+    _editor_register_cmd_fn(editor, "cmd_blist", cmd_blist);
     _editor_register_cmd_fn(editor, "cmd_browse", cmd_browse);
     _editor_register_cmd_fn(editor, "cmd_close", cmd_close);
     _editor_register_cmd_fn(editor, "cmd_copy_by", cmd_copy_by);
@@ -1568,6 +1569,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_grep", "M-q"),
         MLE_KBINDING_DEF("cmd_fsearch", "C-p"),
         MLE_KBINDING_DEF("cmd_browse", "C-b"),
+        MLE_KBINDING_DEF("cmd_blist", "F5"),
         MLE_KBINDING_DEF("cmd_undo", "C-z"),
         MLE_KBINDING_DEF("cmd_redo", "C-y"),
         MLE_KBINDING_DEF("cmd_save", "C-s"),

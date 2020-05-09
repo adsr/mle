@@ -783,14 +783,16 @@ static int _uscript_func_bview_max_viewport_y(lua_State *L) {
 static int _uscript_func_bview_new(lua_State *L) {
     bview_t *rv;
     editor_t *editor;
+    int type;
     char *opt_path;
     int opt_path_len;
     buffer_t *opt_buffer;
     editor = (editor_t *)luaL_checkpointer(L, 1);
-    opt_path = (char *)luaL_optstring(L, 2, NULL);
-    opt_path_len = (int)luaL_optinteger(L, 3, 0);
-    opt_buffer = (buffer_t *)luaL_optpointer(L, 4, NULL);
-    rv = bview_new(editor, opt_path, opt_path_len, opt_buffer);
+    type = (int)luaL_checkinteger(L, 2);
+    opt_path = (char *)luaL_optstring(L, 3, NULL);
+    opt_path_len = (int)luaL_optinteger(L, 4, 0);
+    opt_buffer = (buffer_t *)luaL_optpointer(L, 5, NULL);
+    rv = bview_new(editor, type, opt_path, opt_path_len, opt_buffer);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushpointer(L, (void*)rv);

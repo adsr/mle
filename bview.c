@@ -886,10 +886,9 @@ static void _bview_draw_status(bview_t *self) {
     int bview_count = 0;
     int bview_num = 0;
     CDL_FOREACH2(editor->all_bviews, bview_tmp, all_next) {
-        if (MLE_BVIEW_IS_EDIT(bview_tmp)) {
-            bview_count += 1;
-            if (bview_tmp == active_edit) bview_num = bview_count;
-        }
+        if (!MLE_BVIEW_IS_EDIT(bview_tmp)) continue;
+        bview_count += 1;
+        if (bview_tmp == active_edit) bview_num = bview_count;
     }
 
     // Render status line

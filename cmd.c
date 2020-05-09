@@ -38,6 +38,7 @@ static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mar
 static void _cmd_aproc_bview_passthru_cb(aproc_t *self, char *buf, size_t buf_len);
 static void _cmd_isearch_prompt_cb(bview_t *bview, baction_t *action, void *udata);
 static int _cmd_menu_browse_cb(cmd_context_t *ctx);
+static int _cmd_menu_blist_cb(cmd_context_t *ctx);
 static int _cmd_menu_grep_cb(cmd_context_t *ctx);
 static int _cmd_menu_ctag_cb(cmd_context_t *ctx);
 static int _cmd_indent(cmd_context_t *ctx, int outdent);
@@ -662,6 +663,52 @@ int cmd_browse(cmd_context_t *ctx) {
     if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_menu_browse_cb, "..\n", 3, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
+    bview_zero_viewport_y(menu);
+    return MLE_OK;
+}
+
+// Buffer list
+int cmd_blist(cmd_context_t *ctx) {
+    bview_t *bview;
+    bview_t *menu;
+    int path_max;
+    char *path;
+    int bview_count;
+    str_t blist = {0};
+
+    path_max = 1;
+    CDL_FOREACH2(ctx->editor->all_bviews, bview, all_next) {
+        if (!MLE_BVIEW_IS_EDIT(bview)) continue;
+        if (bview->buffer->path && (int)strlen(bview->buffer->path) > path_max) {
+            path_max = (int)strlen(bview->buffer->path);
+        }
+    }
+
+    bview_count = 0;
+    CDL_FOREACH2(ctx->editor->all_bviews, bview, all_next) {
+        if (!MLE_BVIEW_IS_EDIT(bview)) continue;
+        bview_count += 1;
+        path = bview->buffer->path ? bview->buffer->path : bview->path;
+        if (!path || strlen(path) < 1) path = "-";
+        str_sprintf(
+            &blist,
+            "  #%-4d  %-*s  (unsaved=%s len=%" PRIdMAX " buffer=%p bview=%p id=%d)\n",
+            bview_count,
+            path_max,
+            path,
+            bview->buffer ? (bview->buffer->is_unsaved ? "y" : "n") : "y",
+            bview->buffer->byte_count,
+            bview->buffer,
+            bview,
+            bview->id
+        );
+    }
+
+    editor_menu(ctx->editor, _cmd_menu_blist_cb, blist.data, blist.len, NULL, &menu);
+    mark_move_beginning(menu->active_cursor->mark);
+    bview_zero_viewport_y(menu);
+
+    str_free(&blist);
     return MLE_OK;
 }
 
@@ -1547,6 +1594,36 @@ static int _cmd_menu_browse_cb(cmd_context_t *ctx) {
     free(corrected_path);
 
     return MLE_OK;
+}
+
+// Callback from cmd_blist
+static int _cmd_menu_blist_cb(cmd_context_t *ctx) {
+    char *sid;
+    int sid_len;
+    int id;
+    bview_t *bview;
+
+    if (!util_pcre_match(
+        "id=\\d+\\)$",
+        ctx->bview->active_cursor->mark->bline->data,
+        (int)ctx->bview->active_cursor->mark->bline->data_len,
+        &sid,
+        &sid_len
+    )) {
+        return MLE_ERR;
+    }
+
+    id = strtol(sid + 3, NULL, 10);
+
+    CDL_FOREACH2(ctx->editor->all_bviews, bview, all_next) {
+        if (bview->id == id) {
+            editor_close_bview(ctx->editor, ctx->bview, NULL); // Close menu
+            editor_set_active(ctx->editor, bview); // Switch to selected bview
+            return MLE_OK;
+        }
+    }
+
+    MLE_RETURN_ERR(ctx->editor, "Could not switch to buffer #%d", id);
 }
 
 // Insert newline when auto_indent is enabled (preserves or increases indent)
