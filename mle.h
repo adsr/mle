@@ -192,6 +192,7 @@ struct bview_s {
     srule_t *isearch_rule;
     int tab_width;
     int tab_to_space;
+    int soft_wrap;
     syntax_t *syntax;
     aproc_t *aproc;
     cmd_func_t menu_callback;

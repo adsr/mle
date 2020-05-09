@@ -275,6 +275,7 @@ int editor_menu(editor_t *editor, cmd_func_t callback, char *opt_buf_data, int o
     bview_t *menu;
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, &menu);
     menu->is_menu = 1;
+    menu->soft_wrap = 0;
     menu->menu_callback = callback;
     bview_push_kmap(menu, editor->kmap_menu);
     if (opt_aproc) {

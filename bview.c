@@ -38,6 +38,7 @@ bview_t *bview_new(editor_t *editor, char *opt_path, int opt_path_len, buffer_t 
     self->rect_buffer.h = 10; // TODO hack to fix _bview_set_linenum_width before bview_resize
     self->tab_width = editor->tab_width;
     self->tab_to_space = editor->tab_to_space;
+    self->soft_wrap = editor->soft_wrap;
     self->viewport_scope_x = editor->viewport_scope_x;
     self->viewport_scope_y = editor->viewport_scope_y;
     getcwd(self->init_cwd, PATH_MAX + 1);
@@ -1024,7 +1025,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
     is_cursor_line = self->active_cursor->mark->bline == bline ? 1 : 0;
 
     // Soft wrap only for current line
-    is_soft_wrap = self->editor->soft_wrap && is_cursor_line && MLE_BVIEW_IS_EDIT(self) ? 1 : 0;
+    is_soft_wrap = self->soft_wrap && is_cursor_line && MLE_BVIEW_IS_EDIT(self) ? 1 : 0;
 
     // Use viewport_x only for current line when not soft wrapping
     viewport_x = 0;
@@ -1144,7 +1145,7 @@ int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y,
 
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
 
-    is_soft_wrapped = self->editor->soft_wrap
+    is_soft_wrapped = self->soft_wrap
         && self->active_cursor->mark->bline == mark->bline
         && MLE_BVIEW_IS_EDIT(self) ? 1 : 0;
 
