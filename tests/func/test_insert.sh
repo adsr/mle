@@ -8,7 +8,7 @@ expected[a_byte_count]='^bview.0.buffer.byte_count=12$'
 expected[a_line_count]='^bview.0.buffer.line_count=3$'
 source 'test.sh'
 
-macro='w o r l d C-\ h e l l o'
+macro='w o r l d M-i h e l l o'
 declare -A expected
 expected[b_line1     ]='^hello$'
 expected[b_line2     ]='^world$'

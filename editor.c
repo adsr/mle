@@ -402,9 +402,7 @@ int editor_debug_dump(editor_t *editor, FILE *fp) {
         buffer = bview->buffer;
         fprintf(fp, "bview.%d.buffer.byte_count=%" PRIdMAX "\n", bview_index, buffer->byte_count);
         fprintf(fp, "bview.%d.buffer.line_count=%" PRIdMAX "\n", bview_index, buffer->line_count);
-        if (buffer->path) {
-            fprintf(fp, "bview.%d.buffer.path=%s\n", bview_index, buffer->path);
-        }
+        fprintf(fp, "bview.%d.buffer.path=%s\n", bview_index, buffer->path ? buffer->path : "");
         fprintf(fp, "bview.%d.buffer.data_begin\n", bview_index);
         buffer_write_to_file(buffer, fp, NULL);
         fprintf(fp, "\nbview.%d.buffer.data_end\n", bview_index);
@@ -1491,7 +1489,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_delete_before", "backspace"),
         MLE_KBINDING_DEF("cmd_delete_before", "backspace2"),
         MLE_KBINDING_DEF("cmd_delete_after", "delete"),
-        MLE_KBINDING_DEF("cmd_insert_newline_above", "C-\\"),
+        MLE_KBINDING_DEF("cmd_insert_newline_above", "M-i"),
         MLE_KBINDING_DEF("cmd_move_bol", "C-a"),
         MLE_KBINDING_DEF("cmd_move_bol", "home"),
         MLE_KBINDING_DEF("cmd_move_eol", "C-e"),
@@ -1569,7 +1567,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_grep", "M-q"),
         MLE_KBINDING_DEF("cmd_fsearch", "C-p"),
         MLE_KBINDING_DEF("cmd_browse", "C-b"),
-        MLE_KBINDING_DEF("cmd_blist", "F5"),
+        MLE_KBINDING_DEF("cmd_blist", "C-\\"),
         MLE_KBINDING_DEF("cmd_undo", "C-z"),
         MLE_KBINDING_DEF("cmd_redo", "C-y"),
         MLE_KBINDING_DEF("cmd_save", "C-s"),
