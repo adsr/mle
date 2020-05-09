@@ -54,6 +54,9 @@ install: mle
 uscript:
 	php uscript.inc.php >uscript.inc
 
+clean_quick:
+	rm -f mle $(mle_objects)
+
 clean:
 	rm -f mle $(mle_objects) $(mle_vendor_deps) $(mle_unit_tests)
 	$(MAKE) -C vendor clean
