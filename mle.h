@@ -420,7 +420,7 @@ int editor_force_redraw(editor_t *editor);
 
 // bview functions
 bview_t *bview_get_split_root(bview_t *self);
-bview_t *bview_new(editor_t *editor, char *opt_path, int opt_path_len, buffer_t *opt_buffer);
+bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len, buffer_t *opt_buffer);
 int bview_add_cursor_asleep(bview_t *self, bline_t *opt_bline, bint_t opt_col, cursor_t **optret_cursor);
 int bview_add_cursor(bview_t *self, bline_t *opt_bline, bint_t opt_col, cursor_t **optret_cursor);
 int bview_add_listener(bview_t *self, bview_listener_cb_t fn_callback, void *udata);

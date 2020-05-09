@@ -310,8 +310,7 @@ int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt
     }
     // Make new bview if not already open
     if (!found) {
-        bview = bview_new(editor, opt_path, opt_path_len, opt_buffer);
-        bview->type = type;
+        bview = bview_new(editor, type, opt_path, opt_path_len, opt_buffer);
         CDL_APPEND2(editor->all_bviews, bview, all_prev, all_next);
         if (!opt_parent) {
             DL_APPEND2(editor->top_bviews, bview, top_prev, top_next);
@@ -2215,8 +2214,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
 
 // Init status bar
 static void _editor_init_status(editor_t *editor) {
-    editor->status = bview_new(editor, NULL, 0, NULL);
-    editor->status->type = MLE_BVIEW_TYPE_STATUS;
+    editor->status = bview_new(editor, MLE_BVIEW_TYPE_STATUS, NULL, 0, NULL);
     editor->rect_status.fg = TB_WHITE;
     editor->rect_status.bg = TB_BLACK;
 }

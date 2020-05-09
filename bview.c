@@ -21,13 +21,15 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
 static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark);
 
 // Create a new bview
-bview_t *bview_new(editor_t *editor, char *opt_path, int opt_path_len, buffer_t *opt_buffer) {
+bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len, buffer_t *opt_buffer) {
+    static int id = 0;
     bview_t *self;
     buffer_t *buffer;
 
     // Allocate and init bview
     self = calloc(1, sizeof(bview_t));
     self->editor = editor;
+    self->type = type;
     self->path = strndup(opt_path, opt_path_len);
     self->rect_caption.fg = TB_WHITE;
     self->rect_caption.bg = TB_BLACK;
