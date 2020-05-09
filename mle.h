@@ -89,7 +89,6 @@ struct editor_s {
     kmap_t *kmap_prompt_yna;
     kmap_t *kmap_prompt_ok;
     kmap_t *kmap_prompt_isearch;
-    kmap_t *kmap_prompt_menu;
     kmap_t *kmap_menu;
     prompt_history_t *prompt_history;
     char *kmap_init_name;

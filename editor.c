@@ -25,10 +25,6 @@ static int _editor_prompt_yn_no(cmd_context_t *ctx);
 static int _editor_prompt_cancel(cmd_context_t *ctx);
 static int _editor_menu_submit(cmd_context_t *ctx);
 static int _editor_menu_cancel(cmd_context_t *ctx);
-static int _editor_prompt_menu_up(cmd_context_t *ctx);
-static int _editor_prompt_menu_down(cmd_context_t *ctx);
-static int _editor_prompt_menu_page_up(cmd_context_t *ctx);
-static int _editor_prompt_menu_page_down(cmd_context_t *ctx);
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx);
 static int _editor_prompt_isearch_next(cmd_context_t *ctx);
 static int _editor_prompt_isearch_prev(cmd_context_t *ctx);
@@ -796,34 +792,6 @@ static int _editor_menu_cancel(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
-// Invoked when user hits up in a prompt_menu
-static int _editor_prompt_menu_up(cmd_context_t *ctx) {
-    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1);
-    bview_rectify_viewport(ctx->editor->active_edit);
-    return MLE_OK;
-}
-
-// Invoked when user hits down in a prompt_menu
-static int _editor_prompt_menu_down(cmd_context_t *ctx) {
-    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, 1);
-    bview_rectify_viewport(ctx->editor->active_edit);
-    return MLE_OK;
-}
-
-// Invoked when user hits page-up in a prompt_menu
-static int _editor_prompt_menu_page_up(cmd_context_t *ctx) {
-    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, -1 * ctx->editor->active_edit->rect_buffer.h);
-    bview_zero_viewport_y(ctx->editor->active_edit);
-    return MLE_OK;
-}
-
-// Invoked when user hits page-down in a prompt_menu
-static int _editor_prompt_menu_page_down(cmd_context_t *ctx) {
-    mark_move_vert(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->rect_buffer.h);
-    bview_zero_viewport_y(ctx->editor->active_edit);
-    return MLE_OK;
-}
-
 // Invoked when user hits down in a prompt_isearch
 static int _editor_prompt_isearch_next(cmd_context_t *ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
@@ -1510,10 +1478,6 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_prev", _editor_prompt_isearch_prev);
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_viewport_up", _editor_prompt_isearch_viewport_up);
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_viewport_down", _editor_prompt_isearch_viewport_down);
-    _editor_register_cmd_fn(editor, "_editor_prompt_menu_down", _editor_prompt_menu_down);
-    _editor_register_cmd_fn(editor, "_editor_prompt_menu_page_down", _editor_prompt_menu_page_down);
-    _editor_register_cmd_fn(editor, "_editor_prompt_menu_page_up", _editor_prompt_menu_page_up);
-    _editor_register_cmd_fn(editor, "_editor_prompt_menu_up", _editor_prompt_menu_up);
     _editor_register_cmd_fn(editor, "_editor_prompt_yna_all", _editor_prompt_yna_all);
     _editor_register_cmd_fn(editor, "_editor_prompt_yn_no", _editor_prompt_yn_no);
     _editor_register_cmd_fn(editor, "_editor_prompt_yn_yes", _editor_prompt_yn_yes);
@@ -1661,19 +1625,6 @@ static void _editor_init_kmaps(editor_t *editor) {
     _editor_init_kmap(editor, &editor->kmap_menu, "mle_menu", NULL, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF("_editor_menu_submit", "enter"),
         MLE_KBINDING_DEF("_editor_menu_cancel", "C-c"),
-        MLE_KBINDING_DEF(NULL, NULL)
-    });
-    _editor_init_kmap(editor, &editor->kmap_prompt_menu, "mle_prompt_menu", NULL, 1, (kbinding_def_t[]){
-        MLE_KBINDING_DEF("_editor_prompt_input_submit", "enter"),
-        MLE_KBINDING_DEF("_editor_prompt_menu_up", "up"),
-        MLE_KBINDING_DEF("_editor_prompt_menu_down", "down"),
-        MLE_KBINDING_DEF("_editor_prompt_menu_up", "left"),
-        MLE_KBINDING_DEF("_editor_prompt_menu_down", "right"),
-        MLE_KBINDING_DEF("_editor_prompt_menu_page_up", "page-up"),
-        MLE_KBINDING_DEF("_editor_prompt_menu_page_down", "page-down"),
-        MLE_KBINDING_DEF("_editor_prompt_cancel", "C-c"),
-        MLE_KBINDING_DEF("_editor_prompt_cancel", "C-x"),
-        MLE_KBINDING_DEF("_editor_prompt_cancel", "M-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_isearch, "mle_prompt_isearch", NULL, 1, (kbinding_def_t[]){
