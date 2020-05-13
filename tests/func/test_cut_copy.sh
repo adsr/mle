@@ -69,3 +69,9 @@ macro='o n e - a b c M-a left left left C-k C-n t w o - C-u'
 declare -A expected
 expected[global-cut-buffer_data]='^two-abc$'
 source 'test.sh'
+
+macro='a b c C-2 e'
+declare -A expected
+expected[mark]='^bview.0.cursor.0.mark.col=3$'
+expected[anchor]='^bview.0.cursor.0.anchor.col=3$'
+source 'test.sh'

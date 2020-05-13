@@ -105,10 +105,10 @@ int cursor_select_by(cursor_t *cursor, const char *strat, int use_srules) {
         return cursor_select_by_word_back(cursor, use_srules);
     } else if (strcmp(strat, "word_forward") == 0) {
         return cursor_select_by_word_forward(cursor, use_srules);
-    } else if (strcmp(strat, "eol") == 0 && !mark_is_at_eol(cursor->mark)) {
+    } else if (strcmp(strat, "eol") == 0) {
         cursor_toggle_anchor(cursor, use_srules);
         mark_move_eol(cursor->anchor);
-    } else if (strcmp(strat, "bol") == 0 && !mark_is_at_bol(cursor->mark)) {
+    } else if (strcmp(strat, "bol") == 0) {
         cursor_toggle_anchor(cursor, use_srules);
         mark_move_bol(cursor->anchor);
     } else if (strcmp(strat, "string") == 0) {
