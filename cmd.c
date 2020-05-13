@@ -837,7 +837,7 @@ int cmd_move_until_forward(cmd_context_t *ctx) {
     ch = MLE_PARAM_WILDCARD(ctx, 0);
     if (!ch) return MLE_OK;
     utf8_unicode_to_char(str, ch);
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str, str, strlen(str));
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, str, strlen(str));
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }

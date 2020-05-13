@@ -46,6 +46,12 @@ declare -A expected
 expected[until_cursor_col]='^bview.0.cursor.0.mark.col=1$'
 source 'test.sh'
 
+# cmd_move_until_forward (nudge)
+macro="a a C-a M-' a"
+declare -A expected
+expected[nudge_cursor_col]='^bview.0.cursor.0.mark.col=1$'
+source 'test.sh'
+
 # cmd_move_(word_forward|word_back)
 macro='a p p l e space b a n a n a space c r a n M-b M-b M-f'
 declare -A expected
