@@ -1010,14 +1010,13 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
 static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t **optret_bline, int *optret_rect_y) {
     int rect_x;
     bint_t char_col;
-    bint_t char_vcol;
     int fg;
-    int bg;
+    int bg, tbg;
     uint32_t ch;
     int char_w;
     bint_t viewport_x;
     bint_t viewport_x_vcol;
-    int i;
+    int i, j;
     int is_cursor_line;
     int is_soft_wrap;
     int orig_rect_y;
@@ -1062,44 +1061,55 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
     orig_rect_y = rect_y;
     rect_x = 0;
     char_col = viewport_x;
-    char_vcol = viewport_x_vcol;
-    while (1) {
-        char_w = 1;
-        if (char_col < bline->char_count) {
-            ch = bline->chars[char_col].ch;
-            fg = bline->chars[char_col].style.fg;
-            bg = bline->chars[char_col].style.bg;
-            char_w = char_col == bline->char_count - 1
-                ? bline->char_vwidth - bline->chars[char_col].vcol
-                : bline->chars[char_col + 1].vcol - bline->chars[char_col].vcol;
-            if (ch == '\t') {
-                ch = ' ';
-            } else if (!iswprint(ch)) {
-                ch = '?';
-            }
-            if (self->editor->color_col == char_vcol && MLE_BVIEW_IS_EDIT(self)) {
-                bg |= TB_RED;
-            }
-        } else {
-            break;
+    while (char_col < bline->char_count) {
+        ch = bline->chars[char_col].ch;
+        fg = bline->chars[char_col].style.fg;
+        bg = bline->chars[char_col].style.bg;
+        char_w = char_col == bline->char_count - 1
+            ? bline->char_vwidth - bline->chars[char_col].vcol
+            : bline->chars[char_col + 1].vcol - bline->chars[char_col].vcol;
+        if (ch == '\t') {
+            ch = ' ';
+        } else if (!iswprint(ch)) {
+            ch = '?';
         }
         if (MLE_BVIEW_IS_MENU(self) && is_cursor_line) {
+            // Highlight menu line
             bg |= TB_REVERSE;
         }
-        for (i = 0; i < char_w && rect_x < self->rect_buffer.w; i++) {
-            tb_change_cell(self->rect_buffer.x + rect_x + i, self->rect_buffer.y + rect_y, ch, fg, bg);
-        }
-        if (is_soft_wrap && rect_x+1 >= self->rect_buffer.w && rect_y+1 < self->rect_buffer.h) {
-            rect_x = 0;
-            rect_y += 1;
-            for (i = 0; i < self->linenum_width; i++) {
-                tb_printf(self->rect_lines, i, rect_y, 0, 0, "%c", '.');
+        // Draw char_w chars of ch
+        for (i = 0; i < char_w && rect_x + i < self->rect_buffer.w; i++) {
+            if (self->editor->color_col == rect_x + i && MLE_BVIEW_IS_EDIT(self)) {
+                // Apply color col style
+                tbg = bg | TB_RED;
+            } else {
+                tbg = bg;
             }
-        } else {
-            rect_x += char_w;
+            tb_change_cell(self->rect_buffer.x + rect_x + i, self->rect_buffer.y + rect_y, ch, fg, tbg);
         }
+        if (i < char_w) {
+            // There was not enough width to draw
+            if (is_soft_wrap && rect_y + 1 < self->rect_buffer.h) {
+                // Soft wrap to next line
+                rect_x = 0;
+                rect_y += 1;
+                char_w -= i;
+                // Draw remaining ch on next line
+                for (j = 0; j < char_w && rect_x + j < self->rect_buffer.w; j++) {
+                    tb_change_cell(self->rect_buffer.x + j, self->rect_buffer.y + rect_y, ch, fg, bg);
+                }
+                // Draw ellipsis for line num to indicate soft wrap
+                for (j = 0; j < self->linenum_width; j++) {
+                    tb_printf(self->rect_lines, j, rect_y, 0, 0, "%c", '.');
+                }
+            } else {
+                // We are off-screen and soft-wrap is not enabled or there is not
+                // enough height to soft wrap
+                break;
+            }
+        }
+        rect_x += char_w;
         char_col += 1;
-        char_vcol += char_w;
     }
     for (i = orig_rect_y; i < rect_y && bline->next; i++) {
         bline = bline->next;
