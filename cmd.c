@@ -268,12 +268,14 @@ int cmd_move_relative(cmd_context_t *ctx) {
 // Move one word forward
 int cmd_move_word_forward(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re_nudge, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move one word back
 int cmd_move_word_back(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+    bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
