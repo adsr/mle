@@ -1010,6 +1010,7 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
 static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t **optret_bline, int *optret_rect_y) {
     int rect_x;
     bint_t char_col;
+    bint_t char_vcol;
     int fg;
     int bg;
     uint32_t ch;
@@ -1061,6 +1062,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
     orig_rect_y = rect_y;
     rect_x = 0;
     char_col = viewport_x;
+    char_vcol = viewport_x_vcol;
     while (1) {
         char_w = 1;
         if (char_col < bline->char_count) {
@@ -1075,7 +1077,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
             } else if (!iswprint(ch)) {
                 ch = '?';
             }
-            if (self->editor->color_col == char_col && MLE_BVIEW_IS_EDIT(self)) {
+            if (self->editor->color_col == char_vcol && MLE_BVIEW_IS_EDIT(self)) {
                 bg |= TB_RED;
             }
         } else {
@@ -1097,6 +1099,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
             rect_x += char_w;
         }
         char_col += 1;
+        char_vcol += char_w;
     }
     for (i = orig_rect_y; i < rect_y && bline->next; i++) {
         bline = bline->next;
