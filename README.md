@@ -6,6 +6,8 @@ Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
 
 [![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/mle.svg)](https://repology.org/project/mle/versions)
+
 ### Demos
 
 [![asciicast](https://i.imgur.com/PZocaOT.png)](https://asciinema.org/a/162536)
