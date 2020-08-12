@@ -25,4 +25,14 @@ void test(buffer_t *buf, mark_t *cur) {
     bline_insert(buf->first_line->next, 6, " ", 1, NULL);
     buffer_get(buf, &data, &data_len);
     ASSERT("oob", 0, strncmp(data, "hello\namy's\n world", data_len));
+
+    bline_insert(buf->last_line, buf->last_line->char_count, "\nno\xe2\x80\x8bspace", 11, NULL);
+    ASSERT("0wv", 7, buf->last_line->char_vwidth);
+    ASSERT("0wc", 8, buf->last_line->char_count);
+    ASSERT("0wd", 10, buf->last_line->data_len);
+
+    bline_insert(buf->last_line, buf->last_line->char_count, "\nnull\x00", 6, NULL);
+    ASSERT("nulv", 5, buf->last_line->char_vwidth);
+    ASSERT("nulc", 5, buf->last_line->char_count);
+    ASSERT("nuld", 5, buf->last_line->data_len);
 }
