@@ -290,6 +290,8 @@ struct kmap_s {
 // cmd_context_t
 struct cmd_context_s {
     #define MLE_PASTEBUF_INCR 1024
+    #define MLE_MAX_NUMERIC_PARAMS 8
+    #define MLE_MAX_WILDCARD_PARAMS 8
     editor_t *editor;
     loop_context_t *loop_ctx;
     cmd_t *cmd;
@@ -298,6 +300,10 @@ struct cmd_context_s {
     cursor_t *cursor;
     kinput_t input;
     char *static_param;
+    uintmax_t numeric_params[MLE_MAX_NUMERIC_PARAMS];
+    int numeric_params_len;
+    uint32_t wildcard_params[MLE_MAX_WILDCARD_PARAMS];
+    int wildcard_params_len;
     int is_user_input;
     kinput_t *pastebuf;
     size_t pastebuf_len;
@@ -318,17 +324,11 @@ struct observer_s {
 // loop_context_t
 struct loop_context_s {
     #define MLE_LOOP_CTX_MAX_NUMERIC_LEN 20
-    #define MLE_LOOP_CTX_MAX_NUMERIC_PARAMS 8
-    #define MLE_LOOP_CTX_MAX_WILDCARD_PARAMS 8
     #define MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE 256
     bview_t *invoker;
     char numeric[MLE_LOOP_CTX_MAX_NUMERIC_LEN + 1];
     kbinding_t *numeric_node;
     int numeric_len;
-    uintmax_t numeric_params[MLE_LOOP_CTX_MAX_NUMERIC_PARAMS];
-    int numeric_params_len;
-    uint32_t wildcard_params[MLE_LOOP_CTX_MAX_WILDCARD_PARAMS];
-    int wildcard_params_len;
     kbinding_t *binding_node;
     int need_more_input;
     int should_exit;
@@ -337,7 +337,7 @@ struct loop_context_s {
     prompt_hnode_t *prompt_hnode;
     int tab_complete_index;
     char tab_complete_term[MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE];
-    cmd_t *last_cmd;
+    cmd_context_t last_cmd_ctx;
     str_t last_insert;
 };
 
@@ -531,6 +531,7 @@ int cmd_quit_without_saving(cmd_context_t *ctx);
 int cmd_redo(cmd_context_t *ctx);
 int cmd_redraw(cmd_context_t *ctx);
 int cmd_remove_extra_cursors(cmd_context_t *ctx);
+int cmd_repeat(cmd_context_t *ctx);
 int cmd_replace(cmd_context_t *ctx);
 int cmd_save_as(cmd_context_t *ctx);
 int cmd_save(cmd_context_t *ctx);
@@ -660,8 +661,8 @@ extern editor_t _editor;
 #define MLE_LINENUM_TYPE_BOTH 2
 
 #define MLE_PARAM_WILDCARD(pctx, pn) ( \
-    (pn) < (pctx)->loop_ctx->wildcard_params_len \
-    ? (pctx)->loop_ctx->wildcard_params[(pn)] \
+    (pn) < (pctx)->wildcard_params_len \
+    ? (pctx)->wildcard_params[(pn)] \
     : 0 \
 )
 

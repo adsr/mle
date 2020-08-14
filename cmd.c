@@ -250,7 +250,7 @@ int cmd_move_to_line(cmd_context_t *ctx) {
 // Move vertically relative to current line
 int cmd_move_relative(cmd_context_t *ctx) {
     int delta;
-    if (ctx->loop_ctx->numeric_params_len < 1) {
+    if (ctx->numeric_params_len < 1) {
         return MLE_ERR;
     }
     if (strcmp(ctx->static_param, "up") == 0) {
@@ -260,7 +260,7 @@ int cmd_move_relative(cmd_context_t *ctx) {
     } else {
         return MLE_ERR;
     }
-    delta *= ctx->loop_ctx->numeric_params[0];
+    delta *= ctx->numeric_params[0];
     MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, delta);
     return MLE_OK;
 }
@@ -415,6 +415,12 @@ int cmd_replace(cmd_context_t *ctx) {
     return cursor_replace(ctx->cursor, 1, NULL, NULL);
 }
 
+// Repeat last cmd
+int cmd_repeat(cmd_context_t *ctx) {
+    // This is a special case in _editor_loop
+    return MLE_OK;
+}
+
 // Redraw screen
 int cmd_redraw(cmd_context_t *ctx) {
     bview_center_viewport_y(ctx->bview);
@@ -498,7 +504,7 @@ int cmd_isearch(cmd_context_t *ctx) {
 // Cut text
 int cmd_cut(cmd_context_t *ctx) {
     int append;
-    append = ctx->loop_ctx->last_cmd && ctx->loop_ctx->last_cmd->func == cmd_cut ? 1 : 0;
+    append = ctx->loop_ctx->last_cmd_ctx.cmd && ctx->loop_ctx->last_cmd_ctx.cmd->func == cmd_cut ? 1 : 0;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_cut_copy(cursor, 1, 1, append);
     );
@@ -1658,8 +1664,8 @@ static void _cmd_insert_auto_indent_newline(cmd_context_t *ctx) {
         ) {
             mark_insert_before(ctx->cursor->mark, "\t", 1);
         }
-    } else if (ctx->loop_ctx->last_cmd
-        && ctx->loop_ctx->last_cmd->func == cmd_insert_data
+    } else if (ctx->loop_ctx->last_cmd_ctx.cmd
+        && ctx->loop_ctx->last_cmd_ctx.cmd->func == cmd_insert_data
         && ctx->loop_ctx->last_insert.len == 1
         && ctx->loop_ctx->last_insert.data[0] == '\n'
         && util_pcre_match("^\\s+$", prev_line, prev_line_len, NULL, NULL)

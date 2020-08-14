@@ -40,7 +40,7 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx);
 static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx);
 static void _editor_record_macro_input(kmacro_t *macro, kinput_t *input);
 static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_peek_input);
-static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, loop_context_t *loop_ctx, int is_peek, int *ret_again);
+static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, cmd_context_t *ctx, int is_peek, int *ret_again);
 static cmd_t *_editor_resolve_cmd(editor_t *editor, cmd_t **rcmd, char *cmd_name);
 static int _editor_key_to_input(char *key, kinput_t *ret_input);
 static void _editor_init_signal_handlers(editor_t *editor);
@@ -622,7 +622,6 @@ static int _editor_prompt_input_submit(cmd_context_t *ctx) {
 // Invoke when user hits tab in a prompt_input
 static int _editor_prompt_input_complete(cmd_context_t *ctx) {
     loop_context_t *loop_ctx;
-    loop_ctx = ctx->loop_ctx;
     char *cmd;
     char *cmd_arg;
     char *terms;
@@ -631,8 +630,10 @@ static int _editor_prompt_input_complete(cmd_context_t *ctx) {
     char *term;
     int term_index;
 
+    loop_ctx = ctx->loop_ctx;
+
     // Update tab_complete_term and tab_complete_index
-    if (loop_ctx->last_cmd && loop_ctx->last_cmd->func == _editor_prompt_input_complete) {
+    if (loop_ctx->last_cmd_ctx.cmd && loop_ctx->last_cmd_ctx.cmd->func == _editor_prompt_input_complete) {
         loop_ctx->tab_complete_index += 1;
     } else if (ctx->bview->buffer->first_line->data_len < MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE) {
         snprintf(
@@ -894,25 +895,32 @@ static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
 
         if ((cmd = _editor_get_command(editor, &cmd_ctx, NULL)) != NULL) {
             // Found cmd in kmap trie, now execute
-            if (cmd_ctx.is_user_input && cmd->func == cmd_insert_data) {
-                _editor_ingest_paste(editor, &cmd_ctx);
-            }
             cmd_ctx.cmd = cmd;
+
+            if (cmd_ctx.is_user_input && cmd->func == cmd_insert_data) {
+                // Ingest user paste
+                _editor_ingest_paste(editor, &cmd_ctx);
+            } else if (cmd->func == cmd_repeat && loop_ctx->last_cmd_ctx.cmd) {
+                // Repeat last command
+                memcpy(&cmd_ctx, &loop_ctx->last_cmd_ctx, sizeof(cmd_ctx));
+            }
 
             // Notify cmd:*:before observers
             _editor_notify_cmd_observers(&cmd_ctx, 1);
 
             // Execute cmd
             _editor_refresh_cmd_context(editor, &cmd_ctx);
-            cmd->func(&cmd_ctx);
+            cmd_ctx.cmd->func(&cmd_ctx);
 
             // Notify cmd:*:after observers
             _editor_notify_cmd_observers(&cmd_ctx, 0);
 
+            // Copy cmd_ctx to last_cmd_ctx
+            memcpy(&loop_ctx->last_cmd_ctx, &cmd_ctx, sizeof(cmd_ctx));
+
             loop_ctx->binding_node = NULL;
-            loop_ctx->wildcard_params_len = 0;
-            loop_ctx->numeric_params_len = 0;
-            loop_ctx->last_cmd = cmd;
+            cmd_ctx.wildcard_params_len = 0;
+            cmd_ctx.numeric_params_len = 0;
         } else if (loop_ctx->need_more_input) {
             // Need more input to find
         } else {
@@ -1170,7 +1178,7 @@ static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t
     while (kmap_node) {
         if (is_top) node = kmap_node->kmap->bindings;
         again = 0;
-        binding = _editor_get_kbinding_node(node, input, loop_ctx, is_peek, &again);
+        binding = _editor_get_kbinding_node(node, input, ctx, is_peek, &again);
         if (binding) {
             if (again) {
                 // Need more input on current node
@@ -1221,10 +1229,13 @@ static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t
 }
 
 // Find binding by input in trie, taking into account numeric and wildcards patterns
-static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, loop_context_t *loop_ctx, int is_peek, int *ret_again) {
+static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, cmd_context_t *ctx, int is_peek, int *ret_again) {
     kbinding_t *binding;
     kinput_t input_tmp;
+    loop_context_t *loop_ctx;
+
     memset(&input_tmp, 0, sizeof(kinput_t));
+    loop_ctx = ctx->loop_ctx;
 
     if (!is_peek) {
         // Look for numeric .. TODO can be more efficient about this
@@ -1247,10 +1258,10 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
 
         // Parse/reset numeric buffer
         if (loop_ctx->numeric_len > 0) {
-            if (loop_ctx->numeric_params_len < MLE_LOOP_CTX_MAX_NUMERIC_PARAMS) {
+            if (ctx->numeric_params_len < MLE_MAX_NUMERIC_PARAMS) {
                 loop_ctx->numeric[loop_ctx->numeric_len] = '\0';
-                loop_ctx->numeric_params[loop_ctx->numeric_params_len] = strtoul(loop_ctx->numeric, NULL, 10);
-                loop_ctx->numeric_params_len += 1;
+                ctx->numeric_params[ctx->numeric_params_len] = strtoul(loop_ctx->numeric, NULL, 10);
+                ctx->numeric_params_len += 1;
                 loop_ctx->numeric_len = 0;
                 node = loop_ctx->numeric_node; // Resume on numeric's children
                 loop_ctx->numeric_node = NULL;
@@ -1273,9 +1284,9 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
         MLE_KINPUT_SET_WILDCARD(input_tmp);
         HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);
         if (binding) {
-            if (loop_ctx->wildcard_params_len < MLE_LOOP_CTX_MAX_WILDCARD_PARAMS) {
-                loop_ctx->wildcard_params[loop_ctx->wildcard_params_len] = input->ch;
-                loop_ctx->wildcard_params_len += 1;
+            if (ctx->wildcard_params_len < MLE_MAX_WILDCARD_PARAMS) {
+                ctx->wildcard_params[ctx->wildcard_params_len] = input->ch;
+                ctx->wildcard_params_len += 1;
             } else {
                 return NULL; // Ran out of `wildcard_params` space .. TODO err
             }
@@ -1446,6 +1457,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_redo", cmd_redo);
     _editor_register_cmd_fn(editor, "cmd_redraw", cmd_redraw);
     _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
+    _editor_register_cmd_fn(editor, "cmd_repeat", cmd_repeat);
     _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
     _editor_register_cmd_fn(editor, "cmd_save_as", cmd_save_as);
     _editor_register_cmd_fn(editor, "cmd_save", cmd_save);
@@ -1516,6 +1528,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),
         MLE_KBINDING_DEF("cmd_isearch", "C-r"),
+        MLE_KBINDING_DEF("cmd_repeat", "F5"),
         MLE_KBINDING_DEF("cmd_replace", "C-t"),
         MLE_KBINDING_DEF("cmd_cut", "C-k"),
         MLE_KBINDING_DEF("cmd_copy", "M-k"),
