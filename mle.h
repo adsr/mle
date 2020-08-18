@@ -73,6 +73,7 @@ struct editor_s {
     bview_rect_t rect_status;
     bview_rect_t rect_prompt;
     syntax_t *syntax_map;
+    syntax_t *syntax_last;
     int is_display_disabled;
     kmacro_t *macro_map;
     kinput_t macro_toggle_key;

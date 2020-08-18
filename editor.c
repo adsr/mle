@@ -383,6 +383,8 @@ int editor_debug_dump(editor_t *editor, FILE *fp) {
     bview_t *bview;
     cursor_t *cursor;
     buffer_t *buffer;
+    bline_t *bline;
+    bint_t c;
     int bview_index;
     int cursor_index;
     bview_index = 0;
@@ -403,6 +405,18 @@ int editor_debug_dump(editor_t *editor, FILE *fp) {
         fprintf(fp, "bview.%d.buffer.byte_count=%" PRIdMAX "\n", bview_index, buffer->byte_count);
         fprintf(fp, "bview.%d.buffer.line_count=%" PRIdMAX "\n", bview_index, buffer->line_count);
         fprintf(fp, "bview.%d.buffer.path=%s\n", bview_index, buffer->path ? buffer->path : "");
+        for (bline = buffer->first_line; bline != NULL; bline = bline->next) {
+            fprintf(fp, "bview.%d.buffer.blines.%" PRIdMAX ".chars=", bview_index, bline->line_index);
+            for (c = 0; c < bline->char_count; ++c) {
+                fprintf(fp, "<ch=%" PRIu32 " fg=%" PRIu16 " bg=%" PRIu16 ">",
+                    bline->chars[c].ch,
+                    bline->chars[c].style.fg,
+                    bline->chars[c].style.bg
+                );
+            }
+            fprintf(fp, "\n");
+        }
+        fprintf(fp, "bview.%d.buffer.blines_end\n", bview_index);
         fprintf(fp, "bview.%d.buffer.data_begin\n", bview_index);
         buffer_write_to_file(buffer, fp, NULL);
         fprintf(fp, "\nbview.%d.buffer.data_end\n", bview_index);
@@ -1887,6 +1901,7 @@ static void _editor_init_syntax(editor_t *editor, syntax_t **optret_syntax, char
         defs++;
     }
     HASH_ADD_KEYPTR(hh, editor->syntax_map, syntax->name, strlen(syntax->name), syntax);
+    editor->syntax_last = syntax;
 
     if (optret_syntax) *optret_syntax = syntax;
 }

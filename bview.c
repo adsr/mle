@@ -609,7 +609,6 @@ static void _bview_deinit(bview_t *self) {
 // Set syntax on bview buffer
 int bview_set_syntax(bview_t *self, char *opt_syntax) {
     syntax_t *syntax;
-    syntax_t *syntax_tmp;
     syntax_t *use_syntax;
     srule_node_t *srule_node;
 
@@ -627,7 +626,7 @@ int bview_set_syntax(bview_t *self, char *opt_syntax) {
         HASH_FIND_STR(self->editor->syntax_map, self->editor->syntax_override, use_syntax);
     } else if (self->buffer->path) {
         // Set by path
-        HASH_ITER(hh, self->editor->syntax_map, syntax, syntax_tmp) {
+        for (syntax = self->editor->syntax_last; syntax != NULL; syntax = syntax->hh.prev) {
             if (util_pcre_match(syntax->path_pattern, self->buffer->path, strlen(self->buffer->path), NULL, NULL)) {
                 use_syntax = syntax;
                 break;
