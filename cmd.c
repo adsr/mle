@@ -133,6 +133,20 @@ int cmd_insert_newline_above(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Insert newline below current line
+int cmd_insert_newline_below(cmd_context_t *ctx) {
+    mark_t *mark;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        mark_clone(cursor->mark, &mark);
+        mark_move_eol(mark);
+        cursor->mark->lefty += 1; // Prevent cursor from moving if at eol
+        mark_insert_after(mark, "\n", 1);
+        cursor->mark->lefty -= 1;
+        mark_destroy(mark);
+    );
+    return MLE_OK;
+}
+
 // Delete char before cursor mark
 int cmd_delete_before(cmd_context_t *ctx) {
     bint_t offset;

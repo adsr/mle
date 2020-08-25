@@ -1434,6 +1434,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_indent", cmd_indent);
     _editor_register_cmd_fn(editor, "cmd_insert_data", cmd_insert_data);
     _editor_register_cmd_fn(editor, "cmd_insert_newline_above", cmd_insert_newline_above);
+    _editor_register_cmd_fn(editor, "cmd_insert_newline_below", cmd_insert_newline_below);
     _editor_register_cmd_fn(editor, "cmd_isearch", cmd_isearch);
     _editor_register_cmd_fn(editor, "cmd_jump", cmd_jump);
     _editor_register_cmd_fn(editor, "cmd_less", cmd_less);
@@ -1516,6 +1517,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_delete_before", "backspace2"),
         MLE_KBINDING_DEF("cmd_delete_after", "delete"),
         MLE_KBINDING_DEF("cmd_insert_newline_above", "M-i"),
+        MLE_KBINDING_DEF("cmd_insert_newline_below", "M-u"),
         MLE_KBINDING_DEF("cmd_move_bol", "C-a"),
         MLE_KBINDING_DEF("cmd_move_bol", "home"),
         MLE_KBINDING_DEF("cmd_move_eol", "C-e"),

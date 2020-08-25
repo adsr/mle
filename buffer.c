@@ -1499,7 +1499,7 @@ static bline_t *_buffer_bline_break(bline_t *bline, bint_t col) {
 
     // Move marks at or past col to new_line
     DL_FOREACH_SAFE(bline->marks, mark, mark_tmp) {
-        if (mark->col >= col) {
+        if (mark_is_after_col_minus_lefties(mark, col)) {
             _mark_mark_move_inner(mark, new_line, mark->col - col, 1, 0);
         }
     }
