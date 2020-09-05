@@ -81,7 +81,7 @@ int bline_count_chars(bline_t *bline) {
                 char_w = wcwidth(ch);
             }
             // Let null occupy 1 column
-            if (char_w < 1 && ch == '\0') char_w = 1;
+            if (char_w < 0 || ch == '\0') char_w = 1;
             if (char_len < 1) char_len = 1;
             bline->chars[bline->char_count].ch = ch;
             bline->chars[bline->char_count].len = char_len;
