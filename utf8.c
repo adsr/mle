@@ -1,4 +1,4 @@
-// Adapted from https://github.com/nsf/termbox/blob/a0e450500b3f07ddd172ac64e48a59129a8878fb/src/utf8.c
+// Adapted from https://github.com/termbox/termbox/blob/a0e450500b3f07ddd172ac64e48a59129a8878fb/src/utf8.c
 
 #include <stdint.h>
 

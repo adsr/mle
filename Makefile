@@ -3,7 +3,7 @@ prefix?=/usr/local
 mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O3 -D_GNU_SOURCE -I.  $(CFLAGS)
 mle_ldflags:=$(LDFLAGS)
 mle_dynamic_libs:=-lpcre -ltermbox -llua5.3
-mle_static_libs:=vendor/pcre/.libs/libpcre.a vendor/termbox/src/libtermbox.a vendor/lua/liblua5.3.a
+mle_static_libs:=vendor/pcre/.libs/libpcre.a vendor/termbox/libtermbox.a vendor/lua/liblua5.3.a
 mle_ldlibs:=-lm $(LDLIBS)
 mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
 mle_objects_no_main:=$(filter-out main.o,$(mle_objects))
@@ -18,7 +18,7 @@ endif
 
 ifdef mle_vendor
   mle_ldlibs:=$(mle_static_libs) $(mle_ldlibs)
-  mle_cflags:=-Ivendor/pcre -Ivendor/termbox/src -Ivendor -Ivendor/uthash/src $(mle_cflags)
+  mle_cflags:=-Ivendor/pcre -Ivendor/termbox -Ivendor -Ivendor/uthash/src $(mle_cflags)
   mle_vendor_deps:=$(mle_static_libs)
 else
   mle_ldlibs:=$(mle_dynamic_libs) $(mle_ldlibs)

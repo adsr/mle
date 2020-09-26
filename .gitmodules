@@ -1,6 +1,6 @@
 [submodule "termbox"]
 	path = vendor/termbox
-	url = https://github.com/nsf/termbox
+	url = https://github.com/termbox/termbox
 [submodule "uthash"]
 	path = vendor/uthash
 	url = https://github.com/troydhanson/uthash.git

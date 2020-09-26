@@ -172,5 +172,5 @@ features.
 mle makes extensive use of the following libraries.
 
 * [uthash](https://troydhanson.github.io/uthash) for hash maps and linked lists
-* [termbox](https://github.com/nsf/termbox) for TUI
+* [termbox](https://github.com/termbox/termbox) for TUI
 * [PCRE](http://www.pcre.org/) for syntax highlighting and search
