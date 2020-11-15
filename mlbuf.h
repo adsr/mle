@@ -178,6 +178,7 @@ int buffer_insert_w_bline(buffer_t *self, bline_t *start_line, bint_t start_col,
 int buffer_delete_w_bline(buffer_t *self, bline_t *start_line, bint_t start_col, bint_t num_chars);
 int buffer_replace_w_bline(buffer_t *self, bline_t *start_line, bint_t start_col, bint_t num_chars, char *data, bint_t data_len);
 int buffer_get_bline(buffer_t *self, bint_t line_index, bline_t **ret_bline);
+int buffer_get_bline_w_hint(buffer_t *self, bint_t line_index, bline_t *opt_hint, bline_t **ret_bline);
 int buffer_get_bline_col(buffer_t *self, bint_t offset, bline_t **ret_bline, bint_t *ret_col);
 int buffer_get_offset(buffer_t *self, bline_t *bline, bint_t col, bint_t *ret_offset);
 int buffer_undo(buffer_t *self);

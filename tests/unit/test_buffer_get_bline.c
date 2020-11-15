@@ -10,4 +10,8 @@ void test(buffer_t *buf, mark_t *cur) {
         buffer_get_bline(buf, i, &line2);
         ASSERT("line", line, line2);
     }
+    for (line = buf->first_line, i = 0; line; line = line->next, i += 1) {
+        buffer_get_bline_w_hint(buf, i, buf->last_line->prev, &line2);
+        ASSERT("line", line, line2);
+    }
 }

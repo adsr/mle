@@ -694,14 +694,44 @@ int buffer_replace_w_bline(buffer_t *self, bline_t *start_line, bint_t start_col
 
 // Return a line given a line_index
 int buffer_get_bline(buffer_t *self, bint_t line_index, bline_t **ret_bline) {
-    bline_t *tmp_line;
+    return buffer_get_bline_w_hint(self, line_index, self->first_line, ret_bline);
+}
+
+// Return a line given a line_index, starting at hint and iterating outward
+int buffer_get_bline_w_hint(buffer_t *self, bint_t line_index, bline_t *opt_hint, bline_t **ret_bline) {
+    bline_t *fwd, *rev, *found;
     MLBUF_MAKE_GT_EQ0(line_index);
-    for (tmp_line = self->first_line; tmp_line; tmp_line = tmp_line->next) {
-        if (tmp_line->line_index == line_index) {
-            *ret_bline = tmp_line;
-            return MLBUF_OK;
+
+    if (!opt_hint) {
+        opt_hint = self->first_line;
+    }
+
+    fwd = opt_hint;
+    rev = opt_hint->prev;
+    found = NULL;
+
+    while (fwd || rev) {
+        if (fwd) {
+            if (fwd->line_index == line_index) {
+                found = fwd;
+                break;
+            }
+            fwd = fwd->next;
+        }
+        if (rev) {
+            if (rev->line_index == line_index) {
+                found = rev;
+                break;
+            }
+            rev = rev->prev;
         }
     }
+
+    if (found) {
+        *ret_bline = found;
+        return MLBUF_OK;
+    }
+
     *ret_bline = self->last_line;
     return MLBUF_ERR;
 }

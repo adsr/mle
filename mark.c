@@ -89,7 +89,7 @@ int mark_move_to_w_bline(mark_t *self, bline_t *bline, bint_t col) {
 // Move mark to line_index:col
 int mark_move_to(mark_t *self, bint_t line_index, bint_t col) {
     bline_t *bline;
-    buffer_get_bline(self->bline->buffer, line_index, &bline);
+    buffer_get_bline_w_hint(self->bline->buffer, line_index, self->bline, &bline);
     _mark_mark_move_inner(self, bline, col, 1, 1);
     return MLBUF_OK;
 }

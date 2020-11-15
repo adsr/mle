@@ -347,7 +347,7 @@ int bview_set_viewport_y(bview_t *self, bint_t y, int do_rectify) {
     }
     self->viewport_y = y;
     if (do_rectify) bview_rectify_viewport(self);
-    buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+    buffer_get_bline_w_hint(self->buffer, self->viewport_y, self->viewport_bline, &self->viewport_bline);
     return MLE_OK;
 }
 
@@ -385,7 +385,7 @@ int bview_rectify_viewport(bview_t *self) {
     if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y)) {
         // TODO viewport_y_vrow (soft-wrapped lines, code folding, etc)
         // Refresh viewport_bline
-        buffer_get_bline(self->buffer, self->viewport_y, &self->viewport_bline);
+        buffer_get_bline_w_hint(self->buffer, self->viewport_y, self->viewport_bline, &self->viewport_bline);
     }
 
     return MLE_OK;
@@ -519,7 +519,7 @@ static void _bview_buffer_callback(buffer_t *buffer, baction_t *action, void *ud
                     bview_resize(bview, bview->x, bview->y, bview->w, bview->h);
                 }
                 // Adjust viewport_bline
-                buffer_get_bline(bview->buffer, bview->viewport_y, &bview->viewport_bline);
+                buffer_get_bline_w_hint(bview->buffer, bview->viewport_y, bview->viewport_bline, &bview->viewport_bline);
             }
         }
     }
