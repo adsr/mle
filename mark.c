@@ -389,6 +389,38 @@ int mark_get_between_mark(mark_t *self, mark_t *other, char **ret_str, bint_t *r
     return MLBUF_OK;
 }
 
+// Return num chars between two marks
+int mark_get_nchars_between(mark_t *self, mark_t *other, bint_t *ret_nchars) {
+    mark_t *a, *b;
+    bline_t *bline;
+    bint_t col, nchars;
+    if (mark_is_gt(self, other)) {
+        a = other;
+        b = self;
+    } else if (mark_is_gt(other, self)) {
+        a = self;
+        b = other;
+    } else {
+        *ret_nchars = 0;
+        return MLBUF_OK;
+    }
+    bline = a->bline;
+    col = a->col;
+    nchars = 0;
+    while (bline != b->bline) {
+        MLBUF_BLINE_ENSURE_CHARS(bline);
+        nchars += (bline->char_count - col) + 1;
+        bline = bline->next;
+        col = 0;
+        if (!bline) {
+            *ret_nchars = 0;
+            return MLBUF_ERR;
+        }
+    }
+    nchars += (b->col - col);
+    *ret_nchars = nchars;
+}
+
 // Move self to other
 int mark_join(mark_t *self, mark_t *other) {
     _mark_mark_move_inner(self, other->bline, other->col, 1, 1);

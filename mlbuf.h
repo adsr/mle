@@ -222,6 +222,7 @@ int mark_find_prev_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_li
 int mark_get_between_mark(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len);
 int mark_get_char_after(mark_t *self, uint32_t *ret_char);
 int mark_get_char_before(mark_t *self, uint32_t *ret_char);
+int mark_get_nchars_between(mark_t *self, mark_t *other, bint_t *ret_nchars);
 int mark_get_offset(mark_t *self, bint_t *ret_offset);
 int mark_insert_after(mark_t *self, char *data, bint_t data_len);
 int mark_insert_before(mark_t *self, char *data, bint_t data_len);

@@ -839,9 +839,8 @@ static void _bview_draw_status(bview_t *self) {
         i_anchor_bg = TB_BLACK;
         i_anchor = "a";
         cursor = active_edit->active_cursor;
-        mark_get_offset(cursor->anchor, &anchor_tmp);
-        mark_get_offset(cursor->mark, &anchor_len);
-        anchor_len -= anchor_tmp;
+        mark_get_nchars_between(cursor->anchor, cursor->mark, &anchor_len);
+        if (mark_is_gt(cursor->anchor, cursor->mark)) anchor_len *= -1;
         anchor_nlines = cursor->anchor->bline->line_index - cursor->mark->bline->line_index;
         if (anchor_nlines < 0) anchor_nlines *= -1;
         anchor_nlines += 1;
