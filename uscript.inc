@@ -194,6 +194,27 @@ static int _uscript_func_buffer_get_bline_col(lua_State *L) {
     return 1;
 }
 
+static int _uscript_func_buffer_get_bline_w_hint(lua_State *L) {
+    int rv;
+    buffer_t *self;
+    bint_t line_index;
+    bline_t *opt_hint;
+    bline_t *ret_bline = NULL;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    line_index = (bint_t)luaL_checkinteger(L, 2);
+    opt_hint = (bline_t *)luaL_optpointer(L, 3, NULL);
+    rv = buffer_get_bline_w_hint(self, line_index, opt_hint, &ret_bline);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_bline");
+    lua_pushpointer(L, (void*)ret_bline);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 static int _uscript_func_buffer_get_lettered_mark(lua_State *L) {
     int rv;
     buffer_t *self;
@@ -1751,6 +1772,25 @@ static int _uscript_func_mark_get_char_before(lua_State *L) {
     return 1;
 }
 
+static int _uscript_func_mark_get_nchars_between(lua_State *L) {
+    int rv;
+    mark_t *self;
+    mark_t *other;
+    bint_t ret_nchars = 0;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    other = (mark_t *)luaL_checkpointer(L, 2);
+    rv = mark_get_nchars_between(self, other, &ret_nchars);
+    lua_createtable(L, 0, 2);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "ret_nchars");
+    lua_pushinteger(L, (lua_Integer)ret_nchars);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 static int _uscript_func_mark_get_offset(lua_State *L) {
     int rv;
     mark_t *self;
@@ -1850,6 +1890,23 @@ static int _uscript_func_mark_is_at_word_bound(lua_State *L) {
     self = (mark_t *)luaL_checkpointer(L, 1);
     side = (int)luaL_checkinteger(L, 2);
     rv = mark_is_at_word_bound(self, side);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_mark_is_between(lua_State *L) {
+    int rv;
+    mark_t *self;
+    mark_t *ma;
+    mark_t *mb;
+    self = (mark_t *)luaL_checkpointer(L, 1);
+    ma = (mark_t *)luaL_checkpointer(L, 2);
+    mb = (mark_t *)luaL_checkpointer(L, 3);
+    rv = mark_is_between(self, ma, mb);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -2468,6 +2525,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "buffer_get", _uscript_func_buffer_get },
     { "buffer_get_bline", _uscript_func_buffer_get_bline },
     { "buffer_get_bline_col", _uscript_func_buffer_get_bline_col },
+    { "buffer_get_bline_w_hint", _uscript_func_buffer_get_bline_w_hint },
     { "buffer_get_lettered_mark", _uscript_func_buffer_get_lettered_mark },
     { "buffer_get_offset", _uscript_func_buffer_get_offset },
     { "buffer_insert", _uscript_func_buffer_insert },
@@ -2565,6 +2623,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "mark_get_between_mark", _uscript_func_mark_get_between_mark },
     { "mark_get_char_after", _uscript_func_mark_get_char_after },
     { "mark_get_char_before", _uscript_func_mark_get_char_before },
+    { "mark_get_nchars_between", _uscript_func_mark_get_nchars_between },
     { "mark_get_offset", _uscript_func_mark_get_offset },
     { "mark_insert_after", _uscript_func_mark_insert_after },
     { "mark_insert_before", _uscript_func_mark_insert_before },
@@ -2572,6 +2631,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "mark_is_at_bol", _uscript_func_mark_is_at_bol },
     { "mark_is_at_eol", _uscript_func_mark_is_at_eol },
     { "mark_is_at_word_bound", _uscript_func_mark_is_at_word_bound },
+    { "mark_is_between", _uscript_func_mark_is_between },
     { "mark_is_eq", _uscript_func_mark_is_eq },
     { "mark_is_gt", _uscript_func_mark_is_gt },
     { "mark_is_gte", _uscript_func_mark_is_gte },
