@@ -82,7 +82,7 @@ int mark_replace_between_mark(mark_t *self, mark_t *other, char *data, bint_t da
 
 // Move mark to bline:col
 int mark_move_to_w_bline(mark_t *self, bline_t *bline, bint_t col) {
-    _mark_mark_move_inner(self, bline, col, 1, 1);
+    _mark_mark_move_inner(self, bline, col, 1);
     return MLBUF_OK;
 }
 
@@ -90,7 +90,7 @@ int mark_move_to_w_bline(mark_t *self, bline_t *bline, bint_t col) {
 int mark_move_to(mark_t *self, bint_t line_index, bint_t col) {
     bline_t *bline;
     buffer_get_bline_w_hint(self->bline->buffer, line_index, self->bline, &bline);
-    _mark_mark_move_inner(self, bline, col, 1, 1);
+    _mark_mark_move_inner(self, bline, col, 1);
     return MLBUF_OK;
 }
 
@@ -122,39 +122,39 @@ int mark_move_vert(mark_t *self, bint_t line_delta) {
     if (cur_line == self->bline) {
         return MLBUF_OK;
     }
-    _mark_mark_move_inner(self, cur_line, self->target_col, 0, 1);
+    _mark_mark_move_inner(self, cur_line, self->target_col, 0);
     return MLBUF_OK;
 }
 
 // Move mark to beginning of line
 int mark_move_bol(mark_t *self) {
-    _mark_mark_move_inner(self, self->bline, 0, 1, 1);
+    _mark_mark_move_inner(self, self->bline, 0, 1);
     return MLBUF_OK;
 }
 
 // Move mark to end of line
 int mark_move_eol(mark_t *self) {
     MLBUF_BLINE_ENSURE_CHARS(self->bline);
-    _mark_mark_move_inner(self, self->bline, self->bline->char_count, 1, 1);
+    _mark_mark_move_inner(self, self->bline, self->bline->char_count, 1);
     return MLBUF_OK;
 }
 
 // Move mark to a column on the current line
 int mark_move_col(mark_t *self, bint_t col) {
-    _mark_mark_move_inner(self, self->bline, col, 1, 1);
+    _mark_mark_move_inner(self, self->bline, col, 1);
     return MLBUF_OK;
 }
 
 // Move mark to beginning of buffer
 int mark_move_beginning(mark_t *self) {
-    _mark_mark_move_inner(self, self->bline->buffer->first_line, 0, 1, 1);
+    _mark_mark_move_inner(self, self->bline->buffer->first_line, 0, 1);
     return MLBUF_OK;
 }
 
 // Move mark to end of buffer
 int mark_move_end(mark_t *self) {
     MLBUF_BLINE_ENSURE_CHARS(self->bline->buffer->last_line);
-    _mark_mark_move_inner(self, self->bline->buffer->last_line, self->bline->buffer->last_line->char_count, 1, 1);
+    _mark_mark_move_inner(self, self->bline->buffer->last_line, self->bline->buffer->last_line->char_count, 1);
     return MLBUF_OK;
 }
 
@@ -163,7 +163,7 @@ int mark_move_offset(mark_t *self, bint_t offset) {
     bline_t *dest_line;
     bint_t dest_col;
     buffer_get_bline_col(self->bline->buffer, offset, &dest_line, &dest_col);
-    _mark_mark_move_inner(self, dest_line, dest_col, 1, 1);
+    _mark_mark_move_inner(self, dest_line, dest_col, 1);
     return MLBUF_OK;
 }
 
@@ -437,7 +437,7 @@ int mark_get_nchars_between(mark_t *self, mark_t *other, bint_t *ret_nchars) {
 
 // Move self to other
 int mark_join(mark_t *self, mark_t *other) {
-    _mark_mark_move_inner(self, other->bline, other->col, 1, 1);
+    _mark_mark_move_inner(self, other->bline, other->col, 1);
     return MLBUF_OK;
 }
 
@@ -446,8 +446,8 @@ int mark_swap_with_mark(mark_t *self, mark_t *other) {
     mark_t tmp_mark;
     tmp_mark.bline = other->bline;
     tmp_mark.col = other->col;
-    _mark_mark_move_inner(other, self->bline, self->col, 1, 1);
-    _mark_mark_move_inner(self, tmp_mark.bline, tmp_mark.col, 1, 1);
+    _mark_mark_move_inner(other, self->bline, self->col, 1);
+    _mark_mark_move_inner(self, tmp_mark.bline, tmp_mark.col, 1);
     return MLBUF_OK;
 }
 
@@ -473,7 +473,7 @@ int mark_destroy(mark_t *self) {
     bint_t col = 0; \
     bint_t char_count = 0; \
     if ((rc = (findfn)((mark), __VA_ARGS__, &line, &col, &char_count)) == MLBUF_OK) { \
-        _mark_mark_move_inner((mark), line, col, 1, 1); \
+        _mark_mark_move_inner((mark), line, col, 1); \
         if (optret_line) *optret_line = line; \
         if (optret_col) *optret_col = col; \
         if (optret_char_count) *optret_char_count = char_count; \
@@ -488,7 +488,7 @@ int mark_destroy(mark_t *self) {
     bint_t col = 0; \
     bint_t char_count = 0; \
     if ((rc = (findfn)((mark), __VA_ARGS__, &line, &col, &char_count)) == MLBUF_OK) { \
-        _mark_mark_move_inner((mark), line, col, 1, 1); \
+        _mark_mark_move_inner((mark), line, col, 1); \
     } \
     return rc; \
 } while(0)
@@ -502,7 +502,7 @@ int mark_destroy(mark_t *self) {
     mark_clone((mark), &tmark); \
     mark_move_by(tmark, 1); \
     if ((rc = (findfn)(tmark, __VA_ARGS__, &line, &col, &char_count)) == MLBUF_OK) { \
-        _mark_mark_move_inner((mark), line, col, 1, 1); \
+        _mark_mark_move_inner((mark), line, col, 1); \
     } \
     mark_destroy(tmark); \
     return rc; \
@@ -719,9 +719,8 @@ static int mark_find_match(mark_t *self, mark_find_match_fn matchfn, void *u1, v
 }
 
 // Move mark to target:col, setting target_col if do_set_target is truthy
-void _mark_mark_move_inner(mark_t *mark, bline_t *bline_target, bint_t col, int do_set_target, int do_style) {
+void _mark_mark_move_inner(mark_t *mark, bline_t *bline_target, bint_t col, int do_set_target) {
     int is_changing_line;
-    (void)do_style;
     is_changing_line = mark->bline != bline_target ? 1 : 0;
     if (is_changing_line) {
         DL_DELETE(mark->bline->marks, mark);

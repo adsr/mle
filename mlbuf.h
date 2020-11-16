@@ -285,7 +285,7 @@ int utf8_unicode_to_char(char *out, uint32_t c);
 
 // util functions
 void *recalloc(void *ptr, size_t orig_num, size_t new_num, size_t el_size);
-void _mark_mark_move_inner(mark_t *mark, bline_t *bline_target, bint_t col, int do_set_target, int do_style);
+void _mark_mark_move_inner(mark_t *mark, bline_t *bline_target, bint_t col, int do_set_target);
 void str_append_stop(str_t *str, char *data, char *data_stop);
 void str_append(str_t *str, char *data);
 void str_append_char(str_t *str, char c);

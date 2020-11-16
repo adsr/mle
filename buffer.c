@@ -1483,7 +1483,7 @@ static int _buffer_bline_free(bline_t *bline, bline_t *maybe_mark_line, bint_t c
     if (bline->marks) {
         DL_FOREACH_SAFE(bline->marks, mark, mark_tmp) {
             if (maybe_mark_line) {
-                _mark_mark_move_inner(mark, maybe_mark_line, mark->col + col_delta, 1, 0);
+                _mark_mark_move_inner(mark, maybe_mark_line, mark->col + col_delta, 1);
             } else {
                 buffer_destroy_mark(bline->buffer, mark);
             }
@@ -1536,7 +1536,7 @@ static bline_t *_buffer_bline_break(bline_t *bline, bint_t col) {
     // Move marks at or past col to new_line
     DL_FOREACH_SAFE(bline->marks, mark, mark_tmp) {
         if (mark_is_after_col_minus_lefties(mark, col)) {
-            _mark_mark_move_inner(mark, new_line, mark->col - col, 1, 0);
+            _mark_mark_move_inner(mark, new_line, mark->col - col, 1);
         }
     }
 
