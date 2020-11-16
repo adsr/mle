@@ -27,9 +27,9 @@ int main(int argc, char **argv) {
 
 #define ASSERT(testname, expected, observed) do { \
     if ((expected) == (observed)) { \
-        printf("  \x1b[32mOK\x1b[0m %s\n", (testname)); \
+        printf("  \x1b[32mOK  \x1b[0m %s\n", (testname)); \
     } else { \
-        printf("  \x1b[31mERR\x1b[0m %s expected=%" PRIdPTR " observed=%" PRIdPTR "\n", (testname), (intptr_t)(expected), (intptr_t)(observed)); \
+        printf("  \x1b[31mERR \x1b[0m %s expected=%" PRIdPTR " observed=%" PRIdPTR "\n", (testname), (intptr_t)(expected), (intptr_t)(observed)); \
         exit(EXIT_FAILURE); \
     } \
 } while(0);
