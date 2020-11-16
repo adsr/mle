@@ -38,6 +38,7 @@ struct buffer_s {
     bint_t line_count;
     srule_node_t *single_srules;
     srule_node_t *multi_srules;
+    srule_node_t *range_srules;
     baction_t *actions;
     baction_t *action_tail;
     baction_t *action_undone;
@@ -235,6 +236,7 @@ int mark_is_gte(mark_t *self, mark_t *other);
 int mark_is_gt(mark_t *self, mark_t *other);
 int mark_is_lte(mark_t *self, mark_t *other);
 int mark_is_lt(mark_t *self, mark_t *other);
+int mark_is_between(mark_t *self, mark_t *ma, mark_t *mb);
 int mark_join(mark_t *self, mark_t *other);
 int mark_move_beginning(mark_t *self);
 int mark_move_bol(mark_t *self);

@@ -20,7 +20,7 @@ static int _buffer_update(buffer_t *self, baction_t *action);
 static int _buffer_truncate_undo_stack(buffer_t *self, baction_t *action_from);
 static int _buffer_add_to_undo_stack(buffer_t *self, baction_t *action);
 static int _buffer_apply_styles_singles(bline_t *start_line, bint_t min_nlines);
-static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines, int srule_type);
+static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines);
 static int _buffer_bline_apply_style_single(srule_t *srule, bline_t *bline);
 static int _buffer_bline_apply_style_multi(srule_t *srule, bline_t *bline, srule_t **open_rule, bint_t *look_offset);
 static bline_t *_buffer_bline_new(buffer_t *self);
@@ -790,12 +790,15 @@ int buffer_add_srule(buffer_t *self, srule_t *srule) {
     node->srule = srule;
     if (srule->type == MLBUF_SRULE_TYPE_SINGLE) {
         DL_APPEND(self->single_srules, node);
-    } else {
+    } else if (srule->type == MLBUF_SRULE_TYPE_MULTI) {
         DL_APPEND(self->multi_srules, node);
-    }
-    if (srule->type == MLBUF_SRULE_TYPE_RANGE) {
+    } else if (srule->type == MLBUF_SRULE_TYPE_RANGE) {
         srule->range_a->range_srule = srule;
         srule->range_b->range_srule = srule;
+        DL_APPEND(self->range_srules, node);
+        return MLBUF_OK; // range styles get applied in bview_draw
+    } else {
+        return MLBUF_ERR;
     }
     return buffer_apply_styles(self, self->first_line, self->line_count - 1);
 }
@@ -808,8 +811,12 @@ int buffer_remove_srule(buffer_t *self, srule_t *srule) {
     srule_node_t *node_tmp;
     if (srule->type == MLBUF_SRULE_TYPE_SINGLE) {
         head = &self->single_srules;
-    } else {
+    } else if (srule->type == MLBUF_SRULE_TYPE_MULTI) {
         head = &self->multi_srules;
+    } else if (srule->type == MLBUF_SRULE_TYPE_RANGE) {
+        head = &self->range_srules;
+    } else {
+        return MLBUF_ERR;
     }
     found = 0;
     DL_FOREACH_SAFE(*head, node, node_tmp) {
@@ -824,6 +831,9 @@ int buffer_remove_srule(buffer_t *self, srule_t *srule) {
         break;
     }
     if (!found) return MLBUF_ERR;
+    if (srule->type == MLBUF_SRULE_TYPE_RANGE) {
+        return MLBUF_OK; // range styles get applied in bview_draw
+    }
     return buffer_apply_styles(self, self->first_line, self->line_count - 1);
 }
 
@@ -1032,8 +1042,7 @@ int buffer_apply_styles(buffer_t *self, bline_t *start_line, bint_t line_delta) 
     // Apply rules if there are any, or if the number of rules changed
     if (srule_count > 0 || self->num_applied_srules != srule_count) {
         _buffer_apply_styles_singles(start_line, min_nlines);
-        _buffer_apply_styles_multis(start_line, min_nlines, MLBUF_SRULE_TYPE_MULTI);
-        _buffer_apply_styles_multis(start_line, min_nlines, MLBUF_SRULE_TYPE_RANGE);
+        _buffer_apply_styles_multis(start_line, min_nlines);
         self->num_applied_srules = srule_count;
     }
 
@@ -1297,7 +1306,7 @@ static int _buffer_apply_styles_singles(bline_t *start_line, bint_t min_nlines) 
     return MLBUF_OK;
 }
 
-static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines, int srule_type) {
+static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines) {
     bline_t *cur_line;
     srule_node_t *srule_node;
     srule_t *open_rule;
@@ -1336,18 +1345,15 @@ static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines, i
                 continue;
             }
         } else {
-            if (srule_type == MLBUF_SRULE_TYPE_MULTI) {
-                // Re-apply single line rules if a multi-line rule was resolved
-                if (cur_line->prev && cur_line->bol_rule != cur_line->prev->eol_rule) {
-                    _buffer_apply_styles_singles(cur_line, 1);
-                }
-                // Reset bol_rule and eol_rule
-                if (!open_rule_ended) cur_line->bol_rule = NULL;
-                cur_line->eol_rule = NULL;
+            // Re-apply single line rules if a multi-line rule was resolved
+            if (cur_line->prev && cur_line->bol_rule != cur_line->prev->eol_rule) {
+                _buffer_apply_styles_singles(cur_line, 1);
             }
+            // Reset bol_rule and eol_rule
+            if (!open_rule_ended) cur_line->bol_rule = NULL;
+            cur_line->eol_rule = NULL;
             // Apply multi-line styles to cur_line
             DL_FOREACH(start_line->buffer->multi_srules, srule_node) {
-                if (srule_node->srule->type != srule_type) continue;
                 _buffer_bline_apply_style_multi(srule_node->srule, cur_line, &open_rule, &multi_look_offset);
                 multi_look_offset = 0;
                 if (open_rule) break; // We have an open_rule; break

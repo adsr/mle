@@ -1,6 +1,8 @@
 #include "test.h"
 
-MAIN("[\n * comment\n ]/\nsel",
+char *str = "[\n * comment\n ]/\nsel";
+
+void test(buffer_t *buf, mark_t *cur) {
     bint_t i;
     srule_t* multi;
     srule_t* range;
@@ -29,4 +31,4 @@ MAIN("[\n * comment\n ]/\nsel",
     srule_destroy(range);
     buffer_destroy_mark(buf, ma);
     buffer_destroy_mark(buf, mb);
-)
+}

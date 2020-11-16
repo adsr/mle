@@ -695,7 +695,6 @@ TODO BACKLOG
 [ ] investigate crash when M-e cat'ing huge files
 [ ] add mark stack (push, move around, pop to go back)
 [ ] add last cmd status indicator
-[ ] pass in (bline_t *opt_hint) to buffer_get_ *and start from there instead of first_line
 [ ] check if buffer exists by inode instead of path
 [ ] review default key bindings
 [ ] review use of multi_cursor_code

@@ -19,6 +19,7 @@ static void _bview_draw_status(bview_t *self);
 static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t **optret_bline, int *optret_rect_y);
 static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark);
+static int _bview_is_in_range(bline_t *bline, bint_t col, srule_t **ret_srule);
 
 // Create a new bview
 bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len, buffer_t *opt_buffer) {
@@ -831,7 +832,7 @@ static void _bview_draw_status(bview_t *self) {
 
     // Anchor indicator
     int i_anchor_fg, i_anchor_bg;
-    bint_t anchor_len, anchor_nlines, anchor_tmp;
+    bint_t anchor_len, anchor_nlines;
     char *i_anchor;
     cursor_t *cursor;
     if (active_edit->active_cursor->is_anchored) {
@@ -1018,6 +1019,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
     int is_cursor_line;
     int is_soft_wrap;
     int orig_rect_y;
+    srule_t *range_srule;
 
     MLBUF_BLINE_ENSURE_CHARS(bline);
 
@@ -1074,6 +1076,11 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
         if (MLE_BVIEW_IS_MENU(self) && is_cursor_line) {
             // Highlight menu line
             bg |= TB_REVERSE;
+        }
+        if (_bview_is_in_range(bline, char_col, &range_srule)) {
+            // Highlight range
+            fg = range_srule->style.fg;
+            bg = range_srule->style.bg;
         }
         // Draw char_w chars of ch
         for (i = 0; i < char_w && rect_x + i < self->rect_buffer.w; i++) {
@@ -1181,4 +1188,18 @@ int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y,
         *optret_cell = tb_cell_buffer() + (ptrdiff_t)(tb_width() * screen_y + screen_x);
     }
     return MLE_OK;
+}
+
+static int _bview_is_in_range(bline_t *bline, bint_t col, srule_t **ret_srule) {
+    mark_t mark = {0};
+    srule_node_t *node;
+    mark.bline = bline;
+    mark.col = col;
+    DL_FOREACH(bline->buffer->range_srules, node) {
+        if (mark_is_between(&mark, node->srule->range_a, node->srule->range_b)) {
+            *ret_srule = node->srule;
+            return 1;
+        }
+    }
+    return 0;
 }
