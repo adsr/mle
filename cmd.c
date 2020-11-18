@@ -1074,7 +1074,7 @@ static int _cmd_indent(cmd_context_t *ctx, int outdent) {
             _cmd_indent_line(cur, use_tabs, outdent);
         }
         ctx->buffer->is_style_disabled--;
-        buffer_apply_styles(ctx->buffer, start, 0);
+        buffer_apply_styles(ctx->buffer, start, end->line_index - start->line_index);
     );
     return MLE_OK;
 }
