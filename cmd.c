@@ -1354,7 +1354,7 @@ static int _cmd_pre_close(editor_t *editor, bview_t *bview) {
 // was cancelled.
 static int _cmd_save(editor_t *editor, bview_t *bview, int save_as) {
     int rc;
-    char *path;
+    char *path, *path_tmp;
     char *yn;
     int fname_changed;
     struct stat st;
@@ -1367,8 +1367,12 @@ static int _cmd_save(editor_t *editor, bview_t *bview, int save_as) {
             editor_prompt(editor, "save: Save as? (C-c=cancel)", &(editor_prompt_params_t) {
                 .data = bview->buffer->path ? bview->buffer->path : "",
                 .data_len = bview->buffer->path ? strlen(bview->buffer->path) : 0
-            }, &path);
-            if (!path) return MLE_ERR;
+            }, &path_tmp);
+            if (!path_tmp) return MLE_ERR;
+
+            // Expand tilde
+            util_expand_tilde(path_tmp, strlen(path_tmp), &path, NULL);
+            free(path_tmp);
         } else {
             // Re-use existing name
             path = strdup(bview->buffer->path);

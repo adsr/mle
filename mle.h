@@ -574,6 +574,7 @@ int util_pcre_match(char *re, char *subject, int subject_len, char **optret_capt
 int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *ret_result_len);
 int util_timeval_is_gt(struct timeval *a, struct timeval *b);
 char *util_escape_shell_arg(char *str, int l);
+void util_expand_tilde(char *path, int path_len, char **ret_path, int *ret_path_len);
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
 int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);

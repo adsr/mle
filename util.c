@@ -348,6 +348,24 @@ char *util_escape_shell_arg(char *str, int l) {
     return cmd;
 }
 
+// Attempt to replace leading ~/ with $HOME
+void util_expand_tilde(char *path, int path_len, char **ret_path, int *optret_path_len) {
+    char *homedir;
+    char *newpath;
+    if (!util_is_file("~", NULL, NULL)
+        && strncmp(path, "~/", 2) == 0
+        && (homedir = getenv("HOME")) != NULL
+    ) {
+        newpath = malloc(strlen(homedir) + 1 + (path_len - 2) + 1);
+        sprintf(newpath, "%s/%.*s", homedir, path_len-2, path+2);
+        *ret_path = newpath;
+        if (optret_path_len) *optret_path_len = strlen(*ret_path);
+        return;
+    }
+    *ret_path = strndup(path, path_len);
+    if (optret_path_len) *optret_path_len = strlen(*ret_path);
+}
+
 // Adapted from termbox src/demo/keyboard.c
 int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str) {
     uint32_t uni;

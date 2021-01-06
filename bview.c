@@ -12,7 +12,6 @@ static int _bview_set_linenum_width(bview_t *self);
 static void _bview_deinit(bview_t *self);
 static void _bview_set_tab_width(bview_t *self, int tab_width);
 static void _bview_fix_path(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len, bint_t *ret_line_num);
-static void _bview_expand_tilde(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len);
 static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_len);
 static void _bview_draw_prompt(bview_t *self);
 static void _bview_draw_status(bview_t *self);
@@ -674,25 +673,6 @@ static void _bview_set_tab_width(bview_t *self, int tab_width) {
     }
 }
 
-// Attempt to replace leading ~/ with $HOME
-static void _bview_expand_tilde(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len) {
-    char *homedir;
-    char *newpath;
-    (void)self;
-    if (!util_is_file("~", NULL, NULL)
-        && strncmp(path, "~/", 2) == 0
-        && (homedir = getenv("HOME")) != NULL
-    ) {
-        newpath = malloc(strlen(homedir) + 1 + (path_len - 2) + 1);
-        sprintf(newpath, "%s/%.*s", homedir, path_len-2, path+2);
-        *ret_path = newpath;
-        *ret_path_len = strlen(*ret_path);
-        return;
-    }
-    *ret_path = strndup(path, path_len);
-    *ret_path_len = strlen(*ret_path);
-}
-
 // Attempt to fix path by stripping away git-style diff prefixes ([ab/]) and/or
 // by extracting a trailing line number after a colon (:)
 static void _bview_fix_path(bview_t *self, char *path, int path_len, char **ret_path, int *ret_path_len, bint_t *ret_line_num) {
@@ -774,7 +754,7 @@ static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_
     has_path = opt_path && opt_path_len > 0 ? 1 : 0;
 
     if (has_path) {
-        _bview_expand_tilde(self, opt_path, opt_path_len, &exp_path, &exp_path_len);
+        util_expand_tilde(opt_path, opt_path_len, &exp_path, &exp_path_len);
         _bview_fix_path(self, exp_path, exp_path_len, &fix_path, &fix_path_len, &startup_line_num);
         buffer = buffer_new_open(fix_path);
         if (buffer) self->startup_linenum = startup_line_num;
