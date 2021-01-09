@@ -598,7 +598,12 @@ static void _bview_deinit(bview_t *self) {
         if (self->buffer->ref_count < 1) {
             buffer_destroy(self->buffer);
         }
+        self->buffer = NULL;
     }
+
+    // Unset viewport_bline as it may point to a freed bline at this point if
+    // we are re-using a bview, e.g., after cmd_open_replace_file.
+    self->viewport_bline = NULL;
 
     // Free last_search
     if (self->last_search) {

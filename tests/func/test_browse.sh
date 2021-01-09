@@ -27,3 +27,4 @@ expected[hello]='^bview.[[:digit:]]+.buffer.path=./hello$'
 source "$this_dir/test.sh"
 
 popd &>/dev/null
+pushed=0
