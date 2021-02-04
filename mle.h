@@ -175,7 +175,7 @@ struct bview_s {
     bint_t viewport_x;
     bint_t viewport_x_vcol;
     bint_t viewport_y;
-    bline_t *viewport_bline;
+    mark_t *viewport_mark;
     int viewport_scope_x;
     int viewport_scope_y;
     bview_t *split_parent;

@@ -475,9 +475,9 @@ int cmd_viewport_toggle(cmd_context_t *ctx) {
     bline_t *orig;
     bline_t *mid;
     bline_t *top;
-    orig = ctx->bview->viewport_bline;
-    cmd_viewport_mid(ctx); mid = ctx->bview->viewport_bline;
-    cmd_viewport_top(ctx); top = ctx->bview->viewport_bline;
+    orig = ctx->bview->viewport_mark->bline;
+    cmd_viewport_mid(ctx); mid  = ctx->bview->viewport_mark->bline;
+    cmd_viewport_top(ctx); top  = ctx->bview->viewport_mark->bline;
     if (mid == orig) {
         cmd_viewport_top(ctx);
     } else if (top == orig) {
@@ -1003,8 +1003,8 @@ int cmd_jump(cmd_context_t *ctx) {
         mark_move_bol(mark);
         stop_line_index = mark->bline->line_index + 1;
     } else {
-        mark_move_to_w_bline(mark, ctx->bview->viewport_bline, 0);
-        stop_line_index = ctx->bview->viewport_bline->line_index + ctx->bview->rect_buffer.h;
+        mark_move_to_w_bline(mark, ctx->bview->viewport_mark->bline, 0);
+        stop_line_index = ctx->bview->viewport_mark->bline->line_index + ctx->bview->rect_buffer.h;
     }
 
     // Make jump map

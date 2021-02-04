@@ -347,7 +347,7 @@ int bview_set_viewport_y(bview_t *self, bint_t y, int do_rectify) {
     }
     self->viewport_y = y;
     if (do_rectify) bview_rectify_viewport(self);
-    buffer_get_bline_w_hint(self->buffer, self->viewport_y, self->viewport_bline, &self->viewport_bline);
+    mark_move_to(self->viewport_mark, self->viewport_y, 0);
     return MLE_OK;
 }
 
@@ -384,8 +384,8 @@ int bview_rectify_viewport(bview_t *self) {
 
     if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y)) {
         // TODO viewport_y_vrow (soft-wrapped lines, code folding, etc)
-        // Refresh viewport_bline
-        buffer_get_bline_w_hint(self->buffer, self->viewport_y, self->viewport_bline, &self->viewport_bline);
+        // Adjust viewport_mark
+        mark_move_to(self->viewport_mark, self->viewport_y, 0);
     }
 
     return MLE_OK;
@@ -468,6 +468,10 @@ static void _bview_init(bview_t *self, buffer_t *buffer) {
 
     // Add a cursor
     bview_add_cursor(self, self->buffer->first_line, 0, &cursor_tmp);
+
+    // Add viewport_mark
+    self->viewport_mark = buffer_add_mark(self->buffer, NULL, 0);
+    self->viewport_mark->lefty = 1; // Stay put at col 0
 }
 
 // Invoked once after a bview has been resized for the first time
@@ -518,8 +522,6 @@ static void _bview_buffer_callback(buffer_t *buffer, baction_t *action, void *ud
                 if (_bview_set_linenum_width(bview)) {
                     bview_resize(bview, bview->x, bview->y, bview->w, bview->h);
                 }
-                // Adjust viewport_bline
-                buffer_get_bline_w_hint(bview->buffer, bview->viewport_y, bview->viewport_bline, &bview->viewport_bline);
             }
         }
     }
@@ -601,9 +603,9 @@ static void _bview_deinit(bview_t *self) {
         self->buffer = NULL;
     }
 
-    // Unset viewport_bline as it may point to a freed bline at this point if
+    // Unset viewport_mark as it may point to a freed mark at this point if
     // we are re-using a bview, e.g., after cmd_open_replace_file.
-    self->viewport_bline = NULL;
+    self->viewport_mark = NULL;
 
     // Free last_search
     if (self->last_search) {
@@ -970,10 +972,7 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
     }
 
     // Render lines and margins
-    if (!self->viewport_bline) {
-        buffer_get_bline(self->buffer, MLE_MAX(0, self->viewport_y), &self->viewport_bline);
-    }
-    bline = self->viewport_bline;
+    bline = self->viewport_mark->bline;
     for (rect_y = 0; rect_y < self->rect_buffer.h; rect_y++) {
         if (self->viewport_y + rect_y < 0 || self->viewport_y + rect_y >= self->buffer->line_count || !bline) { // "|| !bline" See TODOs below
             // Draw pre/post blank
@@ -983,8 +982,6 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
             tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, self->rect_buffer.w, " ");
         } else {
             // Draw bline at self->rect_buffer self->viewport_y + rect_y
-            // TODO How can bline be NULL here?
-            // TODO How can self->viewport_y != self->viewport_bline->line_index ?
             _bview_draw_bline(self, bline, rect_y, &bline, &rect_y);
             bline = bline->next;
         }
@@ -1156,10 +1153,10 @@ int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y,
 
     if (is_soft_wrapped) {
         screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) % self->rect_buffer.w;
-        screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index) + (MLE_MARK_COL_TO_VCOL(mark) / self->rect_buffer.w);
+        screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_mark->bline->line_index) + (MLE_MARK_COL_TO_VCOL(mark) / self->rect_buffer.w);
     } else {
         screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, self->viewport_x, mark->bline->char_vwidth);
-        screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_bline->line_index);
+        screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_mark->bline->line_index);
     }
     if (screen_x < self->rect_buffer.x || screen_x >= self->rect_buffer.x + self->rect_buffer.w
        || screen_y < self->rect_buffer.y || screen_y >= self->rect_buffer.y + self->rect_buffer.h
