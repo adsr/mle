@@ -1485,6 +1485,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_split_vertical", cmd_split_vertical);
     _editor_register_cmd_fn(editor, "cmd_suspend", cmd_suspend);
     _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
+    _editor_register_cmd_fn(editor, "cmd_swap_anchor", cmd_swap_anchor);
     _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
     _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
     _editor_register_cmd_fn(editor, "cmd_viewport_bot", cmd_viewport_bot);
@@ -1587,6 +1588,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_wake_sleeping_cursors", "C-/ a"),
         MLE_KBINDING_DEF("cmd_remove_extra_cursors", "C-/ /"),
         MLE_KBINDING_DEF("cmd_drop_cursor_column", "C-/ '"),
+        MLE_KBINDING_DEF("cmd_swap_anchor", "C-/ ;"),
         MLE_KBINDING_DEF("cmd_apply_macro", "M-z"),
         MLE_KBINDING_DEF("cmd_apply_macro_by", "M-m **"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),

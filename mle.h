@@ -16,7 +16,7 @@ typedef struct bview_s bview_t; // A view of a buffer
 typedef struct bview_rect_s bview_rect_t; // A rectangle in bview with a default styling
 typedef struct bview_listener_s bview_listener_t; // A listener to buffer events in a bview
 typedef void (*bview_listener_cb_t)(bview_t *bview, baction_t *action, void *udata); // A bview_listener_t callback
-typedef struct cursor_s cursor_t; // A cursor (insertion mark + selection bound mark) in a buffer
+typedef struct cursor_s cursor_t; // A cursor (insertion mark + anchor mark) in a buffer
 typedef struct loop_context_s loop_context_t; // Context for a single _editor_loop
 typedef struct cmd_s cmd_t; // A command definition
 typedef struct cmd_context_s cmd_context_t; // Context for a single command invocation
@@ -545,6 +545,7 @@ int cmd_show_help(cmd_context_t *ctx);
 int cmd_split_horizontal(cmd_context_t *ctx);
 int cmd_split_vertical(cmd_context_t *ctx);
 int cmd_suspend(cmd_context_t *ctx);
+int cmd_swap_anchor(cmd_context_t *ctx);
 int cmd_toggle_anchor(cmd_context_t *ctx);
 int cmd_uncut(cmd_context_t *ctx);
 int cmd_undo(cmd_context_t *ctx);

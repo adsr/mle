@@ -342,10 +342,20 @@ int cmd_delete_word_after(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
-// Toggle sel bound on cursors
+// Toggle anchor on cursors
 int cmd_toggle_anchor(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_toggle_anchor(cursor, 1);
+    );
+    return MLE_OK;
+}
+
+// Swap anchor with mark on cursors
+int cmd_swap_anchor(cmd_context_t *ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (ctx->cursor->is_anchored) {
+            mark_swap_with_mark(ctx->cursor->mark, ctx->cursor->anchor);
+        }
     );
     return MLE_OK;
 }
