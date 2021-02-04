@@ -109,6 +109,7 @@ struct editor_s {
     int highlight_bracket_pairs;
     int color_col;
     int soft_wrap;
+    int coarse_undo;
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     int headless_mode;
@@ -118,6 +119,7 @@ struct editor_s {
     char *insertbuf;
     size_t insertbuf_size;
     char *cut_buffer;
+    int user_input_count;
     #define MLE_ERRSTR_SIZE 256
     char errstr[MLE_ERRSTR_SIZE];
     char infostr[MLE_ERRSTR_SIZE];
@@ -608,6 +610,7 @@ extern editor_t _editor;
 #define MLE_DEFAULT_HILI_BRACKET_PAIRS 1
 #define MLE_DEFAULT_READ_RC_FILE 1
 #define MLE_DEFAULT_SOFT_WRAP 0
+#define MLE_DEFAULT_COARSE_UNDO 0
 
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \

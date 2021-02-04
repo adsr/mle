@@ -59,6 +59,7 @@ struct buffer_s {
     size_t mmap_len;
     bline_char_t *slabbed_chars;
     bline_t *slabbed_blines;
+    int *action_group;
     int num_applied_srules;
     int is_in_open;
     int is_in_callback;
@@ -116,6 +117,7 @@ struct baction_s {
     bint_t byte_delta;
     bint_t char_delta;
     bint_t line_delta;
+    int action_group;
     char *data;
     bint_t data_len;
     baction_t *next;
@@ -184,9 +186,12 @@ int buffer_get_bline_col(buffer_t *self, bint_t offset, bline_t **ret_bline, bin
 int buffer_get_offset(buffer_t *self, bline_t *bline, bint_t col, bint_t *ret_offset);
 int buffer_undo(buffer_t *self);
 int buffer_redo(buffer_t *self);
+int buffer_undo_action_group(buffer_t *self);
+int buffer_redo_action_group(buffer_t *self);
 int buffer_add_srule(buffer_t *self, srule_t *srule);
 int buffer_remove_srule(buffer_t *self, srule_t *srule);
 int buffer_set_callback(buffer_t *self, buffer_callback_t fn_cb, void *udata);
+int buffer_set_action_group_ptr(buffer_t *self, int *action_group);
 int buffer_set_tab_width(buffer_t *self, int tab_width);
 int buffer_set_styles_enabled(buffer_t *self, int is_enabled);
 int buffer_apply_styles(buffer_t *self, bline_t *start_line, bint_t line_delta);

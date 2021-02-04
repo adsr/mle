@@ -775,6 +775,7 @@ static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_
         }
     }
     buffer_set_callback(buffer, _bview_buffer_callback, self);
+    buffer_set_action_group_ptr(buffer, &self->editor->user_input_count);
     _bview_set_tab_width(self, self->tab_width);
     return buffer;
 }

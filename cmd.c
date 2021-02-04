@@ -888,13 +888,21 @@ int cmd_move_until_back(cmd_context_t *ctx) {
 
 // Undo
 int cmd_undo(cmd_context_t *ctx) {
-    buffer_undo(ctx->bview->buffer);
+    if (ctx->editor->coarse_undo) {
+        buffer_undo_action_group(ctx->bview->buffer);
+    } else {
+        buffer_undo(ctx->bview->buffer);
+    }
     return MLE_OK;
 }
 
 // Redo
 int cmd_redo(cmd_context_t *ctx) {
-    buffer_redo(ctx->bview->buffer);
+    if (ctx->editor->coarse_undo) {
+        buffer_redo_action_group(ctx->bview->buffer);
+    } else {
+        buffer_redo(ctx->bview->buffer);
+    }
     return MLE_OK;
 }
 
@@ -929,6 +937,8 @@ int cmd_set_opt(cmd_context_t *ctx) {
         buffer_apply_styles(ctx->bview->buffer, ctx->bview->buffer->first_line, ctx->bview->buffer->line_count);
     } else if (strcmp(ctx->static_param, "soft_wrap") == 0) {
         ctx->bview->soft_wrap = vali ? 1 : 0;
+    } else if (strcmp(ctx->static_param, "coarse_undo") == 0) {
+        ctx->editor->coarse_undo = vali ? 1 : 0;
     }
     return MLE_OK;
 }

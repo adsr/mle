@@ -355,6 +355,19 @@ static int _uscript_func_buffer_redo(lua_State *L) {
     return 1;
 }
 
+static int _uscript_func_buffer_redo_action_group(lua_State *L) {
+    int rv;
+    buffer_t *self;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    rv = buffer_redo_action_group(self);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 static int _uscript_func_buffer_register_append(lua_State *L) {
     int rv;
     buffer_t *self;
@@ -548,6 +561,21 @@ static int _uscript_func_buffer_set(lua_State *L) {
     return 1;
 }
 
+static int _uscript_func_buffer_set_action_group_ptr(lua_State *L) {
+    int rv;
+    buffer_t *self;
+    int *action_group;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    action_group = (int *)luaL_checkinteger(L, 2);
+    rv = buffer_set_action_group_ptr(self, action_group);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
 // static int _uscript_func_buffer_set_callback(lua_State *L) {
 // }
 
@@ -636,6 +664,19 @@ static int _uscript_func_buffer_undo(lua_State *L) {
     buffer_t *self;
     self = (buffer_t *)luaL_checkpointer(L, 1);
     rv = buffer_undo(self);
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "rv");
+    lua_pushinteger(L, (lua_Integer)rv);
+    lua_settable(L, -3);
+    lua_pushvalue(L, -1);
+    return 1;
+}
+
+static int _uscript_func_buffer_undo_action_group(lua_State *L) {
+    int rv;
+    buffer_t *self;
+    self = (buffer_t *)luaL_checkpointer(L, 1);
+    rv = buffer_undo_action_group(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -2534,6 +2575,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "buffer_new_open", _uscript_func_buffer_new_open },
     { "buffer_open", _uscript_func_buffer_open },
     { "buffer_redo", _uscript_func_buffer_redo },
+    { "buffer_redo_action_group", _uscript_func_buffer_redo_action_group },
     { "buffer_register_append", _uscript_func_buffer_register_append },
     { "buffer_register_clear", _uscript_func_buffer_register_clear },
     { "buffer_register_get", _uscript_func_buffer_register_get },
@@ -2545,12 +2587,14 @@ static const struct luaL_Reg mle_lib[] = {
     { "buffer_save", _uscript_func_buffer_save },
     { "buffer_save_as", _uscript_func_buffer_save_as },
     { "buffer_set", _uscript_func_buffer_set },
+    { "buffer_set_action_group_ptr", _uscript_func_buffer_set_action_group_ptr },
     { "buffer_set_callback", _uscript_func_buffer_set_callback },
     { "buffer_set_mmapped", _uscript_func_buffer_set_mmapped },
     { "buffer_set_styles_enabled", _uscript_func_buffer_set_styles_enabled },
     { "buffer_set_tab_width", _uscript_func_buffer_set_tab_width },
     { "buffer_substr", _uscript_func_buffer_substr },
     { "buffer_undo", _uscript_func_buffer_undo },
+    { "buffer_undo_action_group", _uscript_func_buffer_undo_action_group },
     { "buffer_write_to_fd", _uscript_func_buffer_write_to_fd },
     { "buffer_write_to_file", _uscript_func_buffer_write_to_file },
     { "bview_add_cursor", _uscript_func_bview_add_cursor },

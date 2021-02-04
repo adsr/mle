@@ -17,6 +17,8 @@ static int _buffer_bline_unslab(bline_t *self);
 static void _buffer_stat(buffer_t *self);
 static int _buffer_baction_do(buffer_t *self, bline_t *bline, baction_t *action, int is_redo, bint_t *opt_repeat_offset);
 static int _buffer_update(buffer_t *self, baction_t *action);
+static int _buffer_undo(buffer_t *self, int by_group);
+static int _buffer_redo(buffer_t *self, int by_group);
 static int _buffer_truncate_undo_stack(buffer_t *self, baction_t *action_from);
 static int _buffer_add_to_undo_stack(buffer_t *self, baction_t *action);
 static int _buffer_apply_styles_singles(bline_t *start_line, bint_t min_nlines);
@@ -934,75 +936,24 @@ int buffer_substr(buffer_t *self, bline_t *start_line, bint_t start_col, bline_t
 
 // Undo an action
 int buffer_undo(buffer_t *self) {
-    baction_t *action_to_undo;
-    bline_t *bline;
-    int rc;
-
-    // Find action to undo
-    if (self->action_undone) {
-        if (self->action_undone == self->actions) {
-            return MLBUF_ERR;
-        } else if (!self->action_undone->prev) {
-            return MLBUF_ERR;
-        }
-        action_to_undo = self->action_undone->prev;
-    } else if (self->action_tail) {
-        action_to_undo = self->action_tail;
-    } else {
-        return MLBUF_ERR;
-    }
-
-    // Get line to perform undo on
-    bline = NULL;
-    buffer_get_bline(self, action_to_undo->start_line_index, &bline);
-    MLBUF_BLINE_ENSURE_CHARS(bline);
-    if (!bline) {
-        return MLBUF_ERR;
-    } else if (action_to_undo->start_col > bline->char_count) {
-        return MLBUF_ERR;
-    }
-
-    // Perform action
-    rc = _buffer_baction_do(self, bline, action_to_undo, 0, NULL);
-
-    // Update action_undone
-    if (rc == MLBUF_OK) {
-        self->action_undone = action_to_undo;
-    }
-    return rc;
+    return _buffer_undo(self, 0);
 }
 
-// Redo an undone action
+// Undo actions in last action_group
+int buffer_undo_action_group(buffer_t *self) {
+    return _buffer_undo(self, 1);
+}
+
+// Redo an action
 int buffer_redo(buffer_t *self) {
-    baction_t *action_to_redo;
-    bline_t *bline;
-    int rc;
-
-    // Find action to undo
-    if (!self->action_undone) {
-        return MLBUF_ERR;
-    }
-    action_to_redo = self->action_undone;
-
-    // Get line to perform undo on
-    bline = NULL;
-    buffer_get_bline(self, action_to_redo->start_line_index, &bline);
-    MLBUF_BLINE_ENSURE_CHARS(bline);
-    if (!bline) {
-        return MLBUF_ERR;
-    } else if (action_to_redo->start_col > bline->char_count) {
-        return MLBUF_ERR;
-    }
-
-    // Perform action
-    rc = _buffer_baction_do(self, bline, action_to_redo, 1, NULL);
-
-    // Update action_undone
-    if (rc == MLBUF_OK) {
-        self->action_undone = self->action_undone->next;
-    }
-    return rc;
+    return _buffer_redo(self, 0);
 }
+
+// Redo actions in last action_group
+int buffer_redo_action_group(buffer_t *self) {
+    return _buffer_redo(self, 1);
+}
+
 
 // Toggle is_style_disabled
 int buffer_set_styles_enabled(buffer_t *self, int is_enabled) {
@@ -1012,6 +963,12 @@ int buffer_set_styles_enabled(buffer_t *self, int is_enabled) {
         self->is_style_disabled = 0;
         buffer_apply_styles(self, self->first_line, self->line_count);
     }
+    return MLBUF_OK;
+}
+
+// Set buffer action_group pointer
+int buffer_set_action_group_ptr(buffer_t *self, int *action_group) {
+    self->action_group = action_group;
     return MLBUF_OK;
 }
 
@@ -1240,6 +1197,104 @@ static int _buffer_update(buffer_t *self, baction_t *action) {
     return MLBUF_OK;
 }
 
+static int _buffer_undo(buffer_t *self, int by_group) {
+    baction_t *action_to_undo;
+    bline_t *bline;
+    int *group_to_undo;
+
+    // Find action to undo
+    if (self->action_undone) {
+        if (self->action_undone == self->actions) {
+            return MLBUF_ERR;
+        } else if (!self->action_undone->prev) {
+            return MLBUF_ERR;
+        }
+        action_to_undo = self->action_undone->prev;
+    } else if (self->action_tail) {
+        action_to_undo = self->action_tail;
+    } else {
+        return MLBUF_ERR;
+    }
+
+    // Set action group
+    group_to_undo = by_group ? &action_to_undo->action_group : NULL;
+
+    while (1) {
+        // Get line to perform undo on
+        bline = NULL;
+        buffer_get_bline(self, action_to_undo->start_line_index, &bline);
+        MLBUF_BLINE_ENSURE_CHARS(bline);
+        if (!bline) {
+            return MLBUF_ERR;
+        } else if (action_to_undo->start_col > bline->char_count) {
+            return MLBUF_ERR;
+        }
+
+        // Perform action
+        if (_buffer_baction_do(self, bline, action_to_undo, 0, NULL) != MLBUF_OK) {
+            return MLBUF_ERR;
+        }
+        self->action_undone = action_to_undo;
+
+        // Undo next action in same group or break
+        if (group_to_undo
+            && action_to_undo->prev
+            && action_to_undo->prev->action_group == *group_to_undo
+        ) {
+            action_to_undo = action_to_undo->prev;
+        } else {
+            break;
+        }
+    }
+
+    return MLBUF_OK;
+}
+
+static int _buffer_redo(buffer_t *self, int by_group) {
+    baction_t *action_to_redo;
+    bline_t *bline;
+    int *group_to_redo;
+
+    // Find action to undo
+    if (!self->action_undone) {
+        return MLBUF_ERR;
+    }
+    action_to_redo = self->action_undone;
+
+    // Set action group
+    group_to_redo = by_group ? &action_to_redo->action_group : NULL;
+
+    while (1) {
+        // Get line to perform undo on
+        bline = NULL;
+        buffer_get_bline(self, action_to_redo->start_line_index, &bline);
+        MLBUF_BLINE_ENSURE_CHARS(bline);
+        if (!bline) {
+            return MLBUF_ERR;
+        } else if (action_to_redo->start_col > bline->char_count) {
+            return MLBUF_ERR;
+        }
+
+        // Perform action
+        if (_buffer_baction_do(self, bline, action_to_redo, 1, NULL) != MLBUF_OK) {
+            return MLBUF_ERR;
+        }
+        self->action_undone = action_to_redo->next;
+
+        // Redo next action in same group or break
+        if (group_to_redo
+            && action_to_redo->next
+            && action_to_redo->next->action_group == *group_to_redo
+        ) {
+            action_to_redo = action_to_redo->next;
+        } else {
+            break;
+        }
+    }
+
+    return MLBUF_OK;
+}
+
 static int _buffer_truncate_undo_stack(buffer_t *self, baction_t *action_from) {
     baction_t *action_target;
     baction_t *action_tmp;
@@ -1270,6 +1325,7 @@ static int _buffer_add_to_undo_stack(buffer_t *self, baction_t *action) {
 
     // Append action to list
     DL_APPEND(self->actions, action);
+    if (self->action_group) action->action_group = *self->action_group;
     self->action_tail = action;
     return MLBUF_OK;
 }

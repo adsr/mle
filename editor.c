@@ -86,6 +86,7 @@ int editor_init(editor_t *editor, int argc, char **argv) {
         editor->highlight_bracket_pairs = MLE_DEFAULT_HILI_BRACKET_PAIRS;
         editor->read_rc_file = MLE_DEFAULT_READ_RC_FILE;
         editor->soft_wrap = MLE_DEFAULT_SOFT_WRAP;
+        editor->coarse_undo = MLE_DEFAULT_COARSE_UNDO;
         editor->viewport_scope_x = -4;
         editor->viewport_scope_y = -1;
         editor->color_col = -1;
@@ -1104,6 +1105,7 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
             continue;
         }
         MLE_KINPUT_SET(ctx->input, ev.mod, ev.ch, ev.key);
+        editor->user_input_count += 1;
         break;
     }
 }
@@ -1607,6 +1609,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o t", "tab_width"),
         MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o y", "syntax"),
         MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o w", "soft_wrap"),
+        MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o u", "coarse_undo"),
         MLE_KBINDING_DEF("cmd_open_new", "C-n"),
         MLE_KBINDING_DEF("cmd_open_file", "C-o"),
         MLE_KBINDING_DEF("cmd_open_replace_new", "C-q n"),
@@ -2090,7 +2093,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 1;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:vw:x:y:z:Q:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:u:vw:x:y:z:Q:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -2112,6 +2115,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 printf("    -S <syndef>  Make a syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use after -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
+                printf("    -u <1|0>     Set coarse undo/redo (default: %d)\n", MLE_DEFAULT_COARSE_UNDO);
                 printf("    -v           Print version and exit\n");
                 printf("    -w <1|0>     Enable/disable soft word wrap (default: %d)\n", MLE_DEFAULT_SOFT_WRAP);
                 printf("    -x <uscript> Run a Lua user script\n");
@@ -2205,6 +2209,9 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 break;
             case 't':
                 editor->tab_width = atoi(optarg);
+                break;
+            case 'u':
+                editor->coarse_undo = atoi(optarg);
                 break;
             case 'v':
                 printf("mle version %s\n", MLE_VERSION);
