@@ -1066,7 +1066,6 @@ int cmd_suspend(cmd_context_t *ctx) {
 
 // Force a redraw of the screen
 static void _cmd_force_redraw(cmd_context_t *ctx) {
-    (void)ctx;
     editor_force_redraw(ctx->editor);
 }
 

@@ -2241,7 +2241,8 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                     case 'd': editor->debug_dump_state_on_exit = 1; break;
                 }
                 break;
-            default:
+            default: // Unknown option
+                editor->exit_code = EXIT_FAILURE;
                 rv = MLE_ERR;
                 break;
         }
