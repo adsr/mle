@@ -303,16 +303,19 @@ static int _uscript_func_util_shell_exec(lua_State *L) {
     uscript_t *uscript;
     char *output;
     size_t output_len;
+    int exit_code;
     MLE_USCRIPT_GET(L, uscript);
 
     cmd = (char*)luaL_checkstring(L, 1);
     timeout_s = (long)luaL_checkinteger(L, 2);
     output = NULL;
     output_len = 0;
-    rv = util_shell_exec(uscript->editor, cmd, timeout_s, NULL, 0, 0, NULL, &output, &output_len);
+    exit_code = -1;
+    rv = util_shell_exec(uscript->editor, cmd, timeout_s, NULL, 0, 0, NULL, &output, &output_len, &exit_code);
 
     lua_createtable(L, 0, 1);
     luaL_pushkey(L, integer, "rv", rv);
+    luaL_pushkey(L, integer, "exit_code", exit_code);
     luaL_pushkey2(L, lstring, "output", (output ? output : ""), output_len);
     lua_pushvalue(L, -1);
     if (output) free(output);

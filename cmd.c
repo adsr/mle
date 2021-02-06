@@ -1184,7 +1184,7 @@ int cmd_less(cmd_context_t *ctx) {
             "rm -f $tmp_lesskey";
         asprintf(&sh, sh_fmt, tmp_linenum, ctx->cursor->mark->bline->line_index+1, screen_y+1, tmp_buf);
         tb_shutdown();
-        if (MLE_ERR == util_shell_exec(ctx->editor, sh, -1, NULL, 0, 1, "bash", NULL, NULL)) {
+        if (MLE_ERR == util_shell_exec(ctx->editor, sh, -1, NULL, 0, 1, "bash", NULL, NULL, NULL)) {
             rc = MLE_ERR;
             break;
         }
@@ -1765,6 +1765,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
     bint_t input_len;
     char *output;
     size_t output_len;
+    int exit_code;
 
     // Loop for each cursor
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
@@ -1779,12 +1780,16 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
         // Run cmd
         output = NULL;
         output_len = 0;
-        if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, 0, NULL, &output, &output_len) == MLE_OK && output_len > 0) {
-            // Write output to buffer
-            if (cursor->is_anchored) {
-                mark_delete_between_mark(cursor->mark, cursor->anchor);
+        exit_code = -1;
+        if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, 0, NULL, &output, &output_len, &exit_code) == MLE_OK) {
+            if (output_len > 0) {
+                // Write output to buffer
+                if (cursor->is_anchored) {
+                    mark_delete_between_mark(cursor->mark, cursor->anchor);
+                }
+                mark_insert_before(cursor->mark, output, output_len);
             }
-            mark_insert_before(cursor->mark, output, output_len);
+            MLE_SET_INFO(ctx->editor, "shell: Exited %d", exit_code);
         }
 
         // Free input and output
@@ -1810,7 +1815,7 @@ static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd) {
     size_t path_len;
     path = NULL;
     if (tb_width() >= 0) tb_shutdown();
-    if (util_shell_exec(ctx->editor, shell_cmd, -1, NULL, 0, 0, NULL, &path, &path_len) == MLE_ERR) {
+    if (util_shell_exec(ctx->editor, shell_cmd, -1, NULL, 0, 0, NULL, &path, &path_len, NULL) == MLE_ERR) {
         return MLE_ERR;
     }
     _cmd_force_redraw(ctx);

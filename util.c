@@ -4,13 +4,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include "mle.h"
 
 // Run a shell command, optionally feeding stdin, collecting stdout
 // Specify timeout_s=-1 for no timeout
-int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, size_t input_len, int setsid, char *opt_shell, char **optret_output, size_t *optret_output_len) {
+int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, size_t input_len, int setsid, char *opt_shell, char **optret_output, size_t *optret_output_len, int *optret_exit_code) {
     // TODO clean this crap up
     int rv;
     int do_read;
@@ -23,6 +24,7 @@ int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, si
     struct timeval timeout;
     struct timeval *timeoutptr;
     pid_t pid;
+    int exit_status;
     str_t readbuf = {0};
 
     do_read = optret_output != NULL ? 1 : 0;
@@ -111,7 +113,9 @@ int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, si
     // Close pipes and reap child proc
     if (readfd >= 0) close(readfd);
     if (writefd >= 0) close(writefd);
-    waitpid(pid, NULL, do_read ? WNOHANG : 0);
+    exit_status = -1;
+    waitpid(pid, &exit_status, do_read ? WNOHANG : 0);
+    if (optret_exit_code) *optret_exit_code = WEXITSTATUS(exit_status);
 
     if (do_read) {
         *optret_output = readbuf.data;

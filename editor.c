@@ -673,7 +673,7 @@ static int _editor_prompt_input_complete(cmd_context_t *ctx) {
     // Run compgen command
     terms = NULL;
     terms_len = 0;
-    util_shell_exec(ctx->editor, cmd, 1, NULL, 0, 0, "bash", &terms, &terms_len);
+    util_shell_exec(ctx->editor, cmd, 1, NULL, 0, 0, "bash", &terms, &terms_len, NULL);
     free(cmd);
     free(cmd_arg);
 
@@ -2221,7 +2221,6 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 editor->soft_wrap = atoi(optarg);
                 break;
             case 'x':
-                // TODO
                 if (!(uscript = uscript_run(editor, optarg))) {
                     MLE_LOG_ERR("Failed to run uscript: %s\n", optarg);
                     editor->exit_code = EXIT_FAILURE;

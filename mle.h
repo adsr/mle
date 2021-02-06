@@ -568,7 +568,7 @@ uscript_t *uscript_run(editor_t *editor, char *path);
 int uscript_destroy(uscript_t *uscript);
 
 // util functions
-int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, size_t input_len, int setsid, char *opt_shell, char **optret_output, size_t *optret_output_len);
+int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, size_t input_len, int setsid, char *opt_shell, char **optret_output, size_t *optret_output_len, int *optret_exit_code);
 int util_popen2(char *cmd, int setsid, char *opt_shell, int *optret_fdread, int *optret_fdwrite, pid_t *optret_pid);
 int util_get_bracket_pair(uint32_t ch, int *optret_is_closing);
 int util_is_file(char *path, char *opt_mode, FILE **optret_file);
