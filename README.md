@@ -2,7 +2,7 @@
 
 mle is a small, flexible, terminal-based text editor written in C.
 
-Runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
+Runs on Linux, Windows (cygwin or WSL), FreeBSD, and macOS.
 
 [![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
 
@@ -162,10 +162,11 @@ That work is on pause.
 
 * Multi-line style rules don't work properly when overlapped/staggered.
 
-### Fork
+### Forks
 
-Also check out [eon](https://github.com/tomas/eon), a fork of mle with some cool
-features.
+* [eon](https://github.com/tomas/eon) - mouse support and Notepad-like
+  selections
+* [turbo-mle](https://github.com/magiblot/turbo-mle) - Turbo Vision port
 
 ### Acknowledgments
 
