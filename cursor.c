@@ -133,7 +133,7 @@ int cursor_select_by_bracket(cursor_t *cursor, int use_srules) {
     }
     cursor_toggle_anchor(cursor, use_srules);
     if (mark_move_bracket_pair(cursor->anchor, MLE_BRACKET_PAIR_MAX_SEARCH) != MLBUF_OK) {
-        cursor_toggle_anchor(cursor, 0);
+        cursor_toggle_anchor(cursor, use_srules);
         mark_join(cursor->mark, orig);
         mark_destroy(orig);
         return MLE_ERR;

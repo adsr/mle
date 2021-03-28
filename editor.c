@@ -399,6 +399,7 @@ int editor_debug_dump(editor_t *editor, FILE *fp) {
                 fprintf(fp, "bview.%d.cursor.%d.anchor.line_index=%" PRIdMAX "\n", bview_index, cursor_index, cursor->anchor->bline->line_index);
                 fprintf(fp, "bview.%d.cursor.%d.anchor.col=%" PRIdMAX "\n", bview_index, cursor_index, cursor->anchor->col);
             }
+            fprintf(fp, "bview.%d.cursor.%d.sel_rule=%c\n", bview_index, cursor_index, cursor->sel_rule ? 'y' : 'n');
             cursor_index += 1;
         }
         fprintf(fp, "bview.%d.cursor_count=%d\n", bview_index, cursor_index);
