@@ -122,6 +122,12 @@ int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, si
         *optret_output_len = readbuf.len;
     }
 
+    // Force redraw to correct artifacts from child process writing to stderr.
+    // Piping stderr to `/dev/null` in the child process would be cleaner,
+    // however that breaks interactive apps like less(1) which require stdio
+    // ttys to behave properly.
+    if (!_editor.headless_mode) editor_force_redraw(&_editor);
+
     return rv;
 }
 
@@ -132,7 +138,6 @@ int util_popen2(char *cmd, int do_setsid, char *opt_shell, int *optret_fdread, i
     int do_write;
     int pout[2];
     int pin[2];
-    int nowhere;
 
     // Set r/w
     do_read = optret_fdread != NULL ? 1 : 0;
@@ -161,10 +166,6 @@ int util_popen2(char *cmd, int do_setsid, char *opt_shell, int *optret_fdread, i
             close(pin[1]);
             dup2(pin[0], STDIN_FILENO);
             close(pin[0]);
-        }
-        if ((nowhere = open("/dev/null", O_WRONLY)) >= 0) {
-            dup2(nowhere, STDERR_FILENO);
-            close(nowhere);
         }
         if (do_setsid) setsid();
         execlp(opt_shell, opt_shell, "-c", cmd, NULL);
