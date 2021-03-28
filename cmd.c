@@ -30,7 +30,6 @@
     } \
 } while(0)
 
-static void _cmd_force_redraw(cmd_context_t *ctx);
 static int _cmd_pre_close(editor_t *editor, bview_t *bview);
 static int _cmd_quit_inner(editor_t *editor, bview_t *bview);
 static int _cmd_save(editor_t *editor, bview_t *bview, int save_as);
@@ -448,7 +447,7 @@ int cmd_repeat(cmd_context_t *ctx) {
 // Redraw screen
 int cmd_redraw(cmd_context_t *ctx) {
     bview_center_viewport_y(ctx->bview);
-    _cmd_force_redraw(ctx);
+    editor_force_redraw(ctx->editor);
     return MLE_OK;
 }
 
@@ -1064,11 +1063,6 @@ int cmd_suspend(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
-// Force a redraw of the screen
-static void _cmd_force_redraw(cmd_context_t *ctx) {
-    editor_force_redraw(ctx->editor);
-}
-
 // Indent or outdent line(s)
 static int _cmd_indent(cmd_context_t *ctx, int outdent) {
     bline_t *start;
@@ -1187,7 +1181,6 @@ int cmd_less(cmd_context_t *ctx) {
             rc = MLE_ERR;
             break;
         }
-        _cmd_force_redraw(ctx);
         out_len = read(tmp_linenum_fd, &out, sizeof(out)-1);
         out[out_len >= 0 ? out_len : 0] = '\0';
         line_top = (bint_t)strtoull(out, NULL, 10);
@@ -1817,7 +1810,6 @@ static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd) {
     if (util_shell_exec(ctx->editor, shell_cmd, -1, NULL, 0, 0, NULL, &path, &path_len, NULL) == MLE_ERR) {
         return MLE_ERR;
     }
-    _cmd_force_redraw(ctx);
     if (path && path_len > 0) {
         while (path[path_len-1] == '\n') {
             // Strip trailing newlines
