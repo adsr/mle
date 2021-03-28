@@ -238,13 +238,7 @@ int mark_is_lte(mark_t *self, mark_t *other) {
 // Return 1 if self is between a and b
 int mark_is_between(mark_t *self, mark_t *ma, mark_t *mb) {
     mark_t *a, *b;
-    if (mark_is_gt(mb, ma)) {
-        a = ma;
-        b = mb;
-    } else {
-        a = mb;
-        b = ma;
-    }
+    mark_cmp(ma, mb, &a, &b);
     return mark_is_gte(self, a) && mark_is_lt(self, b) ? 1 : 0;
 }
 
@@ -382,24 +376,18 @@ int mark_delete_between_mark(mark_t *self, mark_t *other) {
 // Return data between self and other
 int mark_get_between_mark(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len) {
     bint_t ig;
-    if (mark_is_gt(self, other)) {
-        return buffer_substr(
-            self->bline->buffer,
-            other->bline, other->col,
-            self->bline, self->col,
-            ret_str, ret_str_len, &ig
-        );
-    } else if (mark_is_gt(other, self)) {
-        return buffer_substr(
-            self->bline->buffer,
-            self->bline, self->col,
-            other->bline, other->col,
-            ret_str, ret_str_len, &ig
-        );
+    mark_t *a, *b;
+    if (mark_cmp(self, other, &a, &b) == 0) {
+        *ret_str = strdup("");
+        *ret_str_len = 0;
+        return MLBUF_OK;
     }
-    *ret_str = strdup("");
-    *ret_str_len = 0;
-    return MLBUF_OK;
+    return buffer_substr(
+        a->bline->buffer,
+        a->bline, a->col,
+        b->bline, b->col,
+        ret_str, ret_str_len, &ig
+    );
 }
 
 // Return num chars between two marks
@@ -407,13 +395,7 @@ int mark_get_nchars_between(mark_t *self, mark_t *other, bint_t *ret_nchars) {
     mark_t *a, *b;
     bline_t *bline;
     bint_t col, nchars;
-    if (mark_is_gt(self, other)) {
-        a = other;
-        b = self;
-    } else if (mark_is_gt(other, self)) {
-        a = self;
-        b = other;
-    } else {
+    if (mark_cmp(self, other, &a, &b) == 0) {
         *ret_nchars = 0;
         return MLBUF_OK;
     }
@@ -660,6 +642,31 @@ int mark_is_after_col_minus_lefties(mark_t *self, bint_t col) {
         return self->col > col ? 1 : 0;
     }
     return self->col >= col ? 1 : 0;
+}
+
+// Sort marks a and b as optret_first and optret_second
+// Return -1 if a comes before b
+//         1 if a comes after b
+//         0 if a and b are at the same position
+int mark_cmp(mark_t *a, mark_t *b, mark_t **optret_first, mark_t **optret_second) {
+    int retval;
+    mark_t *first, *second;
+    if (mark_is_gt(b, a)) {
+        first = a;
+        second = b;
+        retval = -1;
+    } else if (mark_is_gt(a, b)) {
+        first = b;
+        second = a;
+        retval = 1;
+    } else {
+        first = a;
+        second = b;
+        retval = 0;
+    }
+    if (optret_first)  *optret_first = first;
+    if (optret_second) *optret_second = second;
+    return retval;
 }
 
 // Find first occurrence of match according to matchfn. Search backwards if

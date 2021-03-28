@@ -213,6 +213,7 @@ int bline_count_chars(bline_t *bline);
 // mark functions
 int mark_clone(mark_t *self, mark_t **ret_mark);
 int mark_clone_w_letter(mark_t *self, char letter, mark_t **ret_mark);
+int mark_cmp(mark_t *a, mark_t *b, mark_t **optret_first, mark_t **optret_second);
 int mark_delete_after(mark_t *self, bint_t num_chars);
 int mark_delete_before(mark_t *self, bint_t num_chars);
 int mark_delete_between_mark(mark_t *self, mark_t *other);
