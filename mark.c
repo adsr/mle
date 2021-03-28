@@ -72,6 +72,7 @@ int mark_replace(mark_t *self, bint_t num_chars, char *data, bint_t data_len) {
 int mark_replace_between_mark(mark_t *self, mark_t *other, char *data, bint_t data_len) {
     bint_t offset_a;
     bint_t offset_b;
+    // TODO More efficient buffer_replace_w_bline_and_end
     buffer_get_offset(self->bline->buffer, self->bline, self->col, &offset_a);
     buffer_get_offset(other->bline->buffer, other->bline, other->col, &offset_b);
     if (offset_a < offset_b) {
@@ -363,6 +364,7 @@ int mark_find_bracket_pair(mark_t *self, bint_t max_chars, bline_t **ret_line, b
 int mark_delete_between_mark(mark_t *self, mark_t *other) {
     bint_t offset_a;
     bint_t offset_b;
+    // TODO More efficient buffer_replace_w_bline_and_end
     buffer_get_offset(self->bline->buffer, self->bline, self->col, &offset_a);
     buffer_get_offset(other->bline->buffer, other->bline, other->col, &offset_b);
     if (offset_a == offset_b) {
