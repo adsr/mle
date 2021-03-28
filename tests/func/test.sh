@@ -17,6 +17,12 @@ else
         $extra_opts \
         2>&1 >/dev/null
     );
+    exit_code=$?
+
+    if [ "$exit_code" -ne 0 ]; then
+        echo -e "  \x1b[31mERR \x1b[0m nonzero_exit_code=$exit_code\n\n$actual"
+        exit 1
+    fi
 
     for testname in "${!expected[@]}"; do
         expected_re="${expected[$testname]}"

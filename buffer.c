@@ -1239,6 +1239,7 @@ static int _buffer_undo(buffer_t *self, int by_group) {
         // Undo next action in same group or break
         if (group_to_undo
             && action_to_undo->prev
+            && action_to_undo->prev != action_to_undo
             && action_to_undo->prev->action_group == *group_to_undo
         ) {
             action_to_undo = action_to_undo->prev;
@@ -1284,6 +1285,7 @@ static int _buffer_redo(buffer_t *self, int by_group) {
         // Redo next action in same group or break
         if (group_to_redo
             && action_to_redo->next
+            && action_to_redo->next != action_to_redo
             && action_to_redo->next->action_group == *group_to_redo
         ) {
             action_to_redo = action_to_redo->next;
