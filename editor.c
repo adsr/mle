@@ -998,7 +998,10 @@ int editor_force_redraw(editor_t *editor) {
     h = tb_height();
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {
-            tb_change_cell(x, y, 160, 0, 0);
+            // This used to use char 160 (non-breaking space) but that seems to
+            // leave artifacts on my setup at least. I forget why I didn't use a
+            // normal space to begin with.
+            tb_change_cell(x, y, ' ', 0, 0);
         }
     }
     tb_present();
