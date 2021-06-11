@@ -280,14 +280,14 @@ int cmd_move_relative(cmd_context_t *ctx) {
 
 // Move one word forward
 int cmd_move_word_forward(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re_nudge, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re_nudge, ctx->editor->re_word_forward, strlen(ctx->editor->re_word_forward));
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move one word back
 int cmd_move_word_back(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, ctx->editor->re_word_back, strlen(ctx->editor->re_word_back));
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
@@ -322,7 +322,7 @@ int cmd_delete_word_before(cmd_context_t *ctx) {
     mark_t *tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_clone(cursor->mark, &tmark);
-        mark_move_prev_re(tmark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+        mark_move_prev_re(tmark, ctx->editor->re_word_back, strlen(ctx->editor->re_word_back));
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
     );
@@ -334,7 +334,7 @@ int cmd_delete_word_after(cmd_context_t *ctx) {
     mark_t *tmark;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_clone(cursor->mark, &tmark);
-        mark_move_next_re(tmark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+        mark_move_next_re(tmark, ctx->editor->re_word_forward, strlen(ctx->editor->re_word_forward));
         mark_delete_between_mark(cursor->mark, tmark);
         mark_destroy(tmark);
     );

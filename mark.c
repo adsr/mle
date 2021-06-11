@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
+#include <wctype.h>
 #include <pcre.h>
 #include "mlbuf.h"
 
@@ -578,16 +578,16 @@ int mark_is_at_word_bound(mark_t *self, int side) {
     after  = self->col < self->bline->char_count ? self->bline->chars[self->col].ch : 0;
     if (side <= -1 || side == 0) {
         // If before is bol or non-word, and after is word
-        if ((before == 0 || !(isalnum(before) || before == '_'))
-            && (isalnum(after) || after == '_')
+        if ((before == 0 || !(iswalnum(before) || before == '_'))
+            && (iswalnum(after) || after == '_')
         ) {
             return 1;
         }
     }
     if (side >= 1 || side == 0) {
         // If after is eol or non-word, and before is word
-        if ((after == 0 || !(isalnum(after) || after == '_'))
-            && (isalnum(before) || before == '_')
+        if ((after == 0 || !(iswalnum(after) || after == '_'))
+            && (iswalnum(before) || before == '_')
         ) {
             return 1;
         }

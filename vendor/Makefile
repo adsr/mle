@@ -7,7 +7,7 @@ uthash/src/utlist.h:
 	command -v git && git submodule update --init
 
 pcre/.libs/libpcre.a:
-	cd pcre && ./autogen.sh && ./configure && $(MAKE)
+	cd pcre && ./autogen.sh && ./configure --enable-utf --enable-unicode-properties && $(MAKE)
 
 lua/liblua5.3.a: $(lua_objects)
 	$(AR) rcs $@ $(lua_objects)

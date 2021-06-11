@@ -92,6 +92,8 @@ int editor_init(editor_t *editor, int argc, char **argv) {
         editor->color_col = -1;
         editor->exit_code = EXIT_SUCCESS;
         editor->headless_mode = isatty(STDIN_FILENO) == 0 ? 1 : 0;
+        editor->re_word_forward = strdup(MLE_DEFAULT_RE_WORD_FORWARD);
+        editor->re_word_back = strdup(MLE_DEFAULT_RE_WORD_BACK);
         _editor_set_macro_toggle_key(editor, MLE_DEFAULT_MACRO_TOGGLE_KEY);
 
         // Init signal handlers
@@ -219,6 +221,8 @@ int editor_deinit(editor_t *editor) {
     if (editor->cut_buffer) free(editor->cut_buffer);
     if (editor->ttyfd) close(editor->ttyfd);
     if (editor->startup_macro_name) free(editor->startup_macro_name);
+    if (editor->re_word_forward) free(editor->re_word_forward);
+    if (editor->re_word_back) free(editor->re_word_back);
     return MLE_OK;
 }
 
@@ -2097,7 +2101,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 1;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:u:vw:x:y:z:Q:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:o:O:p:S:s:t:u:vw:x:y:z:Q:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -2114,6 +2118,8 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 printf("    -M <macro>   Add a macro\n");
                 printf("    -m <key>     Set macro toggle key (default: %s)\n", MLE_DEFAULT_MACRO_TOGGLE_KEY);
                 printf("    -N           Skip reading of rc file\n");
+                printf("    -o <pcre>    Set word-forward regex (PCRE) (default: %s)\n", MLE_DEFAULT_RE_WORD_FORWARD);
+                printf("    -O <pcre>    Set word-back regex (PCRE) (default: %s)\n", MLE_DEFAULT_RE_WORD_BACK);
                 printf("    -n <kmap>    Set init kmap (default: mle_normal)\n");
                 printf("    -p <macro>   Set startup macro\n");
                 printf("    -S <syndef>  Make a syntax definition (use with -s)\n");
@@ -2192,6 +2198,14 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
             case 'n':
                 if (editor->kmap_init_name) free(editor->kmap_init_name);
                 editor->kmap_init_name = strdup(optarg);
+                break;
+            case 'o':
+                if (editor->re_word_forward) free(editor->re_word_forward);
+                editor->re_word_forward = strdup(optarg);
+                break;
+            case 'O':
+                if (editor->re_word_back) free(editor->re_word_back);
+                editor->re_word_back = strdup(optarg);
                 break;
             case 'p':
                 if (editor->startup_macro_name) free(editor->startup_macro_name);

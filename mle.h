@@ -113,6 +113,8 @@ struct editor_s {
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     int headless_mode;
+    char *re_word_forward;
+    char *re_word_back;
     loop_context_t *loop_ctx;
     int loop_depth;
     int is_in_init;
@@ -675,8 +677,8 @@ extern editor_t _editor;
 
 #define MLE_BRACKET_PAIR_MAX_SEARCH 10000
 
-#define MLE_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
-#define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
+#define MLE_DEFAULT_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
+#define MLE_DEFAULT_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
 /*
 TODO PRIORITY

@@ -1,5 +1,5 @@
 #include <string.h>
-#include <ctype.h>
+#include <wctype.h>
 #include "mle.h"
 
 // Clone cursor
@@ -145,17 +145,21 @@ int cursor_select_by_bracket(cursor_t *cursor, int use_srules) {
 
 // Select by word-back
 int cursor_select_by_word_back(cursor_t *cursor, int use_srules) {
+    editor_t *editor;
     if (mark_is_at_word_bound(cursor->mark, -1)) return MLE_ERR;
     cursor_toggle_anchor(cursor, use_srules);
-    mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+    editor = cursor->bview->editor;
+    mark_move_prev_re(cursor->mark, editor->re_word_back, strlen(editor->re_word_back));
     return MLE_OK;
 }
 
 // Select by word-forward
 int cursor_select_by_word_forward(cursor_t *cursor, int use_srules) {
+    editor_t *editor;
     if (mark_is_at_word_bound(cursor->mark, 1)) return MLE_ERR;
     cursor_toggle_anchor(cursor, use_srules);
-    mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+    editor = cursor->bview->editor;
+    mark_move_next_re(cursor->mark, editor->re_word_forward, strlen(editor->re_word_forward));
     return MLE_OK;
 }
 
@@ -192,14 +196,16 @@ int cursor_select_by_string(cursor_t *cursor, int use_srules) {
 // Select by word
 int cursor_select_by_word(cursor_t *cursor, int use_srules) {
     uint32_t after;
+    editor_t *editor;
     if (mark_is_at_eol(cursor->mark)) return MLE_ERR;
     mark_get_char_after(cursor->mark, &after);
-    if (!isalnum((char)after) && (char)after != '_') return MLE_ERR;
+    if (!iswalnum((char)after) && (char)after != '_') return MLE_ERR;
+    editor = cursor->bview->editor;
     if (!mark_is_at_word_bound(cursor->mark, -1)) {
-        mark_move_prev_re(cursor->mark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+        mark_move_prev_re(cursor->mark, editor->re_word_back, strlen(editor->re_word_back));
     }
     cursor_toggle_anchor(cursor, use_srules);
-    mark_move_next_re(cursor->mark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+    mark_move_next_re(cursor->mark, editor->re_word_forward, strlen(editor->re_word_forward));
     return MLE_OK;
 }
 
