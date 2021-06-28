@@ -66,8 +66,6 @@ You can also run plain `make` to link against system libraries instead of
     libpcre3-dev
     libtermbox-dev
 
-### Installing
-
 To install to `/usr/local/bin`:
 
     $ make install
@@ -76,13 +74,25 @@ To install to a custom directory, supply `prefix`, e.g.:
 
     $ make install prefix=/usr # /usr/bin/mle
 
+### Installing from a repo
+
+mle may be available to install via your system's package manager.
+
+    # snap install mle  # all major Linux distros
+    # apt install mle   # Ubuntu and Debian-based distros
+    # pkg install mle   # FreeBSD
+    # yay -S mle        # Arch (via AUR)
+    # nix-env -i mle    # NixOS (via nixpkgs)
+    # apk add mle       # Alpine
+    # xbps-install mle  # Void
+
 ### Basic usage
 
-    $ mle             # Open blank buffer
-    $ mle one.c       # Edit one.c
-    $ mle one.c:100   # Edit one.c at line 100
-    $ mle one.c two.c # Edit one.c and two.c
-    $ mle -h          # Show command line help
+    $ mle               # Open blank buffer
+    $ mle one.c         # Edit one.c
+    $ mle one.c:100     # Edit one.c at line 100
+    $ mle one.c two.c   # Edit one.c and two.c
+    $ mle -h            # Show command line help
 
 The default key bindings are intuitive. Input text as normal, use directional
 keys to move around, use `Ctrl-S` to save, `Ctrl-O` to open, `Ctrl-X` to exit.
