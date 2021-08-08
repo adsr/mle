@@ -679,41 +679,36 @@ extern editor_t _editor;
 #define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
 /*
-TODO PRIORITY
-[ ] catch ENOSPC
-[ ] cleanup lua api, e.g., multi-retval
-[ ] reduce compiler warnings
-[ ] add cmd_tabulate
-[ ] add `_free_` hint to (opt)ret vars that need to be freed
-[ ] finish uscript callbacks
-[ ] add some sort of syntax checking via hooks
-[ ] add ## param to page_up/down (by half/third etc)
+TODO major changes
+[ ] delete lua api
+[ ] upgrade to pcre2
+[ ] upgrade to termbox2 and add support for ctrl-alt-shift
+[ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks)
+[ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
+[ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
+[ ] rewrite buffer_set_mmapped to avoid huge mallocs
+TODO bugfixes
+[ ] review error checking, esp catch ENOSPC, malloc fail
+[ ] review compiler warnings
 [ ] fix alt/ctrl-enter in prompt inserts newline
-[ ] replace mark_set_pcre_capture with mark local
 [ ] fix invalid cli switch should exit(1)
-[ ] use editor prompt history when bview prompt history is empty
-TODO BACKLOG
-[ ] improve isearch kmap (next/prev history)
-[ ] add option to undo bactions in same loop# as a group
-[ ] add buffer_repeat
+TODO new features/improvements
 [ ] add block select/move
-[ ] investigate crash when M-e cat'ing huge files
+[ ] add cmd_tabulate
+[ ] add ## param to page_up/down (by half/third etc)
+[ ] replace mark_set_pcre_capture with mark local
+[ ] use editor prompt history when bview prompt history is empty
+[ ] improve isearch kmap (next/prev history)
 [ ] add mark stack (push, move around, pop to go back)
 [ ] add last cmd status indicator
+[ ] add option to display key inputs for demos
 [ ] check if buffer exists by inode instead of path
-[ ] review default key bindings
+[ ] move single-use macros out of mle.h
 [ ] review use of multi_cursor_code
 [ ] review use of MLE_RETURN_ERR
-[ ] move single-use macros out of mle.h
-TODO REWRITE
-[ ] rewrite kmap, trie code is hard to read, ** and ## is not elegant, do not use kinput as hash key
-[ ] rewrite hili code (use_srules sucks; overlapping multi rules bug; test_buffer_srule_overlap.c.todo)
-[ ] rewrite aproc and menu code
-[ ] rewrite buffer_set_mmapped to avoid huge mallocs
 TODO MAYBE
 [ ] ?allow uscripts to preempt control, use shared uscriptfd
 [ ] ?add vim emulation mode
-[ ] ?add refcounting to prevent uscripts from segfaulting
 [ ] ?make colors, status line, layout configurable
 [ ] ?add multi-level undo/redo
 [ ] ?add simple mouse support
