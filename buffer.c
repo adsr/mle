@@ -1199,8 +1199,9 @@ static int _buffer_update(buffer_t *self, baction_t *action) {
 
 static int _buffer_undo(buffer_t *self, int by_group) {
     baction_t *action_to_undo;
+    baction_t *first_action;
     bline_t *bline;
-    int *group_to_undo;
+    int group_to_undo;
 
     // Find action to undo
     if (self->action_undone) {
@@ -1215,9 +1216,10 @@ static int _buffer_undo(buffer_t *self, int by_group) {
     } else {
         return MLBUF_ERR;
     }
+    first_action = action_to_undo;
 
-    // Set action group
-    group_to_undo = by_group ? &action_to_undo->action_group : NULL;
+    // Remember action group for coarse undo (by_group)
+    group_to_undo = action_to_undo->action_group;
 
     while (1) {
         // Get line to perform undo on
@@ -1236,11 +1238,11 @@ static int _buffer_undo(buffer_t *self, int by_group) {
         }
         self->action_undone = action_to_undo;
 
-        // Undo next action in same group or break
-        if (group_to_undo
+        // If by_group, undo next action in same group or break
+        if (by_group
             && action_to_undo->prev
-            && action_to_undo->prev != action_to_undo
-            && action_to_undo->prev->action_group == *group_to_undo
+            && action_to_undo->prev != first_action
+            && action_to_undo->prev->action_group == group_to_undo
         ) {
             action_to_undo = action_to_undo->prev;
         } else {
