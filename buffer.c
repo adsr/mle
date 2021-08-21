@@ -718,14 +718,14 @@ int buffer_get_bline_w_hint(buffer_t *self, bint_t line_index, bline_t *opt_hint
                 found = fwd;
                 break;
             }
-            fwd = fwd->next;
+            fwd = fwd != fwd->next ? fwd->next : NULL;
         }
         if (rev) {
             if (rev->line_index == line_index) {
                 found = rev;
                 break;
             }
-            rev = rev->prev;
+            rev = rev != rev->prev ? rev->prev : NULL;
         }
     }
 
