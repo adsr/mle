@@ -2234,7 +2234,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 }
                 break;
             case 'y':
-                editor->syntax_override = optarg;
+                editor->syntax_override = strcmp(optarg, "-") == 0 ? "syn_generic" : optarg;
                 break;
             case 'z':
                 editor->trim_paste = atoi(optarg) ? 1 : 0;
