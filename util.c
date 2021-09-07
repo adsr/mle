@@ -377,21 +377,7 @@ void util_expand_tilde(char *path, int path_len, char **ret_path, int *optret_pa
 }
 
 // Adapted from termbox src/demo/keyboard.c
-int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str) {
-    uint32_t uni;
-    int c;
-    c = 0;
-    while (*str) {
-        str += utf8_char_to_unicode(&uni, str, NULL);
-        tb_change_cell(x, y, uni, fg, bg);
-        x++;
-        c++;
-    }
-    return c;
-}
-
-// Adapted from termbox src/demo/keyboard.c
-int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...) {
+int tb_printf_rect(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...) {
     char buf[4096];
     va_list vl;
     va_start(vl, fmt);

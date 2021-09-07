@@ -3,11 +3,11 @@
 
 #include <stdint.h>
 #include <limits.h>
-#include <termbox.h>
 #include <uthash.h>
 #include <lua5.3/lua.h>
 #include <lua5.3/lualib.h>
 #include <lua5.3/lauxlib.h>
+#include "termbox2.h"
 #include "mlbuf.h"
 
 // Typedefs
@@ -578,8 +578,7 @@ int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *
 int util_timeval_is_gt(struct timeval *a, struct timeval *b);
 char *util_escape_shell_arg(char *str, int l);
 void util_expand_tilde(char *path, int path_len, char **ret_path, int *ret_path_len);
-int tb_print(int x, int y, uint16_t fg, uint16_t bg, char *str);
-int tb_printf(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
+int tb_printf_rect(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 void str_append_stop(str_t *str, char *data, char *data_stop);
 void str_append(str_t *str, char *data);
@@ -593,7 +592,7 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "1.4.4-dev"
+#define MLE_VERSION "1.5.0-dev"
 
 #define MLE_OK 0
 #define MLE_ERR 1
@@ -678,11 +677,19 @@ extern editor_t _editor;
 #define MLE_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
 #define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
+// TODO rename these inline
+#define tb_change_cell          tb_set_cell
+#define tb_put_cell(x, y, c)    tb_set_cell((x), (y), (c)
+#define tb_set_clear_attributes tb_set_clear_attrs
+#define tb_select_input_mode    tb_set_input_mode
+#define tb_select_output_mode   tb_set_output_mode
+
 /*
 TODO major changes
 [ ] delete lua api
 [ ] upgrade to pcre2
 [ ] upgrade to termbox2 and add support for ctrl-alt-shift
+[ ] make unit tests compile as 1 binary to avoid heft
 [ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks)
 [ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)

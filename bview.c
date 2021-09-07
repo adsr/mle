@@ -797,7 +797,7 @@ static void _bview_draw_status(bview_t *self) {
 
     // Prompt
     if (active == editor->prompt) {
-        tb_printf(editor->rect_status, 0, 0, TB_GREEN | TB_BOLD, TB_BLACK, "%-*.*s", editor->rect_status.w, editor->rect_status.w, self->editor->prompt->prompt_str);
+        tb_printf_rect(editor->rect_status, 0, 0, TB_GREEN | TB_BOLD, TB_BLACK, "%-*.*s", editor->rect_status.w, editor->rect_status.w, self->editor->prompt->prompt_str);
         goto _bview_draw_status_end;
     }
 
@@ -880,7 +880,7 @@ static void _bview_draw_status(bview_t *self) {
 
     // Render status line
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
-    tb_printf(editor->rect_status, 0, 0, 0, 0, "%*.*s", editor->rect_status.w, editor->rect_status.w, " ");
+    tb_printf_rect(editor->rect_status, 0, 0, 0, 0, "%*.*s", editor->rect_status.w, editor->rect_status.w, " ");
     tb_printf_attr(editor->rect_status, 0, 0,
         "@%d,%d;%s@%d,%d;"                                // mle_normal    mode
         "[@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;]  " // [....]        need_input,anchor,macro,async
@@ -908,11 +908,11 @@ static void _bview_draw_status(bview_t *self) {
 _bview_draw_status_end:
     if (editor->errstr[0] != '\0') {
         int errstrlen = strlen(editor->errstr) + 5; // Add 5 for "err! "
-        tb_printf(editor->rect_status, editor->rect_status.w - errstrlen, 0, TB_WHITE | TB_BOLD, TB_RED, "err! %s", editor->errstr);
+        tb_printf_rect(editor->rect_status, editor->rect_status.w - errstrlen, 0, TB_WHITE | TB_BOLD, TB_RED, "err! %s", editor->errstr);
         editor->errstr[0] = '\0'; // Clear errstr
     } else if (editor->infostr[0] != '\0') {
         int infostrlen = strlen(editor->infostr);
-        tb_printf(editor->rect_status, editor->rect_status.w - infostrlen, 0, TB_WHITE, 0, "%s", editor->infostr);
+        tb_printf_rect(editor->rect_status, editor->rect_status.w - infostrlen, 0, TB_WHITE, 0, "%s", editor->infostr);
         editor->infostr[0] = '\0'; // Clear errstr
     }
 }
@@ -961,13 +961,13 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
     // Render caption
     fg_attr = self->editor->active_edit == self ? TB_BOLD : 0;
     bg_attr = self->editor->active_edit == self ? TB_BLUE : 0;
-    tb_printf(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.*s", self->rect_caption.w, self->rect_caption.w, " ");
+    tb_printf_rect(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.*s", self->rect_caption.w, self->rect_caption.w, " ");
     if (self->buffer->path) {
-        tb_printf(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.s%s %c",
+        tb_printf_rect(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.s%s %c",
             self->linenum_width, " ",
             self->buffer->path, self->buffer->is_unsaved ? '*' : ' ');
     } else {
-        tb_printf(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.s<buffer-%p> %c",
+        tb_printf_rect(self->rect_caption, 0, 0, fg_attr, bg_attr, "%*.s<buffer-%p> %c",
             self->linenum_width, " ",
             self->buffer, self->buffer->is_unsaved ? '*' : ' ');
     }
@@ -977,10 +977,10 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
     for (rect_y = 0; rect_y < self->rect_buffer.h; rect_y++) {
         if (self->viewport_y + rect_y < 0 || self->viewport_y + rect_y >= self->buffer->line_count || !bline) { // "|| !bline" See TODOs below
             // Draw pre/post blank
-            tb_printf(self->rect_lines, 0, rect_y, 0, 0, "%*c", self->linenum_width, '~');
-            tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", ' ');
-            tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", ' ');
-            tb_printf(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, self->rect_buffer.w, " ");
+            tb_printf_rect(self->rect_lines, 0, rect_y, 0, 0, "%*c", self->linenum_width, '~');
+            tb_printf_rect(self->rect_margin_left, 0, rect_y, 0, 0, "%c", ' ');
+            tb_printf_rect(self->rect_margin_right, 0, rect_y, 0, 0, "%c", ' ');
+            tb_printf_rect(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, self->rect_buffer.w, " ");
         } else {
             // Draw bline at self->rect_buffer self->viewport_y + rect_y
             _bview_draw_bline(self, bline, rect_y, &bline, &rect_y);
@@ -1027,16 +1027,16 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
             || self->editor->linenum_type == MLE_LINENUM_TYPE_BOTH
             || (self->editor->linenum_type == MLE_LINENUM_TYPE_REL && is_cursor_line)
         ) {
-            tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->abs_linenum_width, (int)(bline->line_index + 1) % (int)pow(10, self->linenum_width));
+            tb_printf_rect(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->abs_linenum_width, (int)(bline->line_index + 1) % (int)pow(10, self->linenum_width));
             if (self->editor->linenum_type == MLE_LINENUM_TYPE_BOTH) {
-                tb_printf(self->rect_lines, self->abs_linenum_width, rect_y, linenum_fg, 0, " %*d", self->rel_linenum_width, (int)labs(bline->line_index - self->active_cursor->mark->bline->line_index));
+                tb_printf_rect(self->rect_lines, self->abs_linenum_width, rect_y, linenum_fg, 0, " %*d", self->rel_linenum_width, (int)labs(bline->line_index - self->active_cursor->mark->bline->line_index));
             }
         } else if (self->editor->linenum_type == MLE_LINENUM_TYPE_REL) {
-            tb_printf(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)labs(bline->line_index - self->active_cursor->mark->bline->line_index));
+            tb_printf_rect(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)labs(bline->line_index - self->active_cursor->mark->bline->line_index));
         }
-        tb_printf(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
+        tb_printf_rect(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
         if (!is_soft_wrap && bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w) {
-            tb_printf(self->rect_margin_right, 0, rect_y, 0, 0, "%c", '$');
+            tb_printf_rect(self->rect_margin_right, 0, rect_y, 0, 0, "%c", '$');
         }
     }
 
@@ -1088,7 +1088,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
                 }
                 // Draw ellipsis for line num to indicate soft wrap
                 for (j = 0; j < self->linenum_width; j++) {
-                    tb_printf(self->rect_lines, j, rect_y, 0, 0, "%c", '.');
+                    tb_printf_rect(self->rect_lines, j, rect_y, 0, 0, "%c", '.');
                 }
             } else {
                 // We are off-screen and soft-wrap is not enabled or there is not

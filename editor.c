@@ -1,9 +1,11 @@
 #include <unistd.h>
 #include <signal.h>
-#include <termbox.h>
 #include <uthash.h>
 #include <utlist.h>
 #include <inttypes.h>
+#define TB_IMPL
+#include "termbox2.h"
+#undef TB_IMPL
 #include "mle.h"
 #include "mlbuf.h"
 
@@ -1100,9 +1102,9 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
     // Poll for event
     while (1) {
         rc = tb_poll_event(&ev);
-        if (rc == -1) {
+        if (rc != TB_OK) {
             continue; // Error
-        } else if (rc == TB_EVENT_RESIZE) {
+        } else if (ev.type == TB_EVENT_RESIZE) {
             // Resize
             _editor_resize(editor, ev.w, ev.h);
             editor_display(editor);
@@ -1134,11 +1136,9 @@ static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
 
         // Peek event
         rc = tb_peek_event(&ev, 0);
-        if (rc == -1) {
+        if (rc != TB_OK) {
             break; // Error
-        } else if (rc == 0) {
-            break; // Timeout
-        } else if (rc == TB_EVENT_RESIZE) {
+        } else if (ev.type == TB_EVENT_RESIZE) {
             // Resize
             _editor_resize(editor, ev.w, ev.h);
             editor_display(editor);

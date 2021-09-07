@@ -64,7 +64,6 @@ You can also run plain `make` to link against system libraries instead of
     uthash-dev
     liblua5.3-dev
     libpcre3-dev
-    libtermbox-dev
 
 To install to `/usr/local/bin`:
 
@@ -183,5 +182,5 @@ That work is on pause.
 mle makes extensive use of the following libraries.
 
 * [uthash](https://troydhanson.github.io/uthash) for hash maps and linked lists
-* [termbox](https://github.com/termbox/termbox) for TUI
+* [termbox2](https://github.com/termbox/termbox2) for TUI
 * [PCRE](http://www.pcre.org/) for syntax highlighting and search

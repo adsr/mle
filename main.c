@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <unistd.h>
-#include <termbox.h>
 #include <uthash.h>
+#include "termbox2.h"
 #include "mlbuf.h"
 #include "mle.h"
 
