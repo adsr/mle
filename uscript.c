@@ -41,7 +41,6 @@ static int _uscript_func_buffer_set_callback(lua_State *L);
 static int _uscript_func_buffer_add_srule(lua_State *L);
 static int _uscript_func_buffer_remove_srule(lua_State *L);
 static int _uscript_func_buffer_write_to_file(lua_State *L);
-static int _uscript_func_editor_input_to_key(lua_State *L);
 static void *luaL_checkpointer(lua_State *L, int arg);
 static void *luaL_optpointer(lua_State *L, int arg, void *def);
 static void lua_pushpointer(lua_State *L, void *ptr);
@@ -178,8 +177,6 @@ static void _uscript_push_event_map(uscript_t *uscript, char *event_name, void *
 }
 
 static void _uscript_push_cmd_map(lua_State *L, cmd_context_t *ctx) {
-    char input_str[16];
-    editor_input_to_key(ctx->editor, &ctx->input, input_str);
     lua_createtable(L, 0, 1);
     luaL_pushkey(L, pointer, "editor",       (void*)ctx->editor);
     luaL_pushkey(L, pointer, "loop_ctx",     (void*)ctx->loop_ctx);
@@ -189,7 +186,6 @@ static void _uscript_push_cmd_map(lua_State *L, cmd_context_t *ctx) {
     luaL_pushkey(L, pointer, "cursor",       (void*)ctx->cursor);
     luaL_pushkey(L, pointer, "mark",         (void*)ctx->cursor->mark);
     luaL_pushkey(L, string,  "static_param", (const char*)ctx->static_param);
-    luaL_pushkey(L, string,  "input",        (const char*)input_str);
 }
 
 static void _uscript_push_baction_map(lua_State *L, baction_t *baction) {
@@ -373,13 +369,6 @@ static int _uscript_func_buffer_remove_srule(lua_State *L) {
 
 // foreign static int _uscript_func_buffer_write_to_file(x, y, z)
 static int _uscript_func_buffer_write_to_file(lua_State *L) {
-    // TODO
-    (void)L;
-    return 0;
-}
-
-// foreign static int _uscript_func_editor_input_to_key(x, y, z)
-static int _uscript_func_editor_input_to_key(lua_State *L) {
     // TODO
     (void)L;
     return 0;

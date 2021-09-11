@@ -3,10 +3,10 @@
 on_exit() { [ -n "$lua_script" ] && rm -f $lua_script; }
 trap on_exit EXIT
 lua_script=$(mktemp 'mle.test_lua.XXXXXXXXXX')
-extra_opts="-x $lua_script -K lua_kmap,,1 -k cmd_lua_test,F11, -k cmd_quit_without_saving,F12, -n lua_kmap"
+extra_opts="-x $lua_script -K lua_kmap,,1 -k cmd_lua_test,f11, -k cmd_quit_without_saving,f12, -n lua_kmap"
 
 # mle.mark_insert_before
-macro='F11'
+macro='f11'
 cat >$lua_script <<"EOD"
 mle.editor_register_cmd("cmd_lua_test", function (ctx)
     mle.mark_insert_before(ctx["mark"], "hello from lua\n", 15)
@@ -18,7 +18,7 @@ source 'test.sh'
 
 
 # mle.editor_open_bview
-macro='F11'
+macro='f11'
 cat >$lua_script <<"EOD"
 mle.editor_register_cmd("cmd_lua_test", function (ctx)
     print "hi1"
@@ -33,7 +33,7 @@ expected[open_bview_count]='^bview_count=2$'
 source 'test.sh'
 
 # mle.editor_prompt
-macro='F11 t e s t enter . . . F11 C-c'
+macro='f11 t e s t enter . . . f11 C-c'
 cat >$lua_script <<"EOD"
 mle.editor_register_cmd("cmd_lua_test", function (ctx)
     rv = mle.editor_prompt(ctx["editor"], "input?")
@@ -50,7 +50,7 @@ expected[prompt_data]='^hello test from lua...you hit ctrl-c$'
 source 'test.sh'
 
 # mle.editor_register_observer
-macro='F11'
+macro='f11'
 cat >$lua_script <<"EOD"
 mle.editor_register_cmd("cmd_lua_test", function (ctx)
     print "ell"
@@ -67,7 +67,7 @@ expected[observer_data]='^hello$'
 source 'test.sh'
 
 # mle.editor_register_observer
-macro='F11 h i enter M-e s e q space 1 space 5 | p a s t e space - s d , space - enter backspace backspace'
+macro='f11 h i enter M-e s e q space 1 space 5 | p a s t e space - s d , space - enter backspace backspace'
 cat >$lua_script <<"EOD"
 mark = nil
 in_callback = false

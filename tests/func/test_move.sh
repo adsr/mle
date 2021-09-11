@@ -59,7 +59,7 @@ expected[word_cursor_col]='^bview.0.cursor.0.mark.col=12$'
 source 'test.sh'
 
 # cmd_move_(bracket_forward|bracket_back)
-macro='t e s t space { space { space { M-[ M-[ M-[ M-]'
+macro='t e s t space { space { space { M-left M-left M-left M-right'
 declare -A expected
 expected[bracket_cursor_col]='^bview.0.cursor.0.mark.col=7$'
 source 'test.sh'

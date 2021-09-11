@@ -419,7 +419,6 @@ int editor_destroy_observer(editor_t *editor, observer_t *observer);
 int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *ctx);
 int editor_display(editor_t *editor);
 int editor_debug_dump(editor_t *editor, FILE *fp);
-int editor_input_to_key(editor_t *editor, kinput_t *input, char *keybuf);
 int editor_force_redraw(editor_t *editor);
 
 // bview functions

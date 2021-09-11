@@ -1412,9 +1412,6 @@ static int _uscript_func_editor_force_redraw(lua_State *L) {
 // static int _uscript_func_editor_get_input(lua_State *L) {
 // }
 
-// static int _uscript_func_editor_input_to_key(lua_State *L) {
-// }
-
 // static int _uscript_func_editor_menu(lua_State *L) {
 // }
 
@@ -2644,7 +2641,6 @@ static const struct luaL_Reg mle_lib[] = {
     { "editor_display", _uscript_func_editor_display },
     { "editor_force_redraw", _uscript_func_editor_force_redraw },
     { "editor_get_input", _uscript_func_editor_get_input },
-    { "editor_input_to_key", _uscript_func_editor_input_to_key },
     { "editor_menu", _uscript_func_editor_menu },
     { "editor_notify_observers", _uscript_func_editor_notify_observers },
     { "editor_open_bview", _uscript_func_editor_open_bview },
