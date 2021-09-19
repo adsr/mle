@@ -7,7 +7,7 @@ fi
 
 $MLE -v
 
-for t in $(find . -mindepth 2 -type f); do
+for t in $(find . -mindepth 2 -type f -name 'test_*'); do
     [ -x "$t" ] || continue
     tshort=$(basename $t)
     tdir=$(dirname $t)
