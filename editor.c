@@ -3,6 +3,7 @@
 #include <uthash.h>
 #include <utlist.h>
 #include <inttypes.h>
+#include <fnmatch.h>
 #define TB_IMPL
 #include "termbox2.h"
 #undef TB_IMPL
@@ -37,6 +38,7 @@ static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *ctx);
 static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before);
 static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input);
 static void _editor_resize(editor_t *editor, int w, int h);
+static void _editor_maybe_lift_temp_anchors(cmd_context_t *ctx);
 static void _editor_draw_cursors(editor_t *editor, bview_t *bview);
 static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx);
 static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx);
@@ -536,10 +538,10 @@ int editor_display(editor_t *editor) {
 }
 
 // Register a cmd observer
-int editor_register_observer(editor_t *editor, char *event_name, void *udata, observer_func_t fn_callback, observer_t **optret_observer) {
+int editor_register_observer(editor_t *editor, char *event_patt, void *udata, observer_func_t fn_callback, observer_t **optret_observer) {
     observer_t *observer;
     observer = calloc(1, sizeof(observer_t));
-    observer->event_name = strdup(event_name);
+    observer->event_patt = strdup(event_patt);
     observer->callback = fn_callback;
     observer->udata = udata;
     DL_APPEND(editor->observers, observer);
@@ -550,7 +552,7 @@ int editor_register_observer(editor_t *editor, char *event_name, void *udata, ob
 // Register a cmd observer
 int editor_destroy_observer(editor_t *editor, observer_t *observer) {
     DL_DELETE(editor->observers, observer);
-    free(observer->event_name);
+    free(observer->event_patt);
     free(observer);
     return MLE_OK;
 }
@@ -905,9 +907,14 @@ static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
             // Notify cmd:*:before observers
             _editor_notify_cmd_observers(&cmd_ctx, 1);
 
-            // Execute cmd
+            // Refresh cmd ctx if observers changed anything
             _editor_refresh_cmd_context(editor, &cmd_ctx);
+
+            // Execute cmd
             cmd_ctx.cmd->func(&cmd_ctx);
+
+            // Lift any temp anchors
+            _editor_maybe_lift_temp_anchors(&cmd_ctx);
 
             // Notify cmd:*:after observers
             _editor_notify_cmd_observers(&cmd_ctx, 0);
@@ -955,9 +962,8 @@ static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before) {
 // Notify observers
 int editor_notify_observers(editor_t *editor, char *event_name, void *event_data) {
     observer_t *observer;
-    // TODO implement as hash lookup
     DL_FOREACH(editor->observers, observer) {
-        if (strcmp(event_name, observer->event_name) == 0) {
+        if (fnmatch(observer->event_patt, event_name, 0) == 0) {
             (observer->callback)(event_name, event_data, observer->udata);
         }
     }
@@ -1049,6 +1055,23 @@ static void _editor_resize(editor_t *editor, int w, int h) {
             bounds = &editor->rect_edit;
         }
         bview_resize(bview, bounds->x, bounds->y, bounds->w, bounds->h);
+    }
+}
+
+// Lift temporary anchors on cursor if not running cmd_move_temp_anchor
+static void _editor_maybe_lift_temp_anchors(cmd_context_t *ctx) {
+    cursor_t *cursor;
+    if (ctx->cmd->func == cmd_move_temp_anchor) {
+        return;
+    }
+    _editor_refresh_cmd_context(ctx->editor, ctx);
+    if (!ctx->cursor || !ctx->cursor->bview || !ctx->cursor->bview->active_cursor) {
+        return;
+    }
+    DL_FOREACH(ctx->cursor->bview->cursors, cursor) {
+        if (!cursor->is_asleep && cursor->is_temp_anchored) {
+            cursor_toggle_anchor(cursor, 1);
+        }
     }
 }
 
@@ -1454,6 +1477,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_move_up", cmd_move_up);
     _editor_register_cmd_fn(editor, "cmd_move_word_back", cmd_move_word_back);
     _editor_register_cmd_fn(editor, "cmd_move_word_forward", cmd_move_word_forward);
+    _editor_register_cmd_fn(editor, "cmd_move_temp_anchor", cmd_move_temp_anchor);
     _editor_register_cmd_fn(editor, "cmd_next", cmd_next);
     _editor_register_cmd_fn(editor, "cmd_open_file", cmd_open_file);
     _editor_register_cmd_fn(editor, "cmd_open_new", cmd_open_new);
@@ -1540,6 +1564,16 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_move_bracket_forward", "M-right"),
         MLE_KBINDING_DEF("cmd_move_bracket_back", "M-left"),
         MLE_KBINDING_DEF("cmd_move_bracket_toggle", "M-="),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-up", "up"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-down", "down"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-left", "left"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-right", "right"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-home", "bol"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-end", "eol"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-pgup", "page_up"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "S-pgdn", "page_down"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "CS-right", "word_forward"),
+        MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "CS-left", "word_back"),
         MLE_KBINDING_DEF("cmd_search", "C-f"),
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),

@@ -226,6 +226,7 @@ struct cursor_s {
     mark_t *mark;
     mark_t *anchor;
     int is_anchored;
+    int is_temp_anchored;
     int is_asleep;
     srule_t *sel_rule;
     char *cut_buffer;
@@ -317,7 +318,7 @@ struct cmd_context_s {
 
 // observer_t
 struct observer_s {
-    char *event_name;
+    char *event_patt;
     observer_func_t callback;
     void *udata;
     observer_t *next;
@@ -413,7 +414,7 @@ int editor_set_active(editor_t *editor, bview_t *bview);
 int editor_bview_edit_count(editor_t *editor);
 int editor_count_bviews_by_buffer(editor_t *editor, buffer_t *buffer);
 int editor_register_cmd(editor_t *editor, cmd_t *cmd);
-int editor_register_observer(editor_t *editor, char *event_name, void *udata, observer_func_t fn_callback, observer_t **optret_observer);
+int editor_register_observer(editor_t *editor, char *event_patt, void *udata, observer_func_t fn_callback, observer_t **optret_observer);
 int editor_notify_observers(editor_t *editor, char *event_name, void *event_data);
 int editor_destroy_observer(editor_t *editor, observer_t *observer);
 int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *ctx);
@@ -512,6 +513,7 @@ int cmd_move_page_down(cmd_context_t *ctx);
 int cmd_move_page_up(cmd_context_t *ctx);
 int cmd_move_relative(cmd_context_t *ctx);
 int cmd_move_right(cmd_context_t *ctx);
+int cmd_move_temp_anchor(cmd_context_t *ctx);
 int cmd_move_to_line(cmd_context_t *ctx);
 int cmd_move_until_back(cmd_context_t *ctx);
 int cmd_move_until_forward(cmd_context_t *ctx);

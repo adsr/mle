@@ -888,6 +888,42 @@ int cmd_move_until_back(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Temporarily drop anchor and move (shift-arrow behavior in MS Notepad)
+int cmd_move_temp_anchor(cmd_context_t *ctx) {
+    cmd_func_t fn;
+    if (!ctx->static_param) {
+        return MLE_ERR;
+    }
+    if (strcmp(ctx->static_param, "up") == 0) {
+        fn = cmd_move_up;
+    } else if (strcmp(ctx->static_param, "down") == 0) {
+        fn = cmd_move_down;
+    } else if (strcmp(ctx->static_param, "left") == 0) {
+        fn = cmd_move_left;
+    } else if (strcmp(ctx->static_param, "right") == 0) {
+        fn = cmd_move_right;
+    } else if (strcmp(ctx->static_param, "bol") == 0) {
+        fn = cmd_move_bol;
+    } else if (strcmp(ctx->static_param, "eol") == 0) {
+        fn = cmd_move_eol;
+    } else if (strcmp(ctx->static_param, "page_up") == 0) {
+        fn = cmd_move_page_up;
+    } else if (strcmp(ctx->static_param, "page_down") == 0) {
+        fn = cmd_move_page_down;
+    } else if (strcmp(ctx->static_param, "word_forward") == 0) {
+        fn = cmd_move_word_forward;
+    } else if (strcmp(ctx->static_param, "word_back") == 0) {
+        fn = cmd_move_word_back;
+    } else {
+        return MLE_ERR;
+    }
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        cursor_drop_anchor(cursor, 1);
+        cursor->is_temp_anchored = 1;
+    );
+    return fn(ctx);
+}
+
 // Undo
 int cmd_undo(cmd_context_t *ctx) {
     if (ctx->editor->coarse_undo) {

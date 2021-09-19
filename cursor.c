@@ -34,7 +34,7 @@ int cursor_select_between(cursor_t *cursor, mark_t *a, mark_t *b, int use_srules
 
 // Toggle cursor anchor
 int cursor_toggle_anchor(cursor_t *cursor, int use_srules) {
-    if (!cursor->is_anchored) {
+    if (!cursor->is_anchored && !cursor->is_temp_anchored) {
         mark_clone(cursor->mark, &(cursor->anchor));
         if (use_srules) {
             cursor->sel_rule = srule_new_range(cursor->mark, cursor->anchor, 0, TB_REVERSE);
@@ -49,8 +49,17 @@ int cursor_toggle_anchor(cursor_t *cursor, int use_srules) {
         }
         mark_destroy(cursor->anchor);
         cursor->is_anchored = 0;
+        cursor->is_temp_anchored = 0;
     }
     return MLE_OK;
+}
+
+// Toggle cursor anchor
+int cursor_lift_temp_anchor(cursor_t *cursor) {
+    if (!cursor->is_temp_anchored) {
+        return MLE_OK;
+    }
+    return cursor_toggle_anchor(cursor, 1);
 }
 
 // Drop cursor anchor
