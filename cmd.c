@@ -6,7 +6,7 @@
 #include <inttypes.h>
 #include "mle.h"
 
-#define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do {\
+#define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do { \
     cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
@@ -14,7 +14,7 @@
     } \
 } while(0)
 
-#define MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(pcursor, pfn) do {\
+#define MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(pcursor, pfn) do { \
     cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
@@ -706,6 +706,7 @@ int cmd_blist(cmd_context_t *ctx) {
     char *path;
     int bview_count;
     str_t blist = {0};
+    int active_lineno;
 
     path_max = 1;
     CDL_FOREACH2(ctx->editor->all_bviews, bview, all_next) {
@@ -716,8 +717,10 @@ int cmd_blist(cmd_context_t *ctx) {
     }
 
     bview_count = 0;
+    active_lineno = -1;
     CDL_FOREACH2(ctx->editor->all_bviews, bview, all_next) {
         if (!MLE_BVIEW_IS_EDIT(bview)) continue;
+        if (bview == ctx->editor->active) active_lineno = bview_count;
         bview_count += 1;
         path = bview->buffer->path ? bview->buffer->path : bview->path;
         if (!path || strlen(path) < 1) path = "-";
@@ -736,8 +739,8 @@ int cmd_blist(cmd_context_t *ctx) {
     }
 
     editor_menu(ctx->editor, _cmd_menu_blist_cb, blist.data, blist.len, NULL, &menu);
-    mark_move_beginning(menu->active_cursor->mark);
-    bview_zero_viewport_y(menu);
+    if (active_lineno >= 0) mark_move_to(menu->active_cursor->mark, active_lineno, 0);
+    bview_set_viewport_y(menu, 0, 1);
 
     str_free(&blist);
     return MLE_OK;
