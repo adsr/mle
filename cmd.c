@@ -1260,6 +1260,7 @@ int cmd_show_help(cmd_context_t *ctx) {
         "    notes\n"
         "        C- means Ctrl\n"
         "        M- means Alt\n"
+        "        S- means Shift\n"
         "        cmd_x=(default) means unmatched input is handled by cmd_x\n"
         "        (allow_fallthru)=yes means unmatched input is handled by the parent kmap\n\n"
     );
