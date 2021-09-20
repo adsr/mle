@@ -689,8 +689,6 @@ extern editor_t _editor;
 TODO major changes
 [ ] delete lua api
 [ ] upgrade to pcre2
-[ ] upgrade to termbox2 and add support for ctrl-alt-shift
-[ ] make unit tests compile as 1 binary to avoid heft
 [ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks)
 [ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
