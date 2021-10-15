@@ -1212,7 +1212,7 @@ int cmd_less(cmd_context_t *ctx) {
         sh_fmt = "tmp_lesskey=$(mktemp -q /tmp/mle-less-XXXXXX);"
             "echo -e \"#command\\nq visual\\nQ visual\\n:q visual\\n:Q visual\\nZZ visual\\n#env\\n"
             "LESSEDIT=echo %%lt >%s; kill 0\" | lesskey -o $tmp_lesskey -- -;"
-            "less +%ld -j%ld -k $tmp_lesskey -SN %s;"
+            "less +%ld -j%ld -k $tmp_lesskey -S %s;"
             "rm -f $tmp_lesskey";
         asprintf(&sh, sh_fmt, tmp_linenum, ctx->cursor->mark->bline->line_index+1, screen_y+1, tmp_buf);
         tb_shutdown();
