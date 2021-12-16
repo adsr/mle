@@ -352,8 +352,8 @@ int cmd_toggle_anchor(cmd_context_t *ctx) {
 // Swap anchor with mark on cursors
 int cmd_swap_anchor(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (ctx->cursor->is_anchored) {
-            mark_swap_with_mark(ctx->cursor->mark, ctx->cursor->anchor);
+        if (cursor->is_anchored) {
+            mark_swap_with_mark(cursor->mark, cursor->anchor);
         }
     );
     return MLE_OK;
@@ -1127,9 +1127,9 @@ static int _cmd_indent(cmd_context_t *ctx, int outdent) {
     int use_tabs;
     use_tabs = ctx->bview->tab_to_space ? 0 : 1;
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        start = ctx->cursor->mark->bline;
-        if (ctx->cursor->is_anchored) {
-            end = ctx->cursor->anchor->bline;
+        start = cursor->mark->bline;
+        if (cursor->is_anchored) {
+            end = cursor->anchor->bline;
             if (start->line_index > end->line_index) {
                 cur = end;
                 end = start;
@@ -1819,7 +1819,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
     // Loop for each cursor
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         // Get data to send to stdin
-        if (ctx->cursor->is_anchored) {
+        if (cursor->is_anchored) {
             mark_get_between_mark(cursor->mark, cursor->anchor, &input, &input_len);
         } else {
             input = NULL;
