@@ -17,8 +17,8 @@ source 'test.sh'
 # cmd_search_next (wrap)
 macro='h e l l o enter h e l l o C-f h e l l o enter C-g C-g'
 declare -A expected
-expected[next-wrap_cursor_line]='^bview.0.cursor.0.mark.line_index=0$'
-expected[next-wrap_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
+expected[next_wrap_cursor_line]='^bview.0.cursor.0.mark.line_index=0$'
+expected[next_wrap_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
 # cmd_find_word
@@ -31,8 +31,8 @@ source 'test.sh'
 # cmd_find_word (wrap)
 macro='h e l l o enter h e l l o left C-v C-v'
 declare -A expected
-expected[find-wrap_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
-expected[find-wrap_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
+expected[find_wrap_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
+expected[find_wrap_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
 # cmd_isearch

@@ -17,10 +17,10 @@ source 'test.sh'
 
 macro='f o o space b a r C-w'
 declare -A expected
-expected[delete-word-back_data]='^foo $'
+expected[delete_word_back_data]='^foo $'
 source 'test.sh'
 
 macro='f o o space b a r C-a M-d'
 declare -A expected
-expected[delete-word-forward_data]='^ bar$'
+expected[delete_word_forward_data]='^ bar$'
 source 'test.sh'

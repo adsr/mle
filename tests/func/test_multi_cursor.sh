@@ -8,8 +8,8 @@ source 'test.sh'
 
 macro='h i space C-/ . C-a C-/ a X X'
 declare -A expected
-expected[drop-wake_data        ]='^XXhi XX$'
-expected[drop-wake_cursor_count]='^bview.0.cursor_count=2$'
+expected[drop_wake_data        ]='^XXhi XX$'
+expected[drop_wake_cursor_count]='^bview.0.cursor_count=2$'
 source 'test.sh'
 
 macro="o n e enter t w o enter t h r e e M-a M-\ C-/ ' C-e space a n d"

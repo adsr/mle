@@ -18,6 +18,6 @@ source 'test.sh'
 
 macro='a p p l e C-n b a n a n a M-p r e d M-n y e l l o w'
 declare -A expected
-expected[next-prev_data1]='^applered$'
-expected[next-prev_data2]='^bananayellow$'
+expected[next_prev_data1]='^applered$'
+expected[next_prev_data2]='^bananayellow$'
 source 'test.sh'

@@ -24,14 +24,14 @@ source 'test.sh'
 # cmd_move_(beginning,end)
 macro='h e l l o enter w o r l d M-\ M-/'
 declare -A expected
-expected[beg-end_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
-expected[beg-end_cursor_col ]='^bview.0.cursor.0.mark.col=5$'
+expected[beg_end_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
+expected[beg_end_cursor_col ]='^bview.0.cursor.0.mark.col=5$'
 source 'test.sh'
 
 # cmd_move_(to_line)
 macro='0 enter 1 enter 2 enter 3 M-g 2 enter'
 declare -A expected
-expected[to-line_cursor_col]='^bview.0.cursor.0.mark.line_index=1$'
+expected[to_line_cursor_col]='^bview.0.cursor.0.mark.line_index=1$'
 source 'test.sh'
 
 # cmd_move_(to_relative)
