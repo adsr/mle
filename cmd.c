@@ -359,6 +359,23 @@ int cmd_swap_anchor(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Align cursors by padding with whitespace
+int cmd_align_cursors(cmd_context_t *ctx) {
+    bint_t max_col;
+    max_col = 0;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (cursor->mark->col > max_col) {
+            max_col = cursor->mark->col;
+        }
+    );
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        while (cursor->mark->col < max_col) {
+            mark_insert_before(cursor->mark, " ", 1);
+        }
+    );
+    return MLE_OK;
+}
+
 // Drop an is_asleep=1 cursor
 int cmd_drop_sleeping_cursor(cmd_context_t *ctx) {
     return bview_add_cursor_asleep(ctx->bview, ctx->cursor->mark->bline, ctx->cursor->mark->col, NULL);

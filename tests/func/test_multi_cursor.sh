@@ -19,3 +19,10 @@ expected[column_data2       ]='^two and$'
 expected[column_data3       ]='^three and$'
 expected[column_cursor_count]='^bview.0.cursor_count=3$'
 source 'test.sh'
+
+macro="a enter space b enter space space c enter C-r \ S + C-/ C-/ l"
+declare -A expected
+expected[align_line_1]='^  a$'
+expected[align_line_2]='^  b$'
+expected[align_line_3]='^  c$'
+source 'test.sh'

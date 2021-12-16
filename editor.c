@@ -1430,6 +1430,7 @@ static void _editor_graceful_exit(int signum) {
 
 // Register built-in commands
 static void _editor_register_cmds(editor_t *editor) {
+    _editor_register_cmd_fn(editor, "cmd_align_cursors", cmd_align_cursors);
     _editor_register_cmd_fn(editor, "cmd_anchor_by", cmd_anchor_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
@@ -1623,6 +1624,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_remove_extra_cursors", "C-/ /"),
         MLE_KBINDING_DEF("cmd_drop_cursor_column", "C-/ '"),
         MLE_KBINDING_DEF("cmd_swap_anchor", "C-/ ;"),
+        MLE_KBINDING_DEF("cmd_align_cursors", "C-/ l"),
         MLE_KBINDING_DEF("cmd_apply_macro", "M-z"),
         MLE_KBINDING_DEF("cmd_apply_macro_by", "M-m **"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),

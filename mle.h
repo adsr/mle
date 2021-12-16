@@ -470,6 +470,7 @@ int cursor_toggle_anchor(cursor_t *cursor, int use_srules);
 int cursor_uncut(cursor_t *cursor);
 
 // cmd functions
+int cmd_align_cursors(cmd_context_t *ctx);
 int cmd_anchor_by(cmd_context_t *ctx);
 int cmd_apply_macro_by(cmd_context_t *ctx);
 int cmd_apply_macro(cmd_context_t *ctx);
