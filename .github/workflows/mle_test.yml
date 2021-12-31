@@ -1,0 +1,10 @@
+name: mle_test
+on: [push, pull_request]
+jobs:
+  mle_test_job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - run: make test mle_vendor=1

@@ -1,5 +1,0 @@
-language: c
-script:
-  - make test mle_vendor=1
-before_install:
-  - git submodule update --init --recursive
