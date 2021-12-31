@@ -1,4 +1,4 @@
--- mle -N -x uscript.lua -K lua_kmap,,1 -k cmd_lua_test,F11, -n lua_kmap
+-- mle -N -x uscript.lua -K lua_kmap,,1 -k cmd_lua_test,f11, -n lua_kmap
 
 mle.editor_register_observer("buffer:save", function (bview)
     r = mle.util_shell_exec("ls", -1)
