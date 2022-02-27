@@ -3,6 +3,7 @@
 #include <wctype.h>
 #include "mle.h"
 
+static int _bview_pop_kmap(bview_t *bview, kmap_t **optret_kmap, int allow_pop_root);
 static int _bview_rectify_viewport_dim(bview_t *self, bline_t *bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos);
 static void _bview_init(bview_t *self, buffer_t *buffer);
 static void _bview_init_resized(bview_t *self);
@@ -210,18 +211,7 @@ int bview_push_kmap(bview_t *bview, kmap_t *kmap) {
 
 // Pop a kmap
 int bview_pop_kmap(bview_t *bview, kmap_t **optret_kmap) {
-    kmap_node_t *node_to_pop;
-    node_to_pop = bview->kmap_tail;
-    if (!node_to_pop) {
-        return MLE_ERR;
-    }
-    if (optret_kmap) {
-        *optret_kmap = node_to_pop->kmap;
-    }
-    bview->kmap_tail = node_to_pop->prev != node_to_pop ? node_to_pop->prev : NULL;
-    DL_DELETE(bview->kmap_stack, node_to_pop);
-    free(node_to_pop);
-    return MLE_OK;
+    return _bview_pop_kmap(bview, optret_kmap, 0);
 }
 
 // Split a bview
@@ -408,6 +398,22 @@ int bview_destroy_listener(bview_t *self, bview_listener_t *listener) {
     return MLE_OK;
 }
 
+// Pop a kmap
+static int _bview_pop_kmap(bview_t *bview, kmap_t **optret_kmap, int allow_pop_root) {
+    kmap_node_t *node_to_pop;
+    node_to_pop = bview->kmap_tail;
+    if (!node_to_pop || (!allow_pop_root && node_to_pop == bview->kmap_stack)) {
+        return MLE_ERR;
+    }
+    if (optret_kmap) {
+        *optret_kmap = node_to_pop->kmap;
+    }
+    bview->kmap_tail = node_to_pop->prev != node_to_pop ? node_to_pop->prev : NULL;
+    DL_DELETE(bview->kmap_stack, node_to_pop);
+    free(node_to_pop);
+    return MLE_OK;
+}
+
 // Rectify a viewport dimension. Return 1 if changed, else 0.
 static int _bview_rectify_viewport_dim(bview_t *self, bline_t *bline, bint_t vpos, int dim_scope, int dim_size, bint_t *view_vpos) {
     int rc;
@@ -565,7 +571,7 @@ static void _bview_deinit(bview_t *self) {
 
     // Remove all kmaps
     while (self->kmap_tail) {
-        bview_pop_kmap(self, NULL);
+        _bview_pop_kmap(self, NULL, 1);
     }
 
     // Remove all syntax rules
