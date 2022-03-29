@@ -800,6 +800,7 @@ int buffer_add_srule(buffer_t *self, srule_t *srule) {
         DL_APPEND(self->range_srules, node);
         return MLBUF_OK; // range styles get applied in bview_draw
     } else {
+        free(node);
         return MLBUF_ERR;
     }
     return buffer_apply_styles(self, self->first_line, self->line_count - 1);
