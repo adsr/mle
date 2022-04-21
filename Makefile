@@ -2,7 +2,7 @@ prefix?=/usr/local
 
 mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O0 -D_GNU_SOURCE -I. $(CFLAGS)
 mle_ldflags:=$(LDFLAGS)
-mle_dynamic_libs:=-lpcre -llua5.3
+mle_dynamic_libs:=-lpcre -llua
 mle_static_libs:=vendor/pcre/.libs/libpcre.a vendor/lua/liblua5.3.a
 mle_ldlibs:=-lm $(LDLIBS)
 mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
