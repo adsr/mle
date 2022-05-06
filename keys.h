@@ -1,4 +1,5 @@
 //          kname        modmin       modadd       ch  key
+MLE_KEY_DEF("space",     TB_MOD_CTRL, 0,           0,  TB_KEY_CTRL_TILDE)
 MLE_KEY_DEF("~",         TB_MOD_CTRL, 0,           0,  TB_KEY_CTRL_TILDE)
 MLE_KEY_DEF("2",         TB_MOD_CTRL, 0,           0,  TB_KEY_CTRL_TILDE)
 MLE_KEY_DEF("a",         TB_MOD_CTRL, 0,           0,  TB_KEY_CTRL_A)
