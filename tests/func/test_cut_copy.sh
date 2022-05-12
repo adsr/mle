@@ -80,3 +80,9 @@ macro='a b c enter d e f M-\ M-a C-f f enter C-/ ; right C-k'
 declare -A expected
 expected[swap_anchor]='^af$'
 source 'test.sh'
+
+macro='a C-n b S-left M-k C-u M-p S-left M-k M-n CM-u'
+declare -A expected
+expected[buf1_data]='^a$'
+expected[buf2_data]='^bab$'
+source 'test.sh'

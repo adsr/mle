@@ -468,6 +468,7 @@ int cursor_select_by_word(cursor_t *cursor, int use_srules);
 int cursor_select_by_word_forward(cursor_t *cursor, int use_srules);
 int cursor_toggle_anchor(cursor_t *cursor, int use_srules);
 int cursor_uncut(cursor_t *cursor);
+int cursor_uncut_last(cursor_t *cursor);
 
 // cmd functions
 int cmd_align_cursors(cmd_context_t *ctx);
@@ -552,6 +553,7 @@ int cmd_suspend(cmd_context_t *ctx);
 int cmd_swap_anchor(cmd_context_t *ctx);
 int cmd_toggle_anchor(cmd_context_t *ctx);
 int cmd_uncut(cmd_context_t *ctx);
+int cmd_uncut_last(cmd_context_t *ctx);
 int cmd_undo(cmd_context_t *ctx);
 int cmd_viewport_bot(cmd_context_t *ctx);
 int cmd_viewport_mid(cmd_context_t *ctx);

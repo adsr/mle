@@ -1509,6 +1509,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
     _editor_register_cmd_fn(editor, "cmd_swap_anchor", cmd_swap_anchor);
     _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
+    _editor_register_cmd_fn(editor, "cmd_uncut_last", cmd_uncut_last);
     _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
     _editor_register_cmd_fn(editor, "cmd_viewport_bot", cmd_viewport_bot);
     _editor_register_cmd_fn(editor, "cmd_viewport_mid", cmd_viewport_mid);
@@ -1584,6 +1585,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_cut", "C-k"),
         MLE_KBINDING_DEF("cmd_copy", "M-k"),
         MLE_KBINDING_DEF("cmd_uncut", "C-u"),
+        MLE_KBINDING_DEF("cmd_uncut_last", "CM-u"),
         MLE_KBINDING_DEF("cmd_redraw", "M-x l"),
         MLE_KBINDING_DEF("cmd_less", "M-l"),
         MLE_KBINDING_DEF("cmd_viewport_top", "M-9"),

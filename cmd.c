@@ -559,10 +559,18 @@ int cmd_copy(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
-// Paste text
+// Paste text (from cursor cut_buffer)
 int cmd_uncut(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_uncut(cursor);
+    );
+    return MLE_OK;
+}
+
+// Paste text (from editor-wide cut_buffer)
+int cmd_uncut_last(cmd_context_t *ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        cursor_uncut_last(cursor);
     );
     return MLE_OK;
 }
