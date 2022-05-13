@@ -16,10 +16,11 @@ static char *mark_find_prev_cre_matchfn(char *haystack, bint_t haystack_len, bin
 static int *pcre_ovector = NULL;
 static int pcre_ovector_size = 0;
 static int *pcre_rc;
-static char bracket_pairs[8] = {
+static char bracket_pairs[10] = {
     '[', ']',
     '(', ')',
-    '{', '}'
+    '{', '}',
+    '<', '>'
 };
 
 // Return a clone (same position) of an existing mark

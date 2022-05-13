@@ -310,7 +310,7 @@ int cmd_move_bracket_back(cmd_context_t *ctx) {
 int cmd_move_bracket_toggle(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (mark_move_bracket_pair(cursor->mark, ctx->buffer->byte_count) == MLBUF_ERR) {
-            mark_move_prev_re(cursor->mark, "[\\[\\(\\{]", strlen("[\\[\\(\\{]"));
+            mark_move_prev_re(cursor->mark, "[\\[\\(\\<\\{]", strlen("[\\[\\(\\<\\{]"));
         }
     );
     bview_rectify_viewport(ctx->bview);
