@@ -12,7 +12,7 @@ echo ')'    >>$tmpf
 
 # ensure cursor.sel_rule closed
 macro='M-c right C-2 d'
-extra_opts="$tmpf"
+extra_opts=($tmpf)
 declare -A expected
 expected[srule_should_be_closed]='^bview.0.cursor.0.sel_rule=n$'
 source 'test.sh'

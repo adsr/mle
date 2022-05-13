@@ -13,7 +13,7 @@ else
         -n test_kmap \
         -M "test_macro $macro f12" \
         -p test_macro \
-        $extra_opts \
+        "${extra_opts[@]}" \
         2>&1 >/dev/null
     );
     exit_code=$?

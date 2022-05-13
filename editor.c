@@ -28,13 +28,13 @@ static int _editor_prompt_yn_no(cmd_context_t *ctx);
 static int _editor_prompt_cancel(cmd_context_t *ctx);
 static int _editor_menu_submit(cmd_context_t *ctx);
 static int _editor_menu_cancel(cmd_context_t *ctx);
-static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx);
 static int _editor_prompt_isearch_next(cmd_context_t *ctx);
 static int _editor_prompt_isearch_prev(cmd_context_t *ctx);
-static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx);
 static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx);
+static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx);
+static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx);
 static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx);
-static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *ctx);
+static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *cmd_ctx);
 static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before);
 static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input);
 static void _editor_resize(editor_t *editor, int w, int h);
@@ -42,9 +42,10 @@ static void _editor_maybe_lift_temp_anchors(cmd_context_t *ctx);
 static void _editor_draw_cursors(editor_t *editor, bview_t *bview);
 static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx);
 static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx);
+static void _editor_append_pastebuf(editor_t *editor, cmd_context_t *ctx, kinput_t *input);
 static void _editor_record_macro_input(kmacro_t *macro, kinput_t *input);
-static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_peek_input);
-static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, cmd_context_t *ctx, int is_peek, int *ret_again);
+static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_paste_input);
+static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, cmd_context_t *ctx, int is_paste, int *ret_is_numeric);
 static cmd_t *_editor_resolve_cmd(editor_t *editor, cmd_t **rcmd, char *cmd_name);
 static int _editor_key_to_input(char *key, kinput_t *ret_input);
 static void _editor_init_signal_handlers(editor_t *editor);
@@ -925,6 +926,7 @@ static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
             loop_ctx->binding_node = NULL;
             cmd_ctx.wildcard_params_len = 0;
             cmd_ctx.numeric_params_len = 0;
+            cmd_ctx.pastebuf_len = 0;
         } else if (loop_ctx->need_more_input) {
             // Need more input to find
         } else {
@@ -933,11 +935,12 @@ static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
         }
     }
 
-    // Free pastebuf if present
+    // Free stuff
     if (cmd_ctx.pastebuf) free(cmd_ctx.pastebuf);
-
-    // Free last_insert
     str_free(&loop_ctx->last_insert);
+    if (loop_ctx->input_trail) free(loop_ctx->input_trail);
+    loop_ctx->input_trail_len = 0;
+    loop_ctx->input_trail_cap = 0;
 
     // Decrement loop_depth
     editor->loop_depth -= 1;
@@ -1091,10 +1094,9 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
     int rc;
     tb_event_t ev;
 
-    // Reset pastebuf
-    ctx->pastebuf_len = 0;
+//fprintf(stderr, "in _editor_get_user_input\n");
 
-    // Use pastebuf_leftover is present
+    // Use pastebuf_leftover if present
     if (ctx->has_pastebuf_leftover) {
         MLE_KINPUT_COPY(ctx->input, ctx->pastebuf_leftover);
         ctx->has_pastebuf_leftover = 0;
@@ -1125,17 +1127,7 @@ static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
     kinput_t input;
     cmd_t *cmd;
 
-    // Reset pastebuf
-    ctx->pastebuf_len = 0;
-
-    // Peek events
     while (1) {
-        // Expand pastebuf if needed
-        if (ctx->pastebuf_len + 1 > ctx->pastebuf_size) {
-            ctx->pastebuf_size += MLE_PASTEBUF_INCR;
-            ctx->pastebuf = realloc(ctx->pastebuf, sizeof(kinput_t) * ctx->pastebuf_size);
-        }
-
         // Peek event
         rc = tb_peek_event(&ev, 0);
         if (rc != TB_OK) {
@@ -1151,7 +1143,7 @@ static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
         cmd = _editor_get_command(editor, ctx, &input);
         if (cmd && cmd->func == cmd_insert_data) {
             // Insert data; keep ingesting
-            ctx->pastebuf[ctx->pastebuf_len++] = input;
+            _editor_append_pastebuf(editor, ctx, &input);
         } else {
             // Not insert data; set leftover and stop ingesting
             ctx->has_pastebuf_leftover = 1;
@@ -1159,6 +1151,16 @@ static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
             break;
         }
     }
+}
+
+static void _editor_append_pastebuf(editor_t *editor, cmd_context_t *ctx, kinput_t *input) {
+    // Expand pastebuf if needed
+    if (ctx->pastebuf_len + 1 > ctx->pastebuf_size) {
+        ctx->pastebuf_size += MLE_PASTEBUF_INCR;
+        ctx->pastebuf = realloc(ctx->pastebuf, sizeof(kinput_t) * ctx->pastebuf_size);
+    }
+    // Append
+    ctx->pastebuf[ctx->pastebuf_len++] = *input;
 }
 
 // Copy input into macro buffer
@@ -1176,90 +1178,106 @@ static void _editor_record_macro_input(kmacro_t *macro, kinput_t *input) {
 }
 
 // Return command for input
-static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_peek_input) {
+static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_paste_input) {
     loop_context_t *loop_ctx;
-    kinput_t *input;
-    kbinding_t *node;
-    kbinding_t *binding;
+    kinput_t *input_cur;
+    kbinding_t *binding_cur, *binding_next;
     kmap_node_t *kmap_node;
-    int is_top;
-    int is_peek;
-    int again;
+    int is_paste, is_numeric;
+    size_t i;
+    cmd_t *rv;
 
     // Init some vars
     loop_ctx = ctx->loop_ctx;
-    is_peek = opt_peek_input ? 1 : 0;
-    input = opt_peek_input ? opt_peek_input : &ctx->input;
+    is_paste = opt_paste_input ? 1 : 0;
     kmap_node = editor->active->kmap_tail;
-    node = loop_ctx->binding_node;
-    is_top = (node == NULL ? 1 : 0);
+    binding_cur = loop_ctx->binding_node ? loop_ctx->binding_node : kmap_node->kmap->bindings;
+    rv = NULL;
+
+    // Reset some per-call state
     loop_ctx->need_more_input = 0;
     loop_ctx->binding_node = NULL;
 
+    if (!is_paste) {
+        // Append to input_trail
+        loop_ctx->input_trail_len += 1;
+        if (loop_ctx->input_trail_len > loop_ctx->input_trail_cap) {
+            loop_ctx->input_trail_cap = loop_ctx->input_trail_len;
+            loop_ctx->input_trail = realloc(loop_ctx->input_trail, sizeof(kinput_t) * loop_ctx->input_trail_cap);
+        }
+        MLE_KINPUT_COPY(loop_ctx->input_trail[loop_ctx->input_trail_len - 1], ctx->input);
+    }
+
     // Look for key binding
-    while (kmap_node) {
-        if (is_top) node = kmap_node->kmap->bindings;
-        again = 0;
-        binding = _editor_get_kbinding_node(node, input, ctx, is_peek, &again);
-        if (binding) {
-            if (again) {
-                // Need more input on current node
-                if (!is_peek) {
-                    loop_ctx->need_more_input = 1;
-                    loop_ctx->binding_node = binding;
-                }
-                return NULL;
-            } else if (binding->is_leaf) {
-                // Found leaf!
-                if (!is_peek) {
-                    ctx->static_param = binding->static_param;
-                }
-                return _editor_resolve_cmd(editor, &(binding->cmd), binding->cmd_name);
-            } else if (binding->children) {
-                // Need more input on next node
-                if (!is_peek) {
-                    loop_ctx->need_more_input = 1;
-                    loop_ctx->binding_node = binding;
-                }
-                return NULL;
-            } else {
-                // This shouldn't happen... TODO err
-                return NULL;
+    while (1) {
+        if (is_paste) {
+            input_cur = opt_paste_input;
+        } else {
+            if (loop_ctx->input_trail_idx >= loop_ctx->input_trail_len) {
+                loop_ctx->need_more_input = 1;
+                loop_ctx->binding_node = binding_cur;
+                break;
             }
-        } else if (node == kmap_node->kmap->bindings) {
-            // Binding not found at top level
-            if (kmap_node->kmap->default_cmd_name) {
-                // Fallback to default
-                return _editor_resolve_cmd(editor, &(kmap_node->kmap->default_cmd), kmap_node->kmap->default_cmd_name);
-            }
-            if (kmap_node->kmap->allow_fallthru && kmap_node != kmap_node->prev) {
-                // Fallback to previous kmap on stack
-                kmap_node = kmap_node->prev;
-                is_top = 1;
-            } else {
-                // Fallback not allowed or reached bottom
-                return NULL;
+            input_cur = &loop_ctx->input_trail[loop_ctx->input_trail_idx];
+        }
+        binding_next = _editor_get_kbinding_node(binding_cur, input_cur, ctx, is_paste, &is_numeric);
+        if (binding_next) {
+            // Binding found
+            if ((is_numeric || binding_next->children) && !is_paste) {
+                // Need more input
+                binding_cur = binding_next;
+                loop_ctx->input_trail_idx += 1;
+                continue;
+            } else if (binding_next->is_leaf) {
+                // Found leaf
+                ctx->static_param = binding_next->static_param;
+                rv = _editor_resolve_cmd(editor, &(binding_next->cmd), binding_next->cmd_name);
+                break;
             }
         } else {
             // Binding not found
-            return NULL;
+            if (kmap_node->kmap->default_cmd_name) {
+                // Fallback to default cmd
+                rv = _editor_resolve_cmd(editor, &(kmap_node->kmap->default_cmd), kmap_node->kmap->default_cmd_name);
+                break;
+            } else if (kmap_node->kmap->allow_fallthru && kmap_node != kmap_node->prev) {
+                // Fallback to previous kmap on stack
+                kmap_node = kmap_node->prev;
+                binding_cur = kmap_node->kmap->bindings;
+                loop_ctx->input_trail_idx = 0;
+                continue;
+            }
         }
+        break;
     }
 
-    // No more kmaps
-    return NULL;
+    if (rv && !is_paste) {
+        if (rv->func == cmd_insert_data && loop_ctx->input_trail_idx != loop_ctx->input_trail_len - 1) {
+            // Restore lost input_trail for cmd_insert_data
+            MLE_KINPUT_COPY(ctx->input, loop_ctx->input_trail[loop_ctx->input_trail_idx]);
+            for (i = loop_ctx->input_trail_idx + 1; i < loop_ctx->input_trail_len; i++) {
+                _editor_append_pastebuf(editor, ctx, &loop_ctx->input_trail[i]);
+            }
+        }
+        // Reset input_trail
+        loop_ctx->input_trail_idx = 0;
+        loop_ctx->input_trail_len = 0;
+    }
+
+    return rv;
 }
 
 // Find binding by input in trie, taking into account numeric and wildcards patterns
-static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, cmd_context_t *ctx, int is_peek, int *ret_again) {
+static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, cmd_context_t *ctx, int is_paste, int *ret_is_numeric) {
     kbinding_t *binding;
     kinput_t input_tmp;
     loop_context_t *loop_ctx;
 
     memset(&input_tmp, 0, sizeof(kinput_t));
     loop_ctx = ctx->loop_ctx;
+    *ret_is_numeric = 0;
 
-    if (!is_peek) {
+    if (!is_paste) {
         // Look for numeric .. TODO can be more efficient about this
         if (input->ch >= '0' && input->ch <= '9') {
             if (!loop_ctx->numeric_node) {
@@ -1271,7 +1289,7 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
                 if (loop_ctx->numeric_len < MLE_LOOP_CTX_MAX_NUMERIC_LEN) {
                     loop_ctx->numeric[loop_ctx->numeric_len] = (char)input->ch;
                     loop_ctx->numeric_len += 1;
-                    *ret_again = 1;
+                    *ret_is_numeric = 1;
                     return node; // Need more input on this node
                 }
                 return NULL; // Ran out of `numeric` buffer .. TODO err
@@ -1301,7 +1319,7 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
         return binding;
     }
 
-    if (!is_peek) {
+    if (!is_paste) {
         // Look for wildcard
         MLE_KINPUT_SET_WILDCARD(input_tmp);
         HASH_FIND(hh, node->children, &input_tmp, sizeof(kinput_t), binding);

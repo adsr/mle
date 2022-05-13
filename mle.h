@@ -343,6 +343,10 @@ struct loop_context_s {
     char tab_complete_term[MLE_LOOP_CTX_MAX_COMPLETE_TERM_SIZE];
     cmd_context_t last_cmd_ctx;
     str_t last_insert;
+    kinput_t *input_trail;
+    size_t input_trail_len;
+    size_t input_trail_cap;
+    size_t input_trail_idx;
 };
 
 // aproc_t
@@ -692,7 +696,7 @@ extern editor_t _editor;
 TODO major changes
 [ ] delete lua api
 [ ] upgrade to pcre2
-[ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks)
+[ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks; consolidate input_trail + pastebuf)
 [ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
 [ ] rewrite buffer_set_mmapped to avoid huge mallocs

@@ -3,7 +3,7 @@
 on_exit() { [ -n "$lua_script" ] && rm -f $lua_script; }
 trap on_exit EXIT
 lua_script=$(mktemp 'mle.test_lua.XXXXXXXXXX')
-extra_opts="-x $lua_script -K lua_kmap,,1 -k cmd_lua_test,f11, -k cmd_quit_without_saving,f12, -n lua_kmap"
+extra_opts=(-x $lua_script -K lua_kmap,,1 -k cmd_lua_test,f11, -k cmd_quit_without_saving,f12, -n lua_kmap)
 
 # mle.mark_insert_before
 macro='f11'
