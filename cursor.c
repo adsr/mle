@@ -2,6 +2,8 @@
 #include <ctype.h>
 #include "mle.h"
 
+static int cursor_uncut_ex(cursor_t *cursor, int editor_wide);
+
 // Clone cursor
 int cursor_clone(cursor_t *cursor, int use_srules, cursor_t **ret_clone) {
     cursor_t *clone;
@@ -246,13 +248,14 @@ int cursor_cut_copy(cursor_t *cursor, int is_cut, int use_srules, int append) {
     return MLE_OK;
 }
 
-// Uncut (paste) text
+// Uncut from cursor cut_buffer
 int cursor_uncut(cursor_t *cursor) {
-    char *cut_buffer;
-    cut_buffer = cursor->cut_buffer ? cursor->cut_buffer : cursor->bview->editor->cut_buffer;
-    if (!cut_buffer) return MLE_ERR;
-    mark_insert_before(cursor->mark, cut_buffer, strlen(cut_buffer));
-    return MLE_OK;
+    return cursor_uncut_ex(cursor, 0);
+}
+
+// Uncut editor-wide cut_buffer
+int cursor_uncut_last(cursor_t *cursor) {
+    return cursor_uncut_ex(cursor, 1);
 }
 
 // Regex search and replace
@@ -395,5 +398,14 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
         bview_draw(cursor->bview);
     }
 
+    return MLE_OK;
+}
+
+// Uncut (paste) text
+static int cursor_uncut_ex(cursor_t *cursor, int editor_wide) {
+    char *cut_buffer;
+    cut_buffer = cursor->cut_buffer && !editor_wide ? cursor->cut_buffer : cursor->bview->editor->cut_buffer;
+    if (!cut_buffer) return MLE_ERR;
+    mark_insert_before(cursor->mark, cut_buffer, strlen(cut_buffer));
     return MLE_OK;
 }
