@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <limits.h>
 #include <uthash.h>
-#include <lua5.3/lua.h>
-#include <lua5.3/lualib.h>
-#include <lua5.3/lauxlib.h>
+#include <lua5.4/lua.h>
+#include <lua5.4/lualib.h>
+#include <lua5.4/lauxlib.h>
 #include "termbox2.h"
 #include "mlbuf.h"
 

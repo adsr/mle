@@ -26,7 +26,7 @@ Runs on Linux, Windows (cygwin or WSL), FreeBSD, and macOS.
 
 ### Features
 
-* Small codebase (<10k sloc)
+* Small codebase (~10k sloc)
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
@@ -62,7 +62,7 @@ You can also run plain `make` to link against system libraries instead of
 `vendor/`. Note this requires the following packages to be installed:
 
     uthash-dev
-    liblua5.3-dev
+    liblua5.4-dev
     libpcre3-dev
 
 To install to `/usr/local/bin`:
