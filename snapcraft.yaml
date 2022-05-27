@@ -6,7 +6,7 @@ description: |
   scriptable rc file, macros, search and replace (PCRE), window 
   splitting, multiple cursors, and integration with various shell 
   commands.
-version: 1.5.0
+version: 1.4.3
 license: Apache-2.0
 base: core20
 grade: stable
@@ -21,5 +21,5 @@ parts:
     plugin: make
     source: https://github.com/adsr/mle.git
     source-tag: v1.4.3
-    build-packages: [uthash-dev, liblua5.4-dev, libpcre3-dev]
-    stage-packages: [liblua5.4-0, libpcre3, fzf, tree, less, perl, universal-ctags]
+    build-packages: [uthash-dev, liblua5.3-dev, libpcre3-dev]
+    stage-packages: [liblua5.3-0, libpcre3, fzf, tree, less, perl, universal-ctags]
