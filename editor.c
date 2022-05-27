@@ -956,6 +956,7 @@ static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *cmd_ctx
 // Notify cmd observers
 static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before) {
     char *event_name;
+    if (!ctx->editor->observers) return;
     asprintf(&event_name, "cmd:%s:%s", ctx->cmd->name, is_before ? "before" : "after");
     _editor_refresh_cmd_context(ctx->editor, ctx);
     editor_notify_observers(ctx->editor, event_name, (void*)ctx);
