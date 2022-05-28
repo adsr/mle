@@ -600,7 +600,7 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "1.5.0"
+#define MLE_VERSION "1.5.1-dev"
 
 #define MLE_OK 0
 #define MLE_ERR 1
