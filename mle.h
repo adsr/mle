@@ -700,6 +700,7 @@ TODO major changes
 [ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
 [ ] rewrite buffer_set_mmapped to avoid huge mallocs
+[ ] use wcwidth9 autc instead of relying on locale and wcwidth (tests/unit/test_bline_insert.c)
 TODO bugfixes
 [ ] review error checking, esp catch ENOSPC, malloc fail
 [ ] review compiler warnings
