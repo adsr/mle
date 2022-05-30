@@ -1,0 +1,38 @@
+commit e4dc4314b02a324701d9ae9873461d34cce041e5
+Author: Adam Saponara <as@php.net>
+Date:   Sun May 29 13:42:39 2022 -0400
+
+    avoid locale-dependent unit test
+
+diff --git a/mle.h b/mle.h
+index d25f9ef..f6d1ac1 100644
+--- a/mle.h
++++ b/mle.h
+@@ -700,6 +700,7 @@ TODO major changes
+ [ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
+ [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
+ [ ] rewrite buffer_set_mmapped to avoid huge mallocs
++[ ] use wcwidth9 autc instead of relying on locale and wcwidth (tests/unit/test_bline_insert.c)
+ TODO bugfixes
+ [ ] review error checking, esp catch ENOSPC, malloc fail
+ [ ] review compiler warnings
+diff --git a/tests/unit/test_bline_insert.c b/tests/unit/test_bline_insert.c
+index 3de6477..c307ad6 100644
+--- a/tests/unit/test_bline_insert.c
++++ b/tests/unit/test_bline_insert.c
+@@ -27,7 +27,14 @@ void test(buffer_t *buf, mark_t *cur) {
+     ASSERT("oob", 0, strncmp(data, "hello\namy's\n world", data_len));
+ 
+     bline_insert(buf->last_line, buf->last_line->char_count, "\nno\xe2\x80\x8bspace", 11, NULL);
+-    ASSERT("0wv", 7, buf->last_line->char_vwidth);
++    // The following assertion relies on a UTF-8 locale. `nl_langinfo` may not
++    // be available, so let's comment it out for now. (In practice, if locale
++    // is, e.g., C, the zero-width space will show up as "?" with vwidth==1.)
++    //
++    // codeset = nl_langinfo(CODESET);
++    // if (codeset && strcmp(codeset, "UTF-8") == 0) {
++    //     ASSERT("0wv", 7, buf->last_line->char_vwidth);
++    // }
+     ASSERT("0wc", 8, buf->last_line->char_count);
+     ASSERT("0wd", 10, buf->last_line->data_len);
+ 
