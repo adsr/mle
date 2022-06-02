@@ -22,13 +22,14 @@ int main(int argc, char **argv) {
     self = dlopen(NULL, RTLD_NOW);
     if (!self) return EXIT_FAILURE;
 
-
     *(void **)(&symfn) = dlsym(self, argv[1]);
     sprintf(symbuf, "%s_str", argv[1]);
     symstr = (char**)dlsym(self, symbuf);
     if (!symfn || !symstr) return EXIT_FAILURE;
 
     setlocale(LC_ALL, "");
+
+    pcre2_md = pcre2_match_data_create(10, NULL); // Normally initialized in editor_init
 
     memset(&_editor, 0, sizeof(editor_t));
     buf = buffer_new();
@@ -38,6 +39,8 @@ int main(int argc, char **argv) {
     symfn(buf, cur);
 
     buffer_destroy(buf);
+
+    pcre2_match_data_free(pcre2_md);
 
     dlclose(self);
 

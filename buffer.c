@@ -1441,7 +1441,7 @@ static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines) {
 
 static int _buffer_bline_apply_style_single(srule_t *srule, bline_t *bline) {
     int rc;
-    int substrs[3];
+    PCRE2_SIZE substrs[3];
     bint_t start;
     bint_t stop;
     bint_t look_offset;
@@ -1449,8 +1449,9 @@ static int _buffer_bline_apply_style_single(srule_t *srule, bline_t *bline) {
 
     MLBUF_BLINE_ENSURE_CHARS(bline);
     while (look_offset < bline->data_len) {
-        if ((rc = pcre_exec(srule->cre, srule->crex, bline->data, bline->data_len, look_offset, 0, substrs, 3)) >= 0) {
-            if (substrs[1] < 0) {
+        if ((rc = pcre2_match(srule->cre, (PCRE2_SPTR)bline->data, (PCRE2_SIZE)bline->data_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL)) >= 0) {
+            memcpy(substrs, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
+            if (substrs[1] == PCRE2_UNSET) {
                 // substrs[0..1] can be -1 sometimes, See http://pcre.org/pcre.txt
                 break;
             }
@@ -1459,7 +1460,7 @@ static int _buffer_bline_apply_style_single(srule_t *srule, bline_t *bline) {
             for (; start < stop; start++) {
                 bline->chars[start].style = srule->style;
             }
-            look_offset = MLBUF_MAX(substrs[1], look_offset + 1);
+            look_offset = MLBUF_MAX(substrs[1], (PCRE2_SIZE)(look_offset + 1));
         } else {
             break;
         }
@@ -1815,29 +1816,28 @@ static int _buffer_munmap(buffer_t *self) {
 // Make a new single-line style rule
 srule_t *srule_new_single(char *re, bint_t re_len, int caseless, uint16_t fg, uint16_t bg) {
     srule_t *rule;
-    const char *re_error;
-    int re_erroffset;
+    int re_errcode;
+    PCRE2_SIZE re_erroffset;
     rule = calloc(1, sizeof(srule_t));
     rule->type = MLBUF_SRULE_TYPE_SINGLE;
     rule->style.fg = fg;
     rule->style.bg = bg;
     rule->re = malloc((re_len + 1) * sizeof(char));
     snprintf(rule->re, re_len + 1, "%.*s", (int)re_len, re);
-    rule->cre = pcre_compile((const char*)rule->re, PCRE_NO_AUTO_CAPTURE | (caseless ? PCRE_CASELESS : 0), &re_error, &re_erroffset, NULL);
+    rule->cre = pcre2_compile((PCRE2_SPTR)rule->re, (PCRE2_SIZE)strlen(rule->re), PCRE2_NO_AUTO_CAPTURE | (caseless ? PCRE2_CASELESS : 0), &re_errcode, &re_erroffset, NULL);
     if (!rule->cre) {
         // TODO log error
         srule_destroy(rule);
         return NULL;
     }
-    rule->crex = pcre_study(rule->cre, PCRE_STUDY_JIT_COMPILE, &re_error);
     return rule;
 }
 
 // Make a new multi-line style rule
 srule_t *srule_new_multi(char *re, bint_t re_len, char *re_end, bint_t re_end_len, uint16_t fg, uint16_t bg) {
     srule_t *rule;
-    const char *re_error;
-    int re_erroffset;
+    int re_errcode;;
+    PCRE2_SIZE re_erroffset;
     rule = calloc(1, sizeof(srule_t));
     rule->type = MLBUF_SRULE_TYPE_MULTI;
     rule->style.fg = fg;
@@ -1846,15 +1846,13 @@ srule_t *srule_new_multi(char *re, bint_t re_len, char *re_end, bint_t re_end_le
     rule->re_end = malloc((re_end_len + 1) * sizeof(char));
     snprintf(rule->re, re_len + 1, "%.*s", (int)re_len, re);
     snprintf(rule->re_end, re_end_len + 1, "%.*s", (int)re_end_len, re_end);
-    rule->cre = pcre_compile((const char*)rule->re, PCRE_NO_AUTO_CAPTURE, &re_error, &re_erroffset, NULL);
-    rule->cre_end = pcre_compile((const char*)rule->re_end, PCRE_NO_AUTO_CAPTURE, &re_error, &re_erroffset, NULL);
+    rule->cre = pcre2_compile((PCRE2_SPTR)rule->re, (PCRE2_SIZE)strlen(rule->re), PCRE2_NO_AUTO_CAPTURE, &re_errcode, &re_erroffset, NULL);
+    rule->cre_end = pcre2_compile((PCRE2_SPTR)rule->re_end, (PCRE2_SIZE)strlen(rule->re_end), PCRE2_NO_AUTO_CAPTURE, &re_errcode, &re_erroffset, NULL);
     if (!rule->cre || !rule->cre_end) {
         // TODO log error
         srule_destroy(rule);
         return NULL;
     }
-    rule->crex = pcre_study(rule->cre, PCRE_STUDY_JIT_COMPILE, &re_error);
-    rule->crex_end = pcre_study(rule->cre_end, PCRE_STUDY_JIT_COMPILE, &re_error);
     return rule;
 }
 
@@ -1874,19 +1872,16 @@ srule_t *srule_new_range(mark_t *range_a, mark_t *range_b, uint16_t fg, uint16_t
 int srule_destroy(srule_t *srule) {
     if (srule->re) free(srule->re);
     if (srule->re_end) free(srule->re_end);
-    if (srule->cre) pcre_free(srule->cre);
-    if (srule->cre_end) pcre_free(srule->cre_end);
-    if (srule->crex) pcre_free_study_ex(srule->crex);
-    if (srule->crex_end) pcre_free_study_ex(srule->crex_end);
+    if (srule->cre) pcre2_code_free(srule->cre);
+    if (srule->cre_end) pcre2_code_free(srule->cre_end);
     free(srule);
     return MLBUF_OK;
 }
 
 static int _srule_multi_find(srule_t *rule, int find_end, bline_t *bline, bint_t start_offset, bint_t *ret_start, bint_t *ret_stop) {
     int rc;
-    pcre *cre;
-    pcre_extra *crex;
-    int substrs[3];
+    pcre2_code *cre;
+    PCRE2_SIZE substrs[3];
     bint_t start_index;
     mark_t *mark;
 
@@ -1904,9 +1899,9 @@ static int _srule_multi_find(srule_t *rule, int find_end, bline_t *bline, bint_t
 
     // MLBUF_SRULE_TYPE_MULTI
     cre = find_end ? rule->cre_end : rule->cre;
-    crex = find_end ? rule->crex_end : rule->crex;
     start_index = _buffer_bline_col_to_index(bline, start_offset);
-    if ((rc = pcre_exec(cre, crex, bline->data, bline->data_len, start_index, 0, substrs, 3)) >= 0) {
+    if ((rc = pcre2_match(cre, (PCRE2_SPTR)bline->data, (PCRE2_SIZE)bline->data_len, (PCRE2_SIZE)start_index, 0, pcre2_md, NULL)) >= 0) {
+        memcpy(substrs, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
         *ret_start = _buffer_bline_index_to_col(bline, substrs[0]);
         *ret_stop = _buffer_bline_index_to_col(bline, substrs[1]);
         return 1;

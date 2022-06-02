@@ -4,6 +4,6 @@
 [submodule "lua"]
 	path = vendor/lua
 	url = https://github.com/lua/lua.git
-[submodule "pcre"]
-	path = vendor/pcre
-	url = https://github.com/adsr/pcre.git
+[submodule "pcre2"]
+	path = vendor/pcre2
+	url = https://github.com/PhilipHazel/pcre2.git

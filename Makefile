@@ -1,9 +1,9 @@
 prefix?=/usr/local
 
-mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O0 -D_GNU_SOURCE -I. $(CFLAGS)
+mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O0 -D_GNU_SOURCE -DPCRE2_CODE_UNIT_WIDTH=8 -I. $(CFLAGS)
 mle_ldflags:=$(LDFLAGS)
-mle_dynamic_libs:=-lpcre -llua5.4
-mle_static_libs:=vendor/pcre/.libs/libpcre.a vendor/lua/liblua5.4.a
+mle_dynamic_libs:=-lpcre2-8 -llua5.4
+mle_static_libs:=vendor/pcre2/.libs/libpcre2-8.a vendor/lua/liblua5.4.a
 mle_ldlibs:=-lm $(LDLIBS)
 mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
 mle_objects_no_main:=$(filter-out main.o,$(mle_objects))
@@ -20,7 +20,7 @@ endif
 
 ifdef mle_vendor
   mle_ldlibs:=$(mle_static_libs) $(mle_ldlibs)
-  mle_cflags:=-Ivendor/pcre -Ivendor -Ivendor/uthash/src $(mle_cflags)
+  mle_cflags:=-Ivendor/pcre2/src -Ivendor -Ivendor/uthash/src $(mle_cflags)
   mle_vendor_deps:=$(mle_static_libs)
 else
   mle_ldlibs:=$(mle_dynamic_libs) $(mle_ldlibs)

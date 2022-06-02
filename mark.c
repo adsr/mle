@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <pcre.h>
+#include <pcre2.h>
 #include "mlbuf.h"
 
 typedef char* (*mark_find_match_fn)(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *u1, void *u2, bint_t *ret_needle_len);
@@ -13,7 +13,8 @@ static char *mark_find_prev_str_matchfn(char *haystack, bint_t haystack_len, bin
 static char *mark_find_next_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len);
 static char *mark_find_prev_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len);
 
-static int *pcre_ovector = NULL;
+pcre2_match_data *pcre2_md = NULL;
+static PCRE2_SIZE *pcre_ovector = NULL;
 static int pcre_ovector_size = 0;
 static int *pcre_rc;
 static char bracket_pairs[8] = {
@@ -179,12 +180,12 @@ int mark_find_prev_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_li
 }
 
 // Find next occurence of regex from mark
-int mark_find_next_cre(mark_t *self, pcre *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
+int mark_find_next_cre(mark_t *self, pcre2_code *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_match(self, mark_find_next_cre_matchfn, (void*)cre, NULL, 0, ret_line, ret_col, ret_num_chars);
 }
 
 // Find prev occurence of regex from mark
-int mark_find_prev_cre(mark_t *self, pcre *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
+int mark_find_prev_cre(mark_t *self, pcre2_code *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     return mark_find_match(self, mark_find_prev_cre_matchfn, (void*)cre, NULL, 1, ret_line, ret_col, ret_num_chars);
 }
 
@@ -500,11 +501,11 @@ int mark_move_prev_str(mark_t *self, char *str, bint_t str_len) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_prev_str, str, str_len);
 }
 
-int mark_move_next_cre(mark_t *self, pcre *cre) {
+int mark_move_next_cre(mark_t *self, pcre2_code *cre) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_next_cre, cre);
 }
 
-int mark_move_prev_cre(mark_t *self, pcre *cre) {
+int mark_move_prev_cre(mark_t *self, pcre2_code *cre) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_prev_cre, cre);
 }
 
@@ -520,7 +521,7 @@ int mark_move_next_str_nudge(mark_t *self, char *str, bint_t str_len) {
     MLBUF_MARK_IMPLEMENT_NUDGE_VIA_FIND(self, mark_find_next_str, str, str_len);
 }
 
-int mark_move_next_cre_nudge(mark_t *self, pcre *cre) {
+int mark_move_next_cre_nudge(mark_t *self, pcre2_code *cre) {
     MLBUF_MARK_IMPLEMENT_NUDGE_VIA_FIND(self, mark_find_next_cre, cre);
 }
 
@@ -544,11 +545,11 @@ int mark_move_prev_str_ex(mark_t *self, char *str, bint_t str_len, bline_t **opt
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_prev_str, str, str_len);
 }
 
-int mark_move_next_cre_ex(mark_t *self, pcre *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
+int mark_move_next_cre_ex(mark_t *self, pcre2_code *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_next_cre, cre);
 }
 
-int mark_move_prev_cre_ex(mark_t *self, pcre *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
+int mark_move_prev_cre_ex(mark_t *self, pcre2_code *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_char_count) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND_EX(self, mark_find_prev_cre, cre);
 }
 
@@ -596,7 +597,7 @@ int mark_is_at_word_bound(mark_t *self, int side) {
 }
 
 // Set ovector for capturing substrs
-int mark_set_pcre_capture(int *rc, int *ovector, int ovector_size) {
+int mark_set_pcre_capture(int *rc, PCRE2_SIZE *ovector, int ovector_size) {
     if (rc == NULL || ovector == NULL || ovector_size == 0) {
         rc = NULL;
         pcre_ovector = NULL;
@@ -775,13 +776,13 @@ static char *mark_find_match_prev(char *haystack, bint_t haystack_len, bint_t lo
 static int mark_find_re(mark_t *self, char *re, bint_t re_len, int reverse, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars) {
     int rc;
     char *regex;
-    pcre *cre;
-    const char *error;
-    int erroffset;
+    pcre2_code *cre;
+    int errcode;
+    PCRE2_SIZE erroffset;
     MLBUF_MAKE_GT_EQ0(re_len);
     regex = malloc(re_len + 1);
     snprintf(regex, re_len + 1, "%s", re);
-    cre = pcre_compile((const char*)regex, PCRE_CASELESS, &error, &erroffset, NULL);
+    cre = pcre2_compile((PCRE2_SPTR)regex, (PCRE2_SIZE)strlen(regex), PCRE2_CASELESS, &errcode, &erroffset, NULL);
     if (cre == NULL) {
         // TODO log error
         free(regex);
@@ -792,7 +793,7 @@ static int mark_find_re(mark_t *self, char *re, bint_t re_len, int reverse, blin
     } else {
         rc = mark_find_next_cre(self, cre, ret_line, ret_col, ret_num_chars);
     }
-    pcre_free(cre);
+    pcre2_code_free(cre);
     free(regex);
     return rc;
 }
@@ -809,9 +810,9 @@ static char *mark_find_prev_str_matchfn(char *haystack, bint_t haystack_len, bin
 
 static char *mark_find_next_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len) {
     int rc;
-    int substrs[3];
+    PCRE2_SIZE substrs[3];
     int *use_rc;
-    int *use_substrs;
+    PCRE2_SIZE *use_substrs;
     int use_substrs_size;
     if (!haystack || haystack_len == 0) {
         haystack = "";
@@ -826,8 +827,8 @@ static char *mark_find_next_cre_matchfn(char *haystack, bint_t haystack_len, bin
         use_substrs_size = 3;
         use_rc = &rc;
     }
-    MLBUF_INIT_PCRE_EXTRA(pcre_extra);
-    if ((*use_rc = pcre_exec((pcre*)cre, &pcre_extra, haystack, haystack_len, look_offset, 0, use_substrs, use_substrs_size)) >= 0) {
+    if ((*use_rc = pcre2_match((pcre2_code *)cre, (PCRE2_SPTR)haystack, (PCRE2_SIZE)haystack_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL)) >= 0) {
+        memcpy(use_substrs, pcre2_get_ovector_pointer(pcre2_md), use_substrs_size * sizeof(PCRE2_SIZE));
         if (ret_needle_len) *ret_needle_len = (bint_t)(use_substrs[1] - use_substrs[0]);
         return haystack + use_substrs[0];
     }

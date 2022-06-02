@@ -277,7 +277,7 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
     bint_t char_count;
     bint_t orig_viewport_y;
     int pcre_rc;
-    int pcre_ovector[30];
+    PCRE2_SIZE pcre_ovector[30];
     str_t repl_backref = {0};
     int num_replacements;
 
