@@ -219,14 +219,15 @@ int util_is_dir(char *path) {
 // Return 1 if re matches subject
 int util_pcre_match(char *re, char *subject, int subject_len, char **optret_capture, int *optret_capture_len) {
     int rc;
-    pcre *cre;
-    const char *error;
-    int erroffset;
-    int ovector[3];
-    cre = pcre_compile((const char*)re, (optret_capture ? 0 : PCRE_NO_AUTO_CAPTURE) | PCRE_CASELESS, &error, &erroffset, NULL);
+    pcre2_code *cre;
+    int errcode;
+    PCRE2_SIZE erroffset;
+    PCRE2_SIZE ovector[3];
+    cre = pcre2_compile((PCRE2_SPTR)re, (PCRE2_SIZE)strlen(re), (optret_capture ? 0 : PCRE2_NO_AUTO_CAPTURE) | PCRE2_CASELESS, &errcode, &erroffset, NULL);
     if (!cre) return 0;
-    rc = pcre_exec(cre, NULL, subject, subject_len, 0, 0, ovector, 3);
-    pcre_free(cre);
+    rc = pcre2_match(cre, (PCRE2_SPTR)subject, (PCRE2_SIZE)subject_len, 0, 0, pcre2_md, NULL);
+    memcpy(ovector, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
+    pcre2_code_free(cre);
     if (optret_capture) {
         if (rc >= 0) {
             *optret_capture = subject + ovector[0];
@@ -244,15 +245,15 @@ int util_pcre_match(char *re, char *subject, int subject_len, char **optret_capt
 // set to 0 and 0 is returned.
 int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *ret_result_len) {
     int rc;
-    pcre *cre;
-    const char *error;
-    int erroffset;
+    pcre2_code *cre;
+    int errcode;
+    PCRE2_SIZE erroffset;
     int subj_offset;
     int subj_offset_z;
     int subj_len;
     int subj_look_offset;
     int last_look_offset;
-    int ovector[30];
+    PCRE2_SIZE ovector[30];
     int num_repls;
     int got_match = 0;
     str_t result = {0};
@@ -261,7 +262,7 @@ int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *
     *ret_result_len = 0;
 
     // Compile regex
-    cre = pcre_compile((const char*)re, PCRE_CASELESS, &error, &erroffset, NULL);
+    cre = pcre2_compile((PCRE2_SPTR)re, (PCRE2_SIZE)strlen(re), PCRE2_CASELESS, &errcode, &erroffset, NULL);
     if (!cre) return 0;
 
     // Start match-replace loop
@@ -273,8 +274,9 @@ int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *
     last_look_offset = 0;
     while (subj_offset < subj_len) {
         // Find match
-        rc = pcre_exec(cre, NULL, subj, subj_len, subj_look_offset, 0, ovector, 30);
-        if (rc < 0 || ovector[0] < 0) {
+        rc = pcre2_match(cre, (PCRE2_SPTR)subj, (PCRE2_SIZE)subj_len, (PCRE2_SIZE)subj_look_offset, 0, pcre2_md, NULL);
+        memcpy(ovector, pcre2_get_ovector_pointer(pcre2_md), 30 * sizeof(PCRE2_SIZE));
+        if (rc < 0 || ovector[0] == PCRE2_UNSET) {
             got_match = 0;
             subj_offset_z = subj_len;
         } else {
@@ -299,7 +301,7 @@ int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *
     }
 
     // Free regex
-    pcre_free(cre);
+    pcre2_code_free(cre);
 
     // Return result
     *ret_result = result.data ? result.data : strdup("");
@@ -575,7 +577,7 @@ void str_free(str_t *str) {
 //   pcre_ovector  ovector used with pcre_exec
 //   pcre_ovecsize size of pcre_ovector
 //
-void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, int *pcre_ovector, int pcre_ovecsize) {
+void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, PCRE2_SIZE *pcre_ovector, int pcre_ovecsize) {
     char *repl_stop;
     char *repl_cur;
     char *repl_z;

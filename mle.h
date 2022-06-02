@@ -588,13 +588,6 @@ char *util_escape_shell_arg(char *str, int l);
 void util_expand_tilde(char *path, int path_len, char **ret_path, int *ret_path_len);
 int tb_printf_rect(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, const char *fmt, ...);
 int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
-void str_append_stop(str_t *str, char *data, char *data_stop);
-void str_append(str_t *str, char *data);
-void str_append_len(str_t *str, char *data, size_t data_len);
-void str_ensure_cap(str_t *str, size_t cap);
-void str_clear(str_t *str);
-void str_free(str_t *str);
-void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, int *pcre_ovector, int pcre_ovecsize);
 
 // Globals
 extern editor_t _editor;
@@ -695,7 +688,6 @@ extern editor_t _editor;
 /*
 TODO major changes
 [ ] delete lua api
-[ ] upgrade to pcre2
 [ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks; consolidate input_trail + pastebuf)
 [ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)

@@ -82,6 +82,13 @@ int editor_init(editor_t *editor, int argc, char **argv) {
     char *home_rc;
     rv = MLE_OK;
     do {
+        // Create a resuable PCRE2 match data block. This is hacky / lazy. PCRE
+        // is used all over the place, even in places where there's no easy way
+        // to get at a shared state, e.g., mark.c. Also feels wasteful to keep
+        // reallocating this thing, so let's just create one with 10 match
+        // slots which is the most we ever use. Free in editor_deinit.
+        pcre2_md = pcre2_match_data_create(10, NULL);
+
         // Set editor defaults
         editor->is_in_init = 1;
         editor->tab_width = MLE_DEFAULT_TAB_WIDTH;
@@ -224,6 +231,9 @@ int editor_deinit(editor_t *editor) {
     if (editor->cut_buffer) free(editor->cut_buffer);
     if (editor->ttyfd) close(editor->ttyfd);
     if (editor->startup_macro_name) free(editor->startup_macro_name);
+
+    pcre2_match_data_free(pcre2_md);
+
     return MLE_OK;
 }
 
@@ -823,7 +833,7 @@ static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx) {
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx) {
     bview_t *bview;
     mark_t *mark;
-    pcre *cre;
+    pcre2_code *cre;
     cursor_t *orig_cursor;
     cursor_t *last_cursor;
     bint_t nchars;

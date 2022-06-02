@@ -3,7 +3,7 @@
 char *str = "Ervin won gold at age 35!";
 
 void test(buffer_t *buf, mark_t *cur) {
-    int ovector[6] = {0};
+    PCRE2_SIZE ovector[6] = {0};
     int rc = 0;
     bline_t *bline;
     bint_t col;

@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <pcre.h>
+#include <pcre2.h>
 #include <utlist.h>
 
 // Typedefs
@@ -141,10 +141,8 @@ struct srule_s {
     int type; // MLBUF_SRULE_TYPE_*
     char *re;
     char *re_end;
-    pcre *cre;
-    pcre *cre_end;
-    pcre_extra *crex;
-    pcre_extra *crex_end;
+    pcre2_code *cre;
+    pcre2_code *cre_end;
     mark_t *range_a;
     mark_t *range_b;
     sblock_t style;
@@ -220,10 +218,10 @@ int mark_delete_between_mark(mark_t *self, mark_t *other);
 int mark_destroy(mark_t *self);
 int mark_find_bracket_pair(mark_t *self, bint_t max_chars, bline_t **ret_line, bint_t *ret_col, bint_t *ret_brkt);
 int mark_find_bracket_top(mark_t *self, bint_t max_chars, bline_t **ret_line, bint_t *ret_col, bint_t *ret_brkt);
-int mark_find_next_cre(mark_t *self, pcre *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
+int mark_find_next_cre(mark_t *self, pcre2_code *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 int mark_find_next_re(mark_t *self, char *re, bint_t re_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 int mark_find_next_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
-int mark_find_prev_cre(mark_t *self, pcre *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
+int mark_find_prev_cre(mark_t *self, pcre2_code *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 int mark_find_prev_re(mark_t *self, char *re, bint_t re_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 int mark_find_prev_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 int mark_get_between_mark(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len);
@@ -254,9 +252,9 @@ int mark_move_by(mark_t *self, bint_t char_delta);
 int mark_move_col(mark_t *self, bint_t col);
 int mark_move_end(mark_t *self);
 int mark_move_eol(mark_t *self);
-int mark_move_next_cre_ex(mark_t *self, pcre *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_num_chars);
-int mark_move_next_cre(mark_t *self, pcre *cre);
-int mark_move_next_cre_nudge(mark_t *self, pcre *cre);
+int mark_move_next_cre_ex(mark_t *self, pcre2_code *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_num_chars);
+int mark_move_next_cre(mark_t *self, pcre2_code *cre);
+int mark_move_next_cre_nudge(mark_t *self, pcre2_code *cre);
 int mark_move_next_re_ex(mark_t *self, char *re, bint_t re_len, bline_t **optret_line, bint_t *optret_col, bint_t *optret_num_chars);
 int mark_move_next_re(mark_t *self, char *re, bint_t re_len);
 int mark_move_next_re_nudge(mark_t *self, char *re, bint_t re_len);
@@ -264,8 +262,8 @@ int mark_move_next_str_ex(mark_t *self, char *str, bint_t str_len, bline_t **opt
 int mark_move_next_str(mark_t *self, char *str, bint_t str_len);
 int mark_move_next_str_nudge(mark_t *self, char *str, bint_t str_len);
 int mark_move_offset(mark_t *self, bint_t offset);
-int mark_move_prev_cre_ex(mark_t *self, pcre *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_num_chars);
-int mark_move_prev_cre(mark_t *self, pcre *cre);
+int mark_move_prev_cre_ex(mark_t *self, pcre2_code *cre, bline_t **optret_line, bint_t *optret_col, bint_t *optret_num_chars);
+int mark_move_prev_cre(mark_t *self, pcre2_code *cre);
 int mark_move_prev_re_ex(mark_t *self, char *re, bint_t re_len, bline_t **optret_line, bint_t *optret_col, bint_t *optret_num_chars);
 int mark_move_prev_re(mark_t *self, char *re, bint_t re_len);
 int mark_move_prev_str_ex(mark_t *self, char *str, bint_t str_len, bline_t **optret_line, bint_t *optret_col, bint_t *optret_num_chars);
@@ -275,7 +273,7 @@ int mark_move_to_w_bline(mark_t *self, bline_t *bline, bint_t col);
 int mark_move_vert(mark_t *self, bint_t line_delta);
 int mark_replace_between_mark(mark_t *self, mark_t *other, char *data, bint_t data_len);
 int mark_replace(mark_t *self, bint_t num_chars, char *data, bint_t data_len);
-int mark_set_pcre_capture(int *rc, int *ovector, int ovector_size);
+int mark_set_pcre_capture(int *rc, PCRE2_SIZE *ovector, int ovector_size);
 int mark_swap_with_mark(mark_t *self, mark_t *other);
 
 // srule functions
@@ -306,7 +304,10 @@ void str_ensure_cap(str_t *str, size_t cap);
 void str_clear(str_t *str);
 void str_free(str_t *str);
 void str_sprintf(str_t *str, const char *fmt, ...);
-void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, int *pcre_ovector, int pcre_ovecsize);
+void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, PCRE2_SIZE *pcre_ovector, int pcre_ovecsize);
+
+// Globals
+extern pcre2_match_data *pcre2_md;
 
 // Macros
 #define MLBUF_DEBUG 1
@@ -345,9 +346,6 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
 
 #define MLBUF_MAKE_GT_EQ0(v) if ((v) < 0) v = 0
 
-#define MLBUF_INIT_PCRE_EXTRA(n) \
-    pcre_extra n = { .flags = PCRE_EXTRA_MATCH_LIMIT_RECURSION, .match_limit_recursion = 256 }
-
 #define MLBUF_ENSURE_AZ(c) \
     if ((c) < 'a' || (c) > 'z') return MLBUF_ERR
 
@@ -356,15 +354,5 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
 
 #define MLBUF_LETT_MARK(buf, lett) \
     (buf)->lettered_marks[(lett) - 'a']
-
-#ifndef PCRE_STUDY_JIT_COMPILE
-#define PCRE_STUDY_JIT_COMPILE 0
-#endif
-
-#ifdef PCRE_CONFIG_JIT
-#define pcre_free_study_ex pcre_free_study
-#else
-#define pcre_free_study_ex pcre_free
-#endif
 
 #endif
