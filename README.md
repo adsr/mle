@@ -63,7 +63,7 @@ You can also run plain `make` to link against system libraries instead of
 
     uthash-dev
     liblua5.4-dev
-    libpcre3-dev
+    libpcre2-dev
 
 To install to `/usr/local/bin`:
 
@@ -183,4 +183,4 @@ mle makes extensive use of the following libraries.
 
 * [uthash](https://troydhanson.github.io/uthash) for hash maps and linked lists
 * [termbox2](https://github.com/termbox/termbox2) for TUI
-* [PCRE](http://www.pcre.org/) for syntax highlighting and search
+* [PCRE2](http://www.pcre.org/) for syntax highlighting and search
