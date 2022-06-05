@@ -6,9 +6,9 @@ description: |
   scriptable rc file, macros, search and replace (PCRE), window 
   splitting, multiple cursors, and integration with various shell 
   commands.
-version: 1.4.3
+version: 1.5.0
 license: Apache-2.0
-base: core20
+base: core22
 grade: stable
 confinement: strict
 
@@ -20,6 +20,10 @@ parts:
   mle:
     plugin: make
     source: https://github.com/adsr/mle.git
-    source-tag: v1.4.3
-    build-packages: [uthash-dev, liblua5.3-dev, libpcre3-dev]
-    stage-packages: [liblua5.3-0, libpcre3, fzf, tree, less, perl, universal-ctags]
+    source-commit: 466febb604027149a341a3c75a7fb8b386b942fa
+    source-type: git
+    make-parameters: ["mle_vendor=1", "mle_static=1"]
+    build-environment:
+    - SNAPCRAFT_PARALLEL_BUILD_COUNT: "1"
+    build-packages: [libtool, automake]
+    stage-packages: [fzf, tree, less, perl, universal-ctags]
