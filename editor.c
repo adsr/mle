@@ -1275,6 +1275,12 @@ static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t
         loop_ctx->input_trail_len = 0;
     }
 
+    if (!rv && !loop_ctx->need_more_input) {
+        // No chance of command being found
+        loop_ctx->input_trail_idx = 0;
+        loop_ctx->input_trail_len = 0;
+    }
+
     return rv;
 }
 
