@@ -39,6 +39,7 @@ static int _cmd_save(editor_t *editor, bview_t *bview, int save_as);
 static int _cmd_search_ex(cmd_context_t *ctx, int is_prev);
 static int _cmd_search_next_ex(cmd_context_t *ctx, int is_prev);
 static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mark, char *regex, int regex_len, int is_prev);
+static int _cmd_find_word_ex(cmd_context_t *ctx, int is_prev);
 static void _cmd_aproc_bview_passthru_cb(aproc_t *aproc, char *buf, size_t buf_len);
 static void _cmd_isearch_prompt_cb(bview_t *bview_prompt, baction_t *action, void *udata);
 static int _cmd_menu_grep_cb(cmd_context_t *ctx);
@@ -496,25 +497,12 @@ int cmd_viewport_toggle(cmd_context_t *ctx) {
 
 // Find next occurence of word under cursor
 int cmd_find_word(cmd_context_t *ctx) {
-    char *re;
-    char *word;
-    bint_t re_len;
-    bint_t word_len;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        if (cursor_select_by(cursor, "word", 0) == MLE_OK) {
-            mark_get_between_mark(cursor->mark, cursor->anchor, &word, &word_len);
-            re_len = asprintf(&re, "\\b%s\\b", word);
-            free(word);
-            cursor_toggle_anchor(cursor, 0);
-            if (mark_move_next_re(cursor->mark, re, re_len) == MLBUF_ERR) {
-                mark_move_beginning(cursor->mark);
-                mark_move_next_re(cursor->mark, re, re_len);
-            }
-            free(re);
-        }
-    );
-    bview_rectify_viewport(ctx->bview);
-    return MLE_OK;
+    return _cmd_find_word_ex(ctx, 0);
+}
+
+// Find prev occurence of word under cursor
+int cmd_rfind_word(cmd_context_t *ctx) {
+    return _cmd_find_word_ex(ctx, 1);
 }
 
 // Incremental search
@@ -1117,35 +1105,6 @@ int cmd_suspend(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
-// Indent or outdent line(s)
-static int _cmd_indent(cmd_context_t *ctx, int outdent) {
-    bline_t *start;
-    bline_t *end;
-    bline_t *cur;
-    int use_tabs;
-    use_tabs = ctx->bview->tab_to_space ? 0 : 1;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        start = cursor->mark->bline;
-        if (cursor->is_anchored) {
-            end = cursor->anchor->bline;
-            if (start->line_index > end->line_index) {
-                cur = end;
-                end = start;
-                start = cur;
-            }
-        } else {
-            end = start;
-        }
-        ctx->buffer->is_style_disabled++;
-        for (cur = start; cur != end->next; cur = cur->next) {
-            _cmd_indent_line(cur, use_tabs, outdent);
-        }
-        ctx->buffer->is_style_disabled--;
-        buffer_apply_styles(ctx->buffer, start, end->line_index - start->line_index);
-    );
-    return MLE_OK;
-}
-
 // Push kmap
 int cmd_push_kmap(cmd_context_t *ctx) {
     kmap_t *kmap;
@@ -1323,6 +1282,35 @@ int cmd_show_help(cmd_context_t *ctx) {
     bview_zero_viewport_y(bview);
 
     str_free(&h);
+    return MLE_OK;
+}
+
+// Indent or outdent line(s)
+static int _cmd_indent(cmd_context_t *ctx, int outdent) {
+    bline_t *start;
+    bline_t *end;
+    bline_t *cur;
+    int use_tabs;
+    use_tabs = ctx->bview->tab_to_space ? 0 : 1;
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        start = cursor->mark->bline;
+        if (cursor->is_anchored) {
+            end = cursor->anchor->bline;
+            if (start->line_index > end->line_index) {
+                cur = end;
+                end = start;
+                start = cur;
+            }
+        } else {
+            end = start;
+        }
+        ctx->buffer->is_style_disabled++;
+        for (cur = start; cur != end->next; cur = cur->next) {
+            _cmd_indent_line(cur, use_tabs, outdent);
+        }
+        ctx->buffer->is_style_disabled--;
+        buffer_apply_styles(ctx->buffer, start, end->line_index - start->line_index);
+    );
     return MLE_OK;
 }
 
@@ -1559,6 +1547,45 @@ static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mar
     if (rc == MLE_OK) bview_rectify_viewport(bview);
 
     return rc;
+}
+
+// Find next/prev occurence of word under cursor
+static int _cmd_find_word_ex(cmd_context_t *ctx, int is_prev) {
+    char *re;
+    char *word;
+    bint_t re_len;
+    bint_t word_len;
+    int (*move_next_prev_re)(mark_t *, char *, bint_t);
+    int (*move_next_prev_re_nudge)(mark_t *, char *, bint_t);
+    int (*move_beginning_end)(mark_t *);
+
+    if (is_prev) {
+        move_next_prev_re_nudge = mark_move_prev_re;
+        move_next_prev_re = mark_move_prev_re;
+        move_beginning_end = mark_move_end;
+    } else {
+        move_next_prev_re_nudge = mark_move_next_re_nudge;
+        move_next_prev_re = mark_move_next_re;
+        move_beginning_end = mark_move_beginning;
+    }
+
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        if (cursor_select_by(cursor, "word", 0) == MLE_OK) {
+            mark_swap_with_mark(cursor->mark, cursor->anchor);
+            mark_get_between_mark(cursor->mark, cursor->anchor, &word, &word_len);
+            re_len = asprintf(&re, "\\b%s\\b", word);
+            free(word);
+            cursor_toggle_anchor(cursor, 0);
+            if (move_next_prev_re_nudge(cursor->mark, re, re_len) == MLBUF_ERR) {
+                move_beginning_end(cursor->mark);
+                move_next_prev_re(cursor->mark, re, re_len);
+            }
+            free(re);
+        }
+    );
+
+    bview_rectify_viewport(ctx->bview);
+    return MLE_OK;
 }
 
 // Aproc callback that writes buf to bview buffer

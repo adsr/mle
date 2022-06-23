@@ -1531,6 +1531,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
     _editor_register_cmd_fn(editor, "cmd_repeat", cmd_repeat);
     _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
+    _editor_register_cmd_fn(editor, "cmd_rfind_word", cmd_rfind_word);
     _editor_register_cmd_fn(editor, "cmd_rsearch", cmd_rsearch);
     _editor_register_cmd_fn(editor, "cmd_save_as", cmd_save_as);
     _editor_register_cmd_fn(editor, "cmd_save", cmd_save);
@@ -1618,6 +1619,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
         MLE_KBINDING_DEF("cmd_search_prev", "CM-g"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),
+        MLE_KBINDING_DEF("cmd_rfind_word", "CM-v"),
         MLE_KBINDING_DEF("cmd_isearch", "C-r"),
         MLE_KBINDING_DEF("cmd_repeat", "f5"),
         MLE_KBINDING_DEF("cmd_replace", "C-t"),

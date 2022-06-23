@@ -49,6 +49,13 @@ expected[find_wrap_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
 expected[find_wrap_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
+# cmd_rfind_word
+macro='h i enter h i enter h i C-a CM-v'
+declare -A expected
+expected[rfind_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
+expected[rfind_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
+source 'test.sh'
+
 # cmd_isearch
 macro='a c t o r enter a p p l e enter a p p e t i t e enter a z u r e M-\ C-r a p p e enter'
 declare -A expected

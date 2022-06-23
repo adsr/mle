@@ -544,6 +544,7 @@ int cmd_redraw(cmd_context_t *ctx);
 int cmd_remove_extra_cursors(cmd_context_t *ctx);
 int cmd_repeat(cmd_context_t *ctx);
 int cmd_replace(cmd_context_t *ctx);
+int cmd_rfind_word(cmd_context_t *ctx);
 int cmd_rsearch(cmd_context_t *ctx);
 int cmd_save_as(cmd_context_t *ctx);
 int cmd_save(cmd_context_t *ctx);
