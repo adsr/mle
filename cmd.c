@@ -425,6 +425,11 @@ int cmd_search(cmd_context_t *ctx) {
     return _cmd_search_ex(ctx, 0);
 }
 
+// Reverse search for a regex
+int cmd_rsearch(cmd_context_t *ctx) {
+    return _cmd_search_ex(ctx, 1);
+}
+
 // Search for next instance of last search regex
 int cmd_search_next(cmd_context_t *ctx) {
     return _cmd_search_next_ex(ctx, 0);
@@ -1484,7 +1489,7 @@ static int _cmd_search_ex(cmd_context_t *ctx, int is_prev) {
     char *regex;
     int regex_len;
     mark_t *search_mark;
-    editor_prompt(ctx->editor, "search: Regex?", NULL, &regex);
+    editor_prompt(ctx->editor, is_prev ? "rsearch: Regex?" : "search: Regex?", NULL, &regex);
     if (!regex) return MLE_OK;
     regex_len = strlen(regex);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);

@@ -7,6 +7,13 @@ expected[search_cursor_line]='^bview.0.cursor.0.mark.line_index=0$'
 expected[search_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
+# cmd_rsearch
+macro='h i enter h i enter h i enter CM-f h i enter'
+declare -A expected
+expected[rsearch_cursor_line]='^bview.0.cursor.0.mark.line_index=2$'
+expected[rsearch_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
+source 'test.sh'
+
 # cmd_search_next
 macro='h i enter h i enter h i enter C-f h i enter C-g'
 declare -A expected

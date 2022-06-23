@@ -1507,13 +1507,13 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_move_page_up", cmd_move_page_up);
     _editor_register_cmd_fn(editor, "cmd_move_relative", cmd_move_relative);
     _editor_register_cmd_fn(editor, "cmd_move_right", cmd_move_right);
+    _editor_register_cmd_fn(editor, "cmd_move_temp_anchor", cmd_move_temp_anchor);
     _editor_register_cmd_fn(editor, "cmd_move_to_line", cmd_move_to_line);
     _editor_register_cmd_fn(editor, "cmd_move_until_back", cmd_move_until_back);
     _editor_register_cmd_fn(editor, "cmd_move_until_forward", cmd_move_until_forward);
     _editor_register_cmd_fn(editor, "cmd_move_up", cmd_move_up);
     _editor_register_cmd_fn(editor, "cmd_move_word_back", cmd_move_word_back);
     _editor_register_cmd_fn(editor, "cmd_move_word_forward", cmd_move_word_forward);
-    _editor_register_cmd_fn(editor, "cmd_move_temp_anchor", cmd_move_temp_anchor);
     _editor_register_cmd_fn(editor, "cmd_next", cmd_next);
     _editor_register_cmd_fn(editor, "cmd_open_file", cmd_open_file);
     _editor_register_cmd_fn(editor, "cmd_open_new", cmd_open_new);
@@ -1531,6 +1531,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
     _editor_register_cmd_fn(editor, "cmd_repeat", cmd_repeat);
     _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
+    _editor_register_cmd_fn(editor, "cmd_rsearch", cmd_rsearch);
     _editor_register_cmd_fn(editor, "cmd_save_as", cmd_save_as);
     _editor_register_cmd_fn(editor, "cmd_save", cmd_save);
     _editor_register_cmd_fn(editor, "cmd_search", cmd_search);
@@ -1542,8 +1543,8 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_split_horizontal", cmd_split_horizontal);
     _editor_register_cmd_fn(editor, "cmd_split_vertical", cmd_split_vertical);
     _editor_register_cmd_fn(editor, "cmd_suspend", cmd_suspend);
-    _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
     _editor_register_cmd_fn(editor, "cmd_swap_anchor", cmd_swap_anchor);
+    _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
     _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
     _editor_register_cmd_fn(editor, "cmd_uncut_last", cmd_uncut_last);
     _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
@@ -1562,8 +1563,8 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_drop_cursors", _editor_prompt_isearch_drop_cursors);
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_next", _editor_prompt_isearch_next);
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_prev", _editor_prompt_isearch_prev);
-    _editor_register_cmd_fn(editor, "_editor_prompt_isearch_viewport_up", _editor_prompt_isearch_viewport_up);
     _editor_register_cmd_fn(editor, "_editor_prompt_isearch_viewport_down", _editor_prompt_isearch_viewport_down);
+    _editor_register_cmd_fn(editor, "_editor_prompt_isearch_viewport_up", _editor_prompt_isearch_viewport_up);
     _editor_register_cmd_fn(editor, "_editor_prompt_yna_all", _editor_prompt_yna_all);
     _editor_register_cmd_fn(editor, "_editor_prompt_yn_no", _editor_prompt_yn_no);
     _editor_register_cmd_fn(editor, "_editor_prompt_yn_yes", _editor_prompt_yn_yes);
@@ -1613,6 +1614,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "CS-right", "word_forward"),
         MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "CS-left", "word_back"),
         MLE_KBINDING_DEF("cmd_search", "C-f"),
+        MLE_KBINDING_DEF("cmd_rsearch", "CM-f"),
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
         MLE_KBINDING_DEF("cmd_search_prev", "CM-g"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),
