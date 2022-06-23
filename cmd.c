@@ -30,19 +30,21 @@
     } \
 } while(0)
 
-static int _cmd_pre_close(editor_t *editor, bview_t *bview);
+static int _cmd_indent(cmd_context_t *ctx, int outdent);
+static void _cmd_help_inner(char *buf, kbinding_t *trie, str_t *h);
+static int _cmd_indent_line(bline_t *bline, int use_tabs, int outdent);
 static int _cmd_quit_inner(editor_t *editor, bview_t *bview);
+static int _cmd_pre_close(editor_t *editor, bview_t *bview);
 static int _cmd_save(editor_t *editor, bview_t *bview, int save_as);
-static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mark, char *regex, int regex_len);
-static void _cmd_aproc_bview_passthru_cb(aproc_t *self, char *buf, size_t buf_len);
-static void _cmd_isearch_prompt_cb(bview_t *bview, baction_t *action, void *udata);
-static int _cmd_menu_browse_cb(cmd_context_t *ctx);
-static int _cmd_menu_blist_cb(cmd_context_t *ctx);
+static int _cmd_search_ex(cmd_context_t *ctx, int is_prev);
+static int _cmd_search_next_ex(cmd_context_t *ctx, int is_prev);
+static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mark, char *regex, int regex_len, int is_prev);
+static void _cmd_aproc_bview_passthru_cb(aproc_t *aproc, char *buf, size_t buf_len);
+static void _cmd_isearch_prompt_cb(bview_t *bview_prompt, baction_t *action, void *udata);
 static int _cmd_menu_grep_cb(cmd_context_t *ctx);
 static int _cmd_menu_ctag_cb(cmd_context_t *ctx);
-static int _cmd_indent(cmd_context_t *ctx, int outdent);
-static int _cmd_indent_line(bline_t *bline, int use_tabs, int outdent);
-static void _cmd_help_inner(char *buf, kbinding_t *trie, str_t *h);
+static int _cmd_menu_browse_cb(cmd_context_t *ctx);
+static int _cmd_menu_blist_cb(cmd_context_t *ctx);
 static void _cmd_insert_auto_indent_newline(cmd_context_t *ctx);
 static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t *ctx);
 static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd);
@@ -420,34 +422,17 @@ int cmd_drop_cursor_column(cmd_context_t *ctx) {
 
 // Search for a regex
 int cmd_search(cmd_context_t *ctx) {
-    char *regex;
-    int regex_len;
-    mark_t *search_mark;
-    editor_prompt(ctx->editor, "search: Regex?", NULL, &regex);
-    if (!regex) return MLE_OK;
-    regex_len = strlen(regex);
-    search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_search_next(ctx->bview, cursor, search_mark, regex, regex_len);
-    );
-    mark_destroy(search_mark);
-    if (ctx->bview->last_search) free(ctx->bview->last_search);
-    ctx->bview->last_search = regex;
-    return MLE_OK;
+    return _cmd_search_ex(ctx, 0);
 }
 
 // Search for next instance of last search regex
 int cmd_search_next(cmd_context_t *ctx) {
-    int regex_len;
-    mark_t *search_mark;
-    if (!ctx->bview->last_search) return MLE_OK;
-    regex_len = strlen(ctx->bview->last_search);
-    search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
-        _cmd_search_next(ctx->bview, cursor, search_mark, ctx->bview->last_search, regex_len);
-    );
-    mark_destroy(search_mark);
-    return MLE_OK;
+    return _cmd_search_next_ex(ctx, 0);
+}
+
+// Search for prev instance of last search regex
+int cmd_search_prev(cmd_context_t *ctx) {
+    return _cmd_search_next_ex(ctx, 1);
 }
 
 // Interactive search and replace
@@ -1494,24 +1479,71 @@ static int _cmd_save(editor_t *editor, bview_t *bview, int save_as) {
     return rc == MLBUF_OK ? MLE_OK : MLE_ERR;
 }
 
+// Search for a regex
+static int _cmd_search_ex(cmd_context_t *ctx, int is_prev) {
+    char *regex;
+    int regex_len;
+    mark_t *search_mark;
+    editor_prompt(ctx->editor, "search: Regex?", NULL, &regex);
+    if (!regex) return MLE_OK;
+    regex_len = strlen(regex);
+    search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        _cmd_search_next(ctx->bview, cursor, search_mark, regex, regex_len, is_prev);
+    );
+    mark_destroy(search_mark);
+    if (ctx->bview->last_search) free(ctx->bview->last_search);
+    ctx->bview->last_search = regex;
+    return MLE_OK;
+}
+
+// Search for next instance of last search regex
+static int _cmd_search_next_ex(cmd_context_t *ctx, int is_prev) {
+    int regex_len;
+    mark_t *search_mark;
+    if (!ctx->bview->last_search) return MLE_OK;
+    regex_len = strlen(ctx->bview->last_search);
+    search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        _cmd_search_next(ctx->bview, cursor, search_mark, ctx->bview->last_search, regex_len, is_prev);
+    );
+    mark_destroy(search_mark);
+    return MLE_OK;
+}
+
 // Move cursor to next occurrence of term, wrap if necessary. Return MLE_OK if
 // there was a match, or MLE_ERR if no match.
-static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mark, char *regex, int regex_len) {
+static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mark, char *regex, int regex_len, int is_prev) {
     int rc;
+    int (*move_next_prev_re_nudge)(mark_t *, char *, bint_t);
+    int (*move_next_prev_re)(mark_t *, char *, bint_t);
+    int (*move_beginning_end)(mark_t *);
+
     rc = MLE_ERR;
+
+    // Set func pointers
+    if (is_prev) {
+        move_next_prev_re_nudge = mark_move_prev_re;
+        move_next_prev_re = mark_move_prev_re;
+        move_beginning_end = mark_move_end;
+    } else {
+        move_next_prev_re_nudge = mark_move_next_re_nudge;
+        move_next_prev_re = mark_move_next_re;
+        move_beginning_end = mark_move_beginning;
+    }
 
     // Move search_mark to cursor
     mark_join(search_mark, cursor->mark);
 
     // Look for match ahead of us
-    if (mark_move_next_re_nudge(search_mark, regex, regex_len) == MLBUF_OK) {
+    if (move_next_prev_re_nudge(search_mark, regex, regex_len) == MLBUF_OK) {
         // Match! Move there
         mark_join(cursor->mark, search_mark);
         rc = MLE_OK;
     } else {
         // No match, try from beginning
-        mark_move_beginning(search_mark);
-        if (mark_move_next_re(search_mark, regex, regex_len) == MLBUF_OK) {
+        move_beginning_end(search_mark);
+        if (move_next_prev_re(search_mark, regex, regex_len) == MLBUF_OK) {
             // Match! Move there
             mark_join(cursor->mark, search_mark);
             rc = MLE_OK;

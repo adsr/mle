@@ -1535,6 +1535,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_save", cmd_save);
     _editor_register_cmd_fn(editor, "cmd_search", cmd_search);
     _editor_register_cmd_fn(editor, "cmd_search_next", cmd_search_next);
+    _editor_register_cmd_fn(editor, "cmd_search_prev", cmd_search_prev);
     _editor_register_cmd_fn(editor, "cmd_set_opt", cmd_set_opt);
     _editor_register_cmd_fn(editor, "cmd_shell", cmd_shell);
     _editor_register_cmd_fn(editor, "cmd_show_help", cmd_show_help);
@@ -1613,6 +1614,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF_EX("cmd_move_temp_anchor", "CS-left", "word_back"),
         MLE_KBINDING_DEF("cmd_search", "C-f"),
         MLE_KBINDING_DEF("cmd_search_next", "C-g"),
+        MLE_KBINDING_DEF("cmd_search_prev", "CM-g"),
         MLE_KBINDING_DEF("cmd_find_word", "C-v"),
         MLE_KBINDING_DEF("cmd_isearch", "C-r"),
         MLE_KBINDING_DEF("cmd_repeat", "f5"),

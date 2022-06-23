@@ -8,10 +8,17 @@ expected[search_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
 # cmd_search_next
-macro='h e l l o enter h e l l o C-f h e l l o enter C-g'
+macro='h i enter h i enter h i enter C-f h i enter C-g'
 declare -A expected
 expected[next_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
 expected[next_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
+source 'test.sh'
+
+# cmd_search_prev (wrap)
+macro='h i enter h i enter h i enter C-f h i enter CM-g'
+declare -A expected
+expected[prev_wrap_cursor_line]='^bview.0.cursor.0.mark.line_index=2$'
+expected[prev_wrap_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
 # cmd_search_next (wrap)
