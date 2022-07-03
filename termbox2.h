@@ -36,28 +36,24 @@ SOFTWARE.
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#if !TB_OPT_SELECT
-#include <poll.h>
-#else
-#include <sys/select.h>
-#endif
-#include <limits.h>
-#include <signal.h>
 #include <termios.h>
 #include <unistd.h>
 #include <wchar.h>
 
 #ifdef __cplusplus
-extern "C" { // __ffi_strip
+extern "C" {
 #endif
 
 /* ASCII key constants (tb_event.key) */
@@ -199,35 +195,48 @@ extern "C" { // __ffi_strip
 #define TB_UNDERLINE            0x0200
 #define TB_REVERSE              0x0400
 #define TB_ITALIC               0x0800
+#define TB_BLINK                0x1000
+#ifdef TB_OPT_TRUECOLOR
+#define TB_TRUECOLOR_BOLD      0x01000000
+#define TB_TRUECOLOR_UNDERLINE 0x02000000
+#define TB_TRUECOLOR_REVERSE   0x04000000
+#define TB_TRUECOLOR_ITALIC    0x08000000
+#define TB_TRUECOLOR_BLINK     0x10000000
+#endif
 
 /* Event types (tb_event.type) */
-#define TB_EVENT_KEY            1
-#define TB_EVENT_RESIZE         2
-#define TB_EVENT_MOUSE          3
+#define TB_EVENT_KEY        1
+#define TB_EVENT_RESIZE     2
+#define TB_EVENT_MOUSE      3
 
 /* Key modifiers (bitwise) (tb_event.mod) */
-#define TB_MOD_ALT              1
-#define TB_MOD_CTRL             2
-#define TB_MOD_SHIFT            4
-#define TB_MOD_MOTION           8
+#define TB_MOD_ALT          1
+#define TB_MOD_CTRL         2
+#define TB_MOD_SHIFT        4
+#define TB_MOD_MOTION       8
 
 /* Input modes (bitwise) (tb_set_input_mode) */
-#define TB_INPUT_CURRENT        0
-#define TB_INPUT_ESC            1
-#define TB_INPUT_ALT            2
-#define TB_INPUT_MOUSE          4
+#define TB_INPUT_CURRENT    0
+#define TB_INPUT_ESC        1
+#define TB_INPUT_ALT        2
+#define TB_INPUT_MOUSE      4
 
 /* Output modes (tb_set_output_mode) */
-#define TB_OUTPUT_CURRENT       0
-#define TB_OUTPUT_NORMAL        1
-#define TB_OUTPUT_256           2
-#define TB_OUTPUT_216           3
-#define TB_OUTPUT_GRAYSCALE     4
+#define TB_OUTPUT_CURRENT   0
+#define TB_OUTPUT_NORMAL    1
+#define TB_OUTPUT_256       2
+#define TB_OUTPUT_216       3
+#define TB_OUTPUT_GRAYSCALE 4
 #ifdef TB_OPT_TRUECOLOR
 #define TB_OUTPUT_TRUECOLOR 5
 #endif
 
-/* Common function return values unless otherwise noted */
+/* Common function return values unless otherwise noted.
+ *
+ * Library behavior is undefined after receiving TB_ERR_MEM. Callers may
+ * attempt reinitializing by freeing memory, invoking tb_shutdown, then
+ * tb_init.
+ */
 #define TB_OK                   0
 #define TB_ERR                  -1
 #define TB_ERR_NEED_MORE        -2
@@ -289,10 +298,12 @@ extern "C" { // __ffi_strip
 #define tb_free    free
 #endif
 
+// __ffi_start
+
 #ifdef TB_OPT_TRUECOLOR
 typedef uint32_t uintattr_t;
 #else
-typedef uint16_t uintattr_t; // __ffi_strip
+typedef uint16_t uintattr_t;
 #endif
 
 /* The terminal screen is represented as 2d array of cells. The structure is
@@ -396,9 +407,11 @@ int tb_set_cell_ex(int x, int y, uint32_t *ch, size_t nch, uintattr_t fg,
 int tb_extend_cell(int x, int y, uint32_t ch);
 
 /* Sets the input mode. Termbox has two input modes:
+ *
  * 1. TB_INPUT_ESC
  *    When escape (\x1b) is in the buffer and there's no match for an escape
  *    sequence, a key event for TB_KEY_ESC is returned.
+ *
  * 2. TB_INPUT_ALT
  *    When escape (\x1b) is in the buffer and there's no match for an escape
  *    sequence, the next keyboard event is returned with a TB_MOD_ALT modifier.
@@ -417,12 +430,17 @@ int tb_extend_cell(int x, int y, uint32_t ch);
 int tb_set_input_mode(int mode);
 
 /* Sets the termbox output mode. Termbox has three output modes:
+ *
  * 1. TB_OUTPUT_NORMAL     => [1..8]
  *    This mode provides 8 different colors:
  *      TB_BLACK, TB_RED, TB_GREEN, TB_YELLOW,
  *      TB_BLUE, TB_MAGENTA, TB_CYAN, TB_WHITE
  *    Colors may be bitwise OR'd with attributes:
- *      TB_BOLD, TB_UNDERLINE, TB_REVERSE, TB_ITALIC
+ *      TB_BOLD, TB_UNDERLINE, TB_REVERSE, TB_ITALIC, TB_BLINK
+ *
+ *    Some notes: TB_REVERSE can be applied as either fg or bg attributes for
+ *    the same effect. TB_BOLD, TB_UNDERLINE, TB_ITALIC, TB_BLINK apply as fg
+ *    attributes only, and are ignored as bg attributes.
  *
  *    Example usage:
  *      tb_set_cell(x, y, '@', TB_BLACK | TB_BOLD, TB_RED);
@@ -439,26 +457,31 @@ int tb_set_input_mode(int mode);
  *      tb_set_cell(x, y, '@', 0xb8, 0xf0);
  *
  * 3. TB_OUTPUT_216        => [0..215]
- *    This mode supports the 3rd range of TB_OUTPUT_256 only, but you don't need
- *    to provide an offset.
+ *    This mode supports the 3rd range of TB_OUTPUT_256 only, but you don't
+ *    need to provide an offset.
  *
  * 4. TB_OUTPUT_GRAYSCALE  => [0..23]
- *    This mode supports the 4th range of TB_OUTPUT_256 only, but you dont need
- *    to provide an offset.
+ *    This mode supports the 4th range of TB_OUTPUT_256 only, but you don't
+ *    need to provide an offset.
  *
  * 5. TB_OUTPUT_TRUECOLOR  => [0x000000..0xffffff]
  *    This mode provides 24-bit color on supported terminals. The format is
- *    0xRRGGBB.
+ *    0xRRGGBB. Colors may be bitwise OR'd with `TB_TRUECOLOR_*` attributes.
  *
  * If mode is TB_OUTPUT_CURRENT, the function returns the current output mode.
  *
  * The default output mode is TB_OUTPUT_NORMAL.
+ *
+ * Note, not all terminals support all output modes, especially beyond
+ * TB_OUTPUT_NORMAL. There is also no very reliable way to determine color
+ * support dynamically. If portability is desired, callers are recommended to
+ * use TB_OUTPUT_NORMAL or make output mode end-user configurable.
  */
 int tb_set_output_mode(int mode);
 
 /* Wait for an event up to timeout_ms milliseconds and fill the event structure
  * with it. If no event is available within the timeout period, TB_ERR_NO_EVENT
- * is returned. On a resize event, the underlying poll(2) call may be
+ * is returned. On a resize event, the underlying select(2) call may be
  * interrupted, yielding a return code of TB_ERR_POLL. In this case, you may
  * check errno via tb_last_errno(). If it's EINTR, you can safely ignore that
  * and call tb_peek_event() again.
@@ -505,20 +528,17 @@ int tb_utf8_char_to_unicode(uint32_t *out, const char *c);
 int tb_utf8_unicode_to_char(char *out, uint32_t c);
 int tb_last_errno();
 const char *tb_strerror(int err);
-
 struct tb_cell *tb_cell_buffer();
+int tb_has_truecolor();
+int tb_has_egc();
 
 #ifdef __cplusplus
-} // __ffi_strip
+}
 #endif
 
 #endif /* __TERMBOX_H */
 
 #ifdef TB_IMPL
-
-#ifndef TB_OPT_TRUECOLOR
-#define TB_OUTPUT_TRUECOLOR (-1)
-#endif
 
 #define if_err_return(rv, expr)                                                \
     if (((rv) = (expr)) != TB_OK)                                              \
@@ -602,12 +622,11 @@ struct tb_global_t {
     int has_orig_tios;
     int last_errno;
     int initialized;
-    int need_resize;
     int (*fn_extract_esc_pre)(struct tb_event *, size_t *);
     int (*fn_extract_esc_post)(struct tb_event *, size_t *);
 };
 
-struct tb_global_t global = {0};
+static struct tb_global_t global = {0};
 
 /* BEGIN codegen c */
 /* Produced by ./codegen.sh on Sun, 19 Sep 2021 01:02:03 +0000 */
@@ -1323,7 +1342,7 @@ static int extract_esc(struct tb_event *event);
 static int extract_esc_user(struct tb_event *event, int is_post);
 static int extract_esc_cap(struct tb_event *event);
 static int extract_esc_mouse(struct tb_event *event);
-static int resize_if_needed();
+static int resize_cellbufs();
 static void handle_resize(int sig);
 static int send_attr(uintattr_t fg, uintattr_t bg);
 static int send_sgr(uintattr_t fg, uintattr_t bg);
@@ -1414,9 +1433,7 @@ int tb_height() {
 }
 
 int tb_clear() {
-    int rv;
     if_not_init_return();
-    if_err_return(rv, resize_if_needed());
     return cellbuf_clear(&global.back);
 }
 
@@ -1431,7 +1448,6 @@ int tb_present() {
     if_not_init_return();
 
     int rv;
-    if_err_return(rv, resize_if_needed());
 
     // TODO Assert global.back.(width,height) == global.front.(width,height)
 
@@ -1479,7 +1495,8 @@ int tb_present() {
                         struct tb_cell *front_wide;
                         if_err_return(rv,
                             cellbuf_get(&global.front, x + i, y, &front_wide));
-                        cell_set(front_wide, 0, 1, back->fg, back->bg);
+                        if_err_return(rv,
+                            cell_set(front_wide, 0, 1, back->fg, back->bg));
                     }
                 }
             }
@@ -1594,11 +1611,20 @@ int tb_set_input_mode(int mode) {
 
 int tb_set_output_mode(int mode) {
     if_not_init_return();
-    if (mode == TB_OUTPUT_CURRENT) {
-        return global.output_mode;
+    switch (mode) {
+        case TB_OUTPUT_CURRENT:
+            return global.output_mode;
+        case TB_OUTPUT_NORMAL:
+        case TB_OUTPUT_256:
+        case TB_OUTPUT_216:
+        case TB_OUTPUT_GRAYSCALE:
+#ifdef TB_OPT_TRUECOLOR
+        case TB_OUTPUT_TRUECOLOR:
+#endif
+            global.output_mode = mode;
+            return TB_OK;
     }
-    global.output_mode = mode;
-    return TB_OK;
+    return TB_ERR;
 }
 
 int tb_peek_event(struct tb_event *event, int timeout_ms) {
@@ -1806,6 +1832,22 @@ const char *tb_strerror(int err) {
         default:
             return strerror(global.last_errno);
     }
+}
+
+int tb_has_truecolor() {
+#ifdef TB_OPT_TRUECOLOR
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int tb_has_egc() {
+#ifdef TB_OPT_EGC
+    return 1;
+#else
+    return 0;
+#endif
 }
 
 static int tb_reset() {
@@ -2028,7 +2070,7 @@ static int send_clear() {
 }
 
 static int update_term_size() {
-    int rv;
+    int rv, ioctl_errno;
 
     if (global.ttyfd < 0) {
         return TB_OK;
@@ -2037,18 +2079,18 @@ static int update_term_size() {
     struct winsize sz;
     memset(&sz, 0, sizeof(sz));
 
+    // Try ioctl TIOCGWINSZ
     if (ioctl(global.ttyfd, TIOCGWINSZ, &sz) == 0) {
         global.width = sz.ws_col;
         global.height = sz.ws_row;
         return TB_OK;
     }
+    ioctl_errno = errno;
 
-    // If TB_RESIZE_FALLBACK deinfed, try >cursor(9999,9999), >u7, <u6
-    //#ifdef TB_RESIZE_FALLBACK
+    // Try >cursor(9999,9999), >u7, <u6
     if_ok_return(rv, update_term_size_via_esc());
-    //#endif
 
-    global.last_errno = errno;
+    global.last_errno = ioctl_errno;
     return TB_ERR_RESIZE_IOCTL;
 }
 
@@ -2064,10 +2106,6 @@ static int update_term_size_via_esc() {
         return TB_ERR_RESIZE_WRITE;
     }
 
-#if !TB_OPT_SELECT
-    struct pollfd fd = {.fd = global.rfd, .events = POLLIN};
-    int poll_rv = poll(&fd, 1, TB_RESIZE_FALLBACK_MS);
-#else
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(global.rfd, &fds);
@@ -2076,10 +2114,9 @@ static int update_term_size_via_esc() {
     timeout.tv_sec = 0;
     timeout.tv_usec = TB_RESIZE_FALLBACK_MS * 1000;
 
-    int poll_rv = select(global.rfd + 1, &fds, NULL, NULL, &timeout);
-#endif
+    int select_rv = select(global.rfd + 1, &fds, NULL, NULL, &timeout);
 
-    if (poll_rv != 1) {
+    if (select_rv != 1) {
         global.last_errno = errno;
         return TB_ERR_RESIZE_POLL;
     }
@@ -2370,22 +2407,12 @@ static int wait_event(struct tb_event *event, int timeout) {
     memset(event, 0, sizeof(*event));
     if_ok_return(rv, extract_event(event));
 
-#if !TB_OPT_SELECT
-    struct pollfd fds[2] = {
-        {.fd = global.rfd,              .events = POLLIN},
-        {.fd = global.resize_pipefd[0], .events = POLLIN}
-    };
-#else
     fd_set fds;
     struct timeval tv;
     tv.tv_sec = timeout / 1000;
     tv.tv_usec = (timeout - (tv.tv_sec * 1000)) * 1000;
-#endif
 
     do {
-#if !TB_OPT_SELECT
-        int poll_rv = poll(fds, 2, timeout);
-#else
         FD_ZERO(&fds);
         FD_SET(global.rfd, &fds);
         FD_SET(global.resize_pipefd[0], &fds);
@@ -2394,25 +2421,19 @@ static int wait_event(struct tb_event *event, int timeout) {
                         ? global.resize_pipefd[0]
                         : global.rfd;
 
-        int poll_rv =
+        int select_rv =
             select(maxfd + 1, &fds, NULL, NULL, (timeout < 0) ? NULL : &tv);
-#endif
 
-        if (poll_rv < 0) {
+        if (select_rv < 0) {
             // Let EINTR/EAGAIN bubble up
             global.last_errno = errno;
             return TB_ERR_POLL;
-        } else if (poll_rv == 0) {
+        } else if (select_rv == 0) {
             return TB_ERR_NO_EVENT;
         }
 
-#if !TB_OPT_SELECT
-        int tty_has_events = (fds[0].revents & POLLIN);
-        int resize_has_events = (fds[1].revents & POLLIN);
-#else
         int tty_has_events = (FD_ISSET(global.rfd, &fds));
         int resize_has_events = (FD_ISSET(global.resize_pipefd[0], &fds));
-#endif
 
         if (tty_has_events) {
             ssize_t read_rv = read(global.rfd, buf, sizeof(buf));
@@ -2427,11 +2448,12 @@ static int wait_event(struct tb_event *event, int timeout) {
         if (resize_has_events) {
             int ignore = 0;
             read(global.resize_pipefd[0], &ignore, sizeof(ignore));
+            // TODO Harden against errors encountered mid-resize
             if_err_return(rv, update_term_size());
+            if_err_return(rv, resize_cellbufs());
             event->type = TB_EVENT_RESIZE;
             event->w = global.width;
             event->h = global.height;
-            global.need_resize = 1;
             return TB_OK;
         }
 
@@ -2732,19 +2754,14 @@ static int extract_esc_mouse(struct tb_event *event) {
     return ret;
 }
 
-static int resize_if_needed() {
+static int resize_cellbufs() {
     int rv;
-    if (!global.need_resize) {
-        return TB_OK;
-    }
-    if_err_return(rv, update_term_size()); // TODO is this needed?
     if_err_return(rv,
         cellbuf_resize(&global.back, global.width, global.height));
     if_err_return(rv,
         cellbuf_resize(&global.front, global.width, global.height));
     if_err_return(rv, cellbuf_clear(&global.front));
     if_err_return(rv, send_clear());
-    global.need_resize = 0;
     return TB_OK;
 }
 
@@ -2798,33 +2815,49 @@ static int send_attr(uintattr_t fg, uintattr_t bg) {
             cbg += 0xe8;
             break;
 
+#ifdef TB_OPT_TRUECOLOR
         case TB_OUTPUT_TRUECOLOR:
             cfg = fg;
             cbg = bg;
             break;
+#endif
     }
 
-    if (global.output_mode != TB_OUTPUT_TRUECOLOR) {
-        if (fg & TB_BOLD)
-            if_err_return(rv,
-                bytebuf_puts(&global.out, global.caps[TB_CAP_BOLD]));
-
-        if (bg & TB_BOLD)
-            if_err_return(rv,
-                bytebuf_puts(&global.out, global.caps[TB_CAP_BLINK]));
-
-        if (fg & TB_UNDERLINE)
-            if_err_return(rv,
-                bytebuf_puts(&global.out, global.caps[TB_CAP_UNDERLINE]));
-
-        if (fg & TB_ITALIC)
-            if_err_return(rv,
-                bytebuf_puts(&global.out, global.caps[TB_CAP_ITALIC]));
-
-        if ((fg & TB_REVERSE) || (bg & TB_REVERSE))
-            if_err_return(rv,
-                bytebuf_puts(&global.out, global.caps[TB_CAP_REVERSE]));
+    uintattr_t attr_bold, attr_blink, attr_italic, attr_underline, attr_reverse;
+#ifdef TB_OPT_TRUECOLOR
+    if (global.output_mode == TB_OUTPUT_TRUECOLOR) {
+        attr_bold = TB_TRUECOLOR_BOLD;
+        attr_blink = TB_TRUECOLOR_BLINK;
+        attr_italic = TB_TRUECOLOR_ITALIC;
+        attr_underline = TB_TRUECOLOR_UNDERLINE;
+        attr_reverse = TB_TRUECOLOR_REVERSE;
+    } else
+#endif
+    {
+        attr_bold = TB_BOLD;
+        attr_blink = TB_BLINK;
+        attr_italic = TB_ITALIC;
+        attr_underline = TB_UNDERLINE;
+        attr_reverse = TB_REVERSE;
     }
+
+    if (fg & attr_bold)
+        if_err_return(rv, bytebuf_puts(&global.out, global.caps[TB_CAP_BOLD]));
+
+    if (fg & attr_blink)
+        if_err_return(rv, bytebuf_puts(&global.out, global.caps[TB_CAP_BLINK]));
+
+    if (fg & attr_underline)
+        if_err_return(rv,
+            bytebuf_puts(&global.out, global.caps[TB_CAP_UNDERLINE]));
+
+    if (fg & attr_italic)
+        if_err_return(rv,
+            bytebuf_puts(&global.out, global.caps[TB_CAP_ITALIC]));
+
+    if ((fg & attr_reverse) || (bg & attr_reverse))
+        if_err_return(rv,
+            bytebuf_puts(&global.out, global.caps[TB_CAP_REVERSE]));
 
     if_err_return(rv, send_sgr(cfg, cbg));
 
@@ -2838,8 +2871,11 @@ static int send_sgr(uintattr_t fg, uintattr_t bg) {
     int rv;
     char nbuf[32];
 
-    if (global.output_mode != TB_OUTPUT_TRUECOLOR && fg == TB_DEFAULT &&
-        bg == TB_DEFAULT)
+    if (
+#ifdef TB_OPT_TRUECOLOR
+        global.output_mode != TB_OUTPUT_TRUECOLOR &&
+#endif
+        fg == TB_DEFAULT && bg == TB_DEFAULT)
     {
         return TB_OK;
     }
@@ -2880,6 +2916,7 @@ static int send_sgr(uintattr_t fg, uintattr_t bg) {
             send_literal(rv, "m");
             break;
 
+#ifdef TB_OPT_TRUECOLOR
         case TB_OUTPUT_TRUECOLOR:
             send_literal(rv, "\x1b[38;2;");
             send_num(rv, nbuf, (fg >> 16) & 0xff);
@@ -2895,6 +2932,7 @@ static int send_sgr(uintattr_t fg, uintattr_t bg) {
             send_num(rv, nbuf, bg & 0xff);
             send_literal(rv, "m");
             break;
+#endif
     }
     return TB_OK;
 }
@@ -2987,7 +3025,8 @@ static int cell_set(struct tb_cell *cell, uint32_t *ch, size_t nch,
     if (nch <= 1) {
         cell->nech = 0;
     } else {
-        cell_reserve_ech(cell, nch + 1);
+        int rv;
+        if_err_return(rv, cell_reserve_ech(cell, nch + 1));
         memcpy(cell->ech, ch, nch);
         cell->ech[nch] = '\0';
         cell->nech = nch;
@@ -3050,10 +3089,11 @@ static int cellbuf_free(struct cellbuf_t *c) {
 }
 
 static int cellbuf_clear(struct cellbuf_t *c) {
-    int i;
+    int rv, i;
     uint32_t space = (uint32_t)' ';
     for (i = 0; i < c->width * c->height; i++) {
-        cell_set(&c->cells[i], &space, 1, global.fg, global.bg);
+        if_err_return(rv,
+            cell_set(&c->cells[i], &space, 1, global.fg, global.bg));
     }
     return TB_OK;
 }
