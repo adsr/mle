@@ -2,7 +2,7 @@
 
 mle is a small, flexible, terminal-based text editor written in C.
 
-Runs on Linux, Windows (cygwin or WSL), FreeBSD, and macOS.
+Runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 
 [![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
 
@@ -77,13 +77,16 @@ To install to a custom directory, supply `prefix`, e.g.:
 
 mle may be available to install via your system's package manager.
 
-    # snap install mle  # all major Linux distros
     # apt install mle   # Ubuntu and Debian-based distros
+    # dnf install mle   # CentOS, RHEL, Fedora-based distros
     # pkg install mle   # FreeBSD
     # yay -S mle        # Arch (via AUR)
+    # snap install mle  # all major Linux distros
     # nix-env -i mle    # NixOS (via nixpkgs)
     # apk add mle       # Alpine
     # xbps-install mle  # Void
+    # brew install mle  # macOS
+    # setup-x86.exe -q -P mle # Cygwin
 
 ### Basic usage
 
