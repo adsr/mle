@@ -85,7 +85,8 @@ mle may be available to install via your system's package manager.
     # nix-env -i mle    # NixOS (via nixpkgs)
     # apk add mle       # Alpine
     # xbps-install mle  # Void
-    # brew install mle  # macOS
+    # brew install mle  # macOS (Homebrew)
+    # port install mle  # macOS (MacPorts)
     # setup-x86.exe -q -P mle # Cygwin
 
 ### Basic usage
