@@ -263,6 +263,20 @@ int cmd_move_to_line(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Move to specific offset
+int cmd_move_to_offset(cmd_context_t *ctx) {
+    char *offsetstr;
+    bint_t offset;
+    editor_prompt(ctx->editor, "move_to_offset: Offset?", NULL, &offsetstr);
+    if (!offsetstr) return MLE_OK;
+    offset = strtoll(offsetstr, NULL, 10);
+    free(offsetstr);
+    if (offset < 0) offset = 0;
+    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_offset, offset);
+    bview_center_viewport_y(ctx->bview);
+    return MLE_OK;
+}
+
 // Move vertically relative to current line
 int cmd_move_relative(cmd_context_t *ctx) {
     int delta;

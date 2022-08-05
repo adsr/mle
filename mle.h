@@ -521,6 +521,7 @@ int cmd_move_relative(cmd_context_t *ctx);
 int cmd_move_right(cmd_context_t *ctx);
 int cmd_move_temp_anchor(cmd_context_t *ctx);
 int cmd_move_to_line(cmd_context_t *ctx);
+int cmd_move_to_offset(cmd_context_t *ctx);
 int cmd_move_until_back(cmd_context_t *ctx);
 int cmd_move_until_forward(cmd_context_t *ctx);
 int cmd_move_up(cmd_context_t *ctx);

@@ -34,6 +34,13 @@ declare -A expected
 expected[to_line_cursor_col]='^bview.0.cursor.0.mark.line_index=1$'
 source 'test.sh'
 
+# cmd_move_(to_offset)
+macro='a a enter b b enter c c enter M-G 5 enter'
+declare -A expected
+expected[to_offset_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
+expected[to_offset_cursor_col ]='^bview.0.cursor.0.mark.col=2$'
+source 'test.sh'
+
 # cmd_move_(to_relative)
 macro='0 enter 1 enter 2 enter 3 enter M-y 2 u M-y 1 d'
 declare -A expected

@@ -1509,6 +1509,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_move_right", cmd_move_right);
     _editor_register_cmd_fn(editor, "cmd_move_temp_anchor", cmd_move_temp_anchor);
     _editor_register_cmd_fn(editor, "cmd_move_to_line", cmd_move_to_line);
+    _editor_register_cmd_fn(editor, "cmd_move_to_offset", cmd_move_to_offset);
     _editor_register_cmd_fn(editor, "cmd_move_until_back", cmd_move_until_back);
     _editor_register_cmd_fn(editor, "cmd_move_until_forward", cmd_move_until_forward);
     _editor_register_cmd_fn(editor, "cmd_move_up", cmd_move_up);
@@ -1593,6 +1594,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_move_page_up", "pgup"),
         MLE_KBINDING_DEF("cmd_move_page_down", "pgdn"),
         MLE_KBINDING_DEF("cmd_move_to_line", "M-g"),
+        MLE_KBINDING_DEF("cmd_move_to_offset", "M-G"),
         MLE_KBINDING_DEF_EX("cmd_move_relative", "M-y ## u", "up"),
         MLE_KBINDING_DEF_EX("cmd_move_relative", "M-y ## d", "down"),
         MLE_KBINDING_DEF("cmd_move_until_forward", "M-' **"),
