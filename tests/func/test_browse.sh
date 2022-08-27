@@ -8,23 +8,19 @@ if ! command -v tree &>/dev/null; then
 fi
 
 # make tmpdir and delete at exit
+this_dir=$(pwd)
 tmpdir=$(mktemp -d)
-pushed=0
-finish() { [ $pushed -eq 1 ] && popd &>/dev/null; rm -rf $tmpdir; }
+cd $tmpdir
+finish() { cd $this_dir; rm -rf $tmpdir; }
 trap finish EXIT
 
-# make adir/bdir/hello
-this_dir=$(pwd)
-pushd $tmpdir &>/dev/null
-pushed=1
+# setup tmpdir
 mkdir -p adir/bdir
-touch adir/bdir/hello
+touch adir/bdir/hi
 
-# ensure that we can browse into adir, then bdir, then select hello
-macro='C-b C-f a d i r enter enter C-f b d i r enter enter C-f h e l l o enter enter'
+# ensure that we can browse into adir, bdir, then select hi
+# ensure path is relative to where we started
+macro='C-b C-f a d i r enter enter C-f b d i r enter enter C-f h i enter enter'
 declare -A expected
-expected[hello]='^bview.[[:digit:]]+.buffer.path=./hello$'
+expected[hi]='^bview.[[:digit:]]+.buffer.path=adir/bdir/hi$'
 source "$this_dir/test.sh"
-
-popd &>/dev/null
-pushed=0

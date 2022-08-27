@@ -358,12 +358,10 @@ int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt
         cmd_context_t ctx;
         memset(&ctx, 0, sizeof(cmd_context_t));
         ctx.editor = editor;
-        ctx.static_param = strndup(opt_path, opt_path_len);
+        ctx.static_param = opt_path;
         ctx.bview = bview;
         cmd_browse(&ctx);
         editor_close_bview(editor, bview, NULL);
-        free(ctx.static_param);
-        ctx.static_param = NULL;
     }
     return MLE_OK;
 }

@@ -705,13 +705,21 @@ int cmd_browse(cmd_context_t *ctx) {
     bview_t *menu;
     aproc_t *aproc;
     char *cmd;
-    asprintf(&cmd, "tree --charset C -n -f -L 2 %s 2>/dev/null", ctx->static_param ? ctx->static_param : "");
+    char *browse_path;
+    browse_path = ctx->static_param ? ctx->static_param : "./";
+    asprintf(&cmd, "cd %s && tree --charset C -n -f -L 2 2>/dev/null", browse_path);
     aproc = aproc_new(ctx->editor, ctx->bview, &(ctx->bview->aproc), cmd, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     if (!aproc) return MLE_ERR;
-    editor_menu(ctx->editor, _cmd_menu_browse_cb, "..\n", 3, aproc, &menu);
+    editor_menu(ctx->editor, _cmd_menu_browse_cb, ".", 1, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
     bview_zero_viewport_y(menu);
+    if (strncmp(browse_path, "./", 2) == 0) {
+        browse_path += 2;
+    } else if (strcmp(browse_path, ".") == 0) {
+        browse_path = "";
+    }
+    snprintf(menu->browse_path, sizeof(menu->browse_path), "%s", browse_path);
     return MLE_OK;
 }
 
@@ -1728,51 +1736,62 @@ static int _cmd_menu_ctag_cb(cmd_context_t *ctx) {
 // Callback from cmd_browse
 static int _cmd_menu_browse_cb(cmd_context_t *ctx) {
     char *line;
-    char *path;
-    char cwd[PATH_MAX];
-    char *corrected_path;
-    bview_t *new_bview;
+    char *path, *tmp;
+    char apath[PATH_MAX + 1];
+    bview_t *new_bview, *self_bview;
 
     // Get path from tree output
     line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
-    if ((path = strstr(line, "- ")) != NULL) {
-        path += 2;
+    if ((path = strstr(line, "-- ")) != NULL) {
+        path += 3;
+        if (strncmp(path, "./", 2) == 0) {
+            path += 2;
+        }
+        if ((tmp = strstr(path, " -> ")) != NULL) {
+            *tmp = '\0';
+        }
     } else if (strcmp(line, "..") == 0) {
         path = "..";
-    } else if (util_is_dir(line)) {
-        path = line;
+    } else if (strlen(line) < 1) {
+        free(line);
+        return MLE_OK;
     } else {
         MLE_SET_ERR(ctx->editor, "browse: Cannot browse to: '%s'", line);
         free(line);
         return MLE_ERR;
     }
 
-    // Fix cwd if it changed
-    getcwd(cwd, PATH_MAX);
-    if (strcmp(cwd, ctx->bview->init_cwd) != 0) {
-        asprintf(&corrected_path, "%s/%s", ctx->bview->init_cwd, path);
+    // Derive apath
+    size_t browse_path_len = strlen(ctx->bview->browse_path);
+    if (browse_path_len > 0 && *path != '/') {
+        snprintf(apath, sizeof(apath),
+            "%s%s%s",
+            ctx->bview->browse_path,
+            ctx->bview->browse_path[browse_path_len - 1] != '/' ? "/" : "",
+            path
+        );
     } else {
-        corrected_path = strdup(path);
+        snprintf(apath, sizeof(apath), "%s", path);
     }
 
     // Open file or browse dir
+    self_bview = ctx->bview;
     new_bview = NULL;
-    if (util_is_dir(corrected_path)) {
-        chdir(corrected_path);
+    if (util_is_dir(apath)) {
         ctx->bview = ctx->editor->active_edit;
+        ctx->static_param = apath;
         cmd_browse(ctx);
     } else {
-        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, corrected_path, strlen(corrected_path), 0, 0, 0, NULL, &new_bview);
+        editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, apath, strlen(apath), 0, 0, 0, NULL, &new_bview);
     }
 
-    // Close menu
-    editor_close_bview(ctx->editor, ctx->bview, NULL);
+    // Close self
+    editor_close_bview(ctx->editor, self_bview, NULL);
 
     // Set new_bview to active
     if (new_bview) editor_set_active(ctx->editor, new_bview);
 
     free(line);
-    free(corrected_path);
 
     return MLE_OK;
 }

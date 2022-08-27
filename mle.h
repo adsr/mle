@@ -203,7 +203,7 @@ struct bview_s {
     #ifndef PATH_MAX
     #define PATH_MAX 4096
     #endif
-    char init_cwd[PATH_MAX + 1];
+    char browse_path[PATH_MAX + 1];
     int id;
     bview_listener_t *listeners;
     bview_t *top_next;
