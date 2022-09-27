@@ -1002,6 +1002,9 @@ int cmd_set_opt(cmd_context_t *ctx) {
         ctx->bview->soft_wrap = vali ? 1 : 0;
     } else if (strcmp(ctx->static_param, "coarse_undo") == 0) {
         ctx->editor->coarse_undo = vali ? 1 : 0;
+    } else if (strcmp(ctx->static_param, "mouse_support") == 0) {
+        ctx->editor->mouse_support = vali ? 1 : 0;
+        editor_set_input_mode(ctx->editor);
     }
     return MLE_OK;
 }
@@ -1739,6 +1742,9 @@ static int _cmd_menu_browse_cb(cmd_context_t *ctx) {
     char *path, *tmp;
     char apath[PATH_MAX + 1];
     bview_t *new_bview, *self_bview;
+    int rv;
+
+    rv = MLE_OK;
 
     // Get path from tree output
     line = strndup(ctx->bview->active_cursor->mark->bline->data, ctx->bview->active_cursor->mark->bline->data_len);
@@ -1753,23 +1759,26 @@ static int _cmd_menu_browse_cb(cmd_context_t *ctx) {
     } else if (strcmp(line, "..") == 0) {
         path = "..";
     } else if (strlen(line) < 1) {
-        free(line);
-        return MLE_OK;
+        goto _cmd_menu_browse_cb_done;
     } else {
         MLE_SET_ERR(ctx->editor, "browse: Cannot browse to: '%s'", line);
-        free(line);
-        return MLE_ERR;
+        rv = MLE_ERR;
+        goto _cmd_menu_browse_cb_done;
     }
 
     // Derive apath
     size_t browse_path_len = strlen(ctx->bview->browse_path);
     if (browse_path_len > 0 && *path != '/') {
-        snprintf(apath, sizeof(apath),
+        if (snprintf(apath, sizeof(apath),
             "%s%s%s",
             ctx->bview->browse_path,
             ctx->bview->browse_path[browse_path_len - 1] != '/' ? "/" : "",
             path
-        );
+        ) > PATH_MAX) {
+            MLE_SET_ERR(ctx->editor, "browse: Path longer than PATH_MAX (%d)", PATH_MAX);
+            rv = MLE_ERR;
+            goto _cmd_menu_browse_cb_done;
+        }
     } else {
         snprintf(apath, sizeof(apath), "%s", path);
     }
@@ -1791,9 +1800,10 @@ static int _cmd_menu_browse_cb(cmd_context_t *ctx) {
     // Set new_bview to active
     if (new_bview) editor_set_active(ctx->editor, new_bview);
 
-    free(line);
+_cmd_menu_browse_cb_done:
 
-    return MLE_OK;
+    free(line);
+    return rv;
 }
 
 // Callback from cmd_blist

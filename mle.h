@@ -110,6 +110,7 @@ struct editor_s {
     int color_col;
     int soft_wrap;
     int coarse_undo;
+    int mouse_support;
     int viewport_scope_x; // TODO cli option
     int viewport_scope_y; // TODO cli option
     int headless_mode;
@@ -425,6 +426,7 @@ int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *
 int editor_display(editor_t *editor);
 int editor_debug_dump(editor_t *editor, FILE *fp);
 int editor_force_redraw(editor_t *editor);
+int editor_set_input_mode(editor_t *editor);
 
 // bview functions
 bview_t *bview_get_split_root(bview_t *self);
@@ -447,6 +449,7 @@ int bview_rectify_viewport(bview_t *self);
 int bview_remove_cursor(bview_t *self, cursor_t *cursor);
 int bview_remove_cursors_except(bview_t *self, cursor_t *one);
 int bview_resize(bview_t *self, int x, int y, int w, int h);
+int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, bline_t **ret_bline, bint_t *ret_col);
 int bview_set_syntax(bview_t *self, char *opt_syntax);
 int bview_set_viewport_y(bview_t *self, bint_t y, int do_rectify);
 int bview_split(bview_t *self, int is_vertical, float factor, bview_t **optret_bview);
@@ -597,7 +600,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "1.5.1-dev"
+#define MLE_VERSION "1.6.0-dev"
 
 #define MLE_OK 0
 #define MLE_ERR 1
@@ -615,6 +618,7 @@ extern editor_t _editor;
 #define MLE_DEFAULT_READ_RC_FILE 1
 #define MLE_DEFAULT_SOFT_WRAP 0
 #define MLE_DEFAULT_COARSE_UNDO 0
+#define MLE_DEFAULT_MOUSE_SUPPORT 0
 
 #define MLE_LOG_ERR(fmt, ...) do { \
     fprintf(stderr, (fmt), __VA_ARGS__); \

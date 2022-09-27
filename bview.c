@@ -1178,6 +1178,32 @@ int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y,
     return MLE_OK;
 }
 
+// Find bline col given a screen coordinate
+int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, bline_t **ret_bline, bint_t *ret_col) {
+    bint_t line_index, vcol;
+    *ret_bview = NULL;
+    *ret_bline = NULL;
+    *ret_col = 0;
+    if (   x >= self->rect_buffer.x
+        && x < self->rect_buffer.x + self->rect_buffer.w
+        && y >= self->rect_buffer.y
+        && y < self->rect_buffer.y + self->rect_buffer.h
+    ) {
+        line_index = self->viewport_y + (y - self->rect_buffer.y);
+        vcol = self->viewport_x + (x - self->rect_buffer.x);
+        buffer_get_bline_w_hint(self->buffer, line_index, self->viewport_mark->bline, ret_bline);
+        if (*ret_bline) {
+            bline_get_col_from_vcol(*ret_bline, vcol, ret_col);
+            *ret_bview = self;
+            return MLE_OK;
+        }
+    }
+    if (self->split_child) {
+        return bview_screen_to_bline_col(self->split_child, x, y, ret_bview, ret_bline, ret_col);
+    }
+    return MLE_ERR;
+}
+
 static int _bview_is_in_range(bline_t *bline, bint_t col, srule_t **ret_srule) {
     mark_t mark = {0};
     srule_node_t *node;

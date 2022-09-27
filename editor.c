@@ -42,6 +42,7 @@ static void _editor_maybe_lift_temp_anchors(cmd_context_t *ctx);
 static void _editor_draw_cursors(editor_t *editor, bview_t *bview);
 static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx);
 static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx);
+static void _editor_handle_mouse(editor_t *editor, tb_event_t *ev);
 static void _editor_append_pastebuf(editor_t *editor, cmd_context_t *ctx, kinput_t *input);
 static void _editor_record_macro_input(kmacro_t *macro, kinput_t *input);
 static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t *opt_paste_input);
@@ -74,6 +75,7 @@ static void _editor_init_status(editor_t *editor);
 static void _editor_init_bviews(editor_t *editor, int argc, char **argv);
 static int _editor_init_headless_mode(editor_t *editor);
 static int _editor_init_startup_macro(editor_t *editor);
+static int _editor_init_term(editor_t *editor);
 
 // Init editor from args
 int editor_init(editor_t *editor, int argc, char **argv) {
@@ -152,6 +154,9 @@ int editor_init(editor_t *editor, int argc, char **argv) {
 
         // Init headless mode
         _editor_init_startup_macro(editor);
+
+        // Init terminal
+        _editor_init_term(editor);
     } while(0);
 
     editor->is_in_init = 0;
@@ -164,6 +169,12 @@ int editor_run(editor_t *editor) {
     memset(&loop_ctx, 0, sizeof(loop_context_t));
     _editor_resize(editor, -1, -1);
     _editor_loop(editor, &loop_ctx);
+    if (editor->headless_mode && editor->active_edit) {
+        buffer_write_to_fd(editor->active_edit->buffer, STDOUT_FILENO, NULL);
+    }
+    if (editor->debug_dump_state_on_exit) {
+        editor_debug_dump(editor, stderr);
+    }
     return MLE_OK;
 }
 
@@ -233,6 +244,10 @@ int editor_deinit(editor_t *editor) {
     if (editor->startup_macro_name) free(editor->startup_macro_name);
 
     pcre2_match_data_free(pcre2_md);
+
+    if (!editor->headless_mode) {
+        tb_shutdown();
+    }
 
     return MLE_OK;
 }
@@ -380,7 +395,7 @@ int editor_close_bview(editor_t *editor, bview_t *bview, int *optret_num_closed)
 int editor_set_active(editor_t *editor, bview_t *bview) {
     if (!_editor_bview_exists(editor, bview)) {
         MLE_RETURN_ERR(editor, "No bview %p in editor->all_bviews", (void*)bview);
-    } else if (editor->prompt) {
+    } else if (editor->prompt && editor->prompt != bview) {
         MLE_RETURN_ERR(editor, "Cannot abandon prompt for bview %p", (void*)bview);
     }
     editor->active = bview;
@@ -438,6 +453,20 @@ int editor_debug_dump(editor_t *editor, FILE *fp) {
         bview_index += 1;
     }
     fprintf(fp, "bview_count=%d\n", bview_index);
+    return MLE_OK;
+}
+
+// Invoke tb_select_input_mode appropriately
+int editor_set_input_mode(editor_t *editor) {
+    int input_mode;
+    if (editor->headless_mode) {
+        return MLE_OK;
+    }
+    input_mode = TB_INPUT_ALT;
+    if (editor->mouse_support) {
+        input_mode |= TB_INPUT_MOUSE;
+    }
+    tb_select_input_mode(input_mode);
     return MLE_OK;
 }
 
@@ -1103,8 +1132,6 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
     int rc;
     tb_event_t ev;
 
-//fprintf(stderr, "in _editor_get_user_input\n");
-
     // Use pastebuf_leftover if present
     if (ctx->has_pastebuf_leftover) {
         MLE_KINPUT_COPY(ctx->input, ctx->pastebuf_leftover);
@@ -1120,6 +1147,11 @@ static void _editor_get_user_input(editor_t *editor, cmd_context_t *ctx) {
         } else if (ev.type == TB_EVENT_RESIZE) {
             // Resize
             _editor_resize(editor, ev.w, ev.h);
+            editor_display(editor);
+            continue;
+        } else if (ev.type == TB_EVENT_MOUSE) {
+            // Mouse cursor
+            _editor_handle_mouse(editor, &ev);
             editor_display(editor);
             continue;
         }
@@ -1160,6 +1192,35 @@ static void _editor_ingest_paste(editor_t *editor, cmd_context_t *ctx) {
             break;
         }
     }
+}
+
+static void _editor_handle_mouse(editor_t *editor, tb_event_t *ev) {
+    bline_t *bline;
+    bint_t col;
+    bview_t *bview;
+    bview_t *root;
+    cursor_t *cursor;
+    mark_t *mark;
+    if (ev->key != TB_KEY_MOUSE_LEFT && ev->key != TB_KEY_MOUSE_RIGHT) {
+        return;
+    }
+    root = bview_get_split_root(editor->active);
+    if (bview_screen_to_bline_col(root, ev->x, ev->y, &bview, &bline, &col) != MLE_OK) {
+        return;
+    }
+    cursor = bview->active_cursor;
+    if (ev->key == TB_KEY_MOUSE_LEFT) {
+        mark = cursor->mark;
+    } else {
+        if (!cursor->is_anchored) {
+            cursor_drop_anchor(cursor, 1);
+            cursor->is_temp_anchored = 1;
+        }
+        mark = cursor->anchor;
+    }
+    mark_move_to_w_bline(mark, bline, col);
+    editor_set_active(editor, bview);
+    // TODO move other cursors?
 }
 
 static void _editor_append_pastebuf(editor_t *editor, cmd_context_t *ctx, kinput_t *input) {
@@ -1687,6 +1748,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o y", "syntax"),
         MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o w", "soft_wrap"),
         MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o u", "coarse_undo"),
+        MLE_KBINDING_DEF_EX("cmd_set_opt", "M-o m", "mouse_support"),
         MLE_KBINDING_DEF("cmd_open_new", "C-n"),
         MLE_KBINDING_DEF("cmd_open_file", "C-o"),
         MLE_KBINDING_DEF("cmd_open_replace_new", "C-q n"),
@@ -2171,7 +2233,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 1;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:H:i:K:k:l:M:m:Nn:p:S:s:t:u:vw:x:y:z:Q:")) != -1) {
+    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:e:H:i:K:k:l:M:m:Nn:p:S:s:t:u:vw:x:y:z:Q:")) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -2180,6 +2242,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 printf("    -a <1|0>     Enable/disable tab_to_space (default: %d)\n", MLE_DEFAULT_TAB_TO_SPACE);
                 printf("    -b <1|0>     Enable/disable highlight bracket pairs (default: %d)\n", MLE_DEFAULT_HILI_BRACKET_PAIRS);
                 printf("    -c <column>  Color column (default: -1, disabled)\n");
+                printf("    -e <1|0>     Enable/disable mouse support (default: %d)\n", MLE_DEFAULT_MOUSE_SUPPORT);
                 printf("    -H <1|0>     Enable/disable headless mode (default: 1 if no tty, else 0)\n");
                 printf("    -i <1|0>     Enable/disable auto_indent (default: %d)\n", MLE_DEFAULT_AUTO_INDENT);
                 printf("    -K <kdef>    Make a kmap definition (use with -k)\n");
@@ -2221,6 +2284,9 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 break;
             case 'c':
                 editor->color_col = atoi(optarg);
+                break;
+            case 'e':
+                editor->mouse_support = atoi(optarg) ? 1 : 0;
                 break;
             case 'H':
                 editor->headless_mode = atoi(optarg) ? 1 : 0;
@@ -2407,5 +2473,15 @@ static int _editor_init_startup_macro(editor_t *editor) {
     if (!macro) return MLE_ERR;
     editor->macro_apply = macro;
     editor->macro_apply_input_index = 0;
+    return MLE_OK;
+}
+
+// Init terminal via termbox
+static int _editor_init_term(editor_t *editor) {
+    if (editor->headless_mode) {
+        return MLE_OK;
+    }
+    tb_init();
+    editor_set_input_mode(editor);
     return MLE_OK;
 }
