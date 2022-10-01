@@ -50,11 +50,16 @@ Runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 
 ### Building
 
-    $ sudo apt install git build-essential libtool automake # or equivalent
+    $ sudo apt install git build-essential # or equivalent
     $
-    $ git clone --recursive https://github.com/adsr/mle.git
+    $ # install lhelper
+    $ wget -q -O - https://raw.githubusercontent.com/franko/lhelper/master/install-github | bash -
+    $ export PATH="$HOME/.local/bin:$PATH"
+    $
+    $ git clone https://github.com/adsr/mle.git
     $ cd mle
-    $ make mle_vendor=1
+    $ lhelper activate build
+    $ make
 
 To build a completely static binary, try `make mle_vendor=1 mle_static=1`.
 

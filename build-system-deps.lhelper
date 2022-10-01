@@ -1,0 +1,8 @@
+CC="${CC:-gcc}"
+CXX="${CXX:-g++}"
+
+BUILD_TYPE="Release"
+
+# Do not install pcre2 and lua 5.4 so that those provided
+# by the system can be used.
+packages=(uthash)

@@ -2,40 +2,28 @@ prefix?=/usr/local
 
 mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O0 -D_GNU_SOURCE -DPCRE2_CODE_UNIT_WIDTH=8 -I. $(CFLAGS)
 mle_ldflags:=$(LDFLAGS)
-mle_dynamic_libs:=-lpcre2-8 -llua5.4
-mle_static_libs:=vendor/pcre2/.libs/libpcre2-8.a vendor/lua/liblua5.4.a
-mle_ldlibs:=-lm $(LDLIBS)
+mle_pcre2_cflags:=$(shell pkg-config --cflags libpcre2-8)
+mle_pcre2_libs:=$(shell pkg-config --libs libpcre2-8)
+mle_lua_libs:=$(shell pkg-config --libs lua5.4)
+mle_lua_cflags:=$(shell pkg-config --cflags lua5.4)
+mle_uthash_cflags:=$(shell pkg-config --cflags uthash)
 mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
 mle_objects_no_main:=$(filter-out main.o,$(mle_objects))
 mle_func_tests:=$(wildcard tests/func/test_*.sh))
 mle_unit_tests:=$(patsubst %.c,%,$(wildcard tests/unit/test_*.c))
 mle_unit_test_objects:=$(patsubst %.c,%.o,$(wildcard tests/unit/test_*.c))
 mle_unit_test_all:=tests/unit/test
-mle_vendor_deps:=
-mle_static_var:=
 
-ifdef mle_static
-  mle_static_var:=-static
-endif
-
-ifdef mle_vendor
-  mle_ldlibs:=$(mle_static_libs) $(mle_ldlibs)
-  mle_cflags:=-Ivendor/pcre2/src -Ivendor -Ivendor/uthash/src $(mle_cflags)
-  mle_vendor_deps:=$(mle_static_libs)
-else
-  mle_ldlibs:=$(mle_dynamic_libs) $(mle_ldlibs)
-endif
+mle_ldlibs:=$(mle_pcre2_libs) $(mle_lua_libs) -lm $(LDLIBS)
+mle_cflags+=$(mle_pcre2_cflags) $(mle_lua_cflags) $(mle_uthash_cflags) $(mle_cflags)
 
 all: mle
 
-mle: $(mle_vendor_deps) $(mle_objects) termbox2.h
-	$(CC) $(mle_static_var) $(mle_cflags) $(mle_objects) $(mle_ldflags) $(mle_ldlibs) -o mle
+mle: $(mle_objects) termbox2.h
+	$(CC) $(mle_cflags) $(mle_objects) $(mle_ldflags) $(mle_ldlibs) -o mle
 
 $(mle_objects): %.o: %.c
 	$(CC) -c $(mle_cflags) $< -o $@
-
-$(mle_vendor_deps):
-	$(MAKE) -C vendor
 
 $(mle_unit_test_objects): %.o: %.c
 	$(CC) -DTEST_NAME=$(basename $(notdir $<)) -c $(mle_cflags) -rdynamic $< -o $@
@@ -66,7 +54,7 @@ clean_quick:
 	rm -f mle $(mle_objects) $(mle_unit_test_objects) $(mle_unit_tests) $(mle_unit_test_all)
 
 clean:
-	rm -f mle $(mle_objects) $(mle_vendor_deps) $(mle_unit_test_objects) $(mle_unit_tests) $(mle_unit_test_all)
-	$(MAKE) -C vendor clean
+	rm -f mle $(mle_objects) $(mle_unit_test_objects) $(mle_unit_tests) $(mle_unit_test_all)
+	$(MAKE) -C clean
 
 .PHONY: all test sloc install uscript clean
