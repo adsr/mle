@@ -2315,13 +2315,13 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
                 printf("Usage: mle [options] [file:line]...\n\n");
-                printf("    -h           Show this message\n");
-                printf("    -a <1|0>     Enable/disable tab_to_space (default: %d)\n", MLE_DEFAULT_TAB_TO_SPACE);
+                printf("    -h           Show help\n");
+                printf("    -a <1|0>     Enable/disable tab to space (default: %d)\n", MLE_DEFAULT_TAB_TO_SPACE);
                 printf("    -b <1|0>     Enable/disable highlight bracket pairs (default: %d)\n", MLE_DEFAULT_HILI_BRACKET_PAIRS);
-                printf("    -c <column>  Color column (default: -1, disabled)\n");
+                printf("    -c <column>  Set color column (default: -1, disabled)\n");
                 printf("    -e <1|0>     Enable/disable mouse support (default: %d)\n", MLE_DEFAULT_MOUSE_SUPPORT);
                 printf("    -H <1|0>     Enable/disable headless mode (default: 1 if no tty, else 0)\n");
-                printf("    -i <1|0>     Enable/disable auto_indent (default: %d)\n", MLE_DEFAULT_AUTO_INDENT);
+                printf("    -i <1|0>     Enable/disable auto indent (default: %d)\n", MLE_DEFAULT_AUTO_INDENT);
                 printf("    -K <kdef>    Make a kmap definition (use with -k)\n");
                 printf("    -k <kbind>   Add key binding to current kmap definition (use after -K)\n");
                 printf("    -l <ltype>   Set linenum type (default: 0, absolute)\n");
@@ -2333,12 +2333,12 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 printf("    -S <syndef>  Make a syntax definition (use with -s)\n");
                 printf("    -s <synrule> Add syntax rule to current syntax definition (use after -S)\n");
                 printf("    -t <size>    Set tab size (default: %d)\n", MLE_DEFAULT_TAB_WIDTH);
-                printf("    -u <1|0>     Set coarse undo/redo (default: %d)\n", MLE_DEFAULT_COARSE_UNDO);
+                printf("    -u <1|0>     Enable/disable coarse undo/redo (default: %d)\n", MLE_DEFAULT_COARSE_UNDO);
                 printf("    -v           Print version and exit\n");
                 printf("    -w <1|0>     Enable/disable soft word wrap (default: %d)\n", MLE_DEFAULT_SOFT_WRAP);
                 printf("    -x <uscript> Run a Lua user script\n");
                 printf("    -y <syntax>  Set override syntax for files opened at start up\n");
-                printf("    -z <1|0>     Enable/disable trim_paste (default: %d)\n", MLE_DEFAULT_TRIM_PASTE);
+                printf("    -z <1|0>     Enable/disable trimmed paste (default: %d)\n", MLE_DEFAULT_TRIM_PASTE);
                 printf("\n");
                 printf("    file         At start up, open file\n");
                 printf("    file:line    At start up, open file at line\n");

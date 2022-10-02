@@ -6,13 +6,13 @@
 .Nd flexible terminal-based text editor
 .Sh SYNOPSIS
 .Nm mle
-.Op Fl abcHhiKklMmNnpSstvwxyz
+.Op Fl abceHhiKklMmNnpSstuvwxyz
 .Op Ar file[:line]
 .Li ...
 .Sh DESCRIPTION
 .Nm
 is a small, flexible, terminal-based text editor written in C.
-It runs on Linux, Windows (Cygwin), FreeBSD, and macOS.
+It runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 .Ss Basic usage
 .Bd -literal
   $ mle             # Open blank buffer
@@ -30,17 +30,19 @@ Press `F2` for full help.
 .Ss Options
 .Bl -tag -width ".Fl foo barbaz" -offset indent
 .It Fl h
-Show help message
+Show help
 .It Fl a Aq 1|0
-Enable/disable tab_to_space (default: 1)
+Enable/disable tab to space (default: 1)
 .It Fl b Aq 1|0
 Enable/disable highlight bracket pairs (default: 1)
 .It Fl c Ar column
 Color column (default: -1, disabled)
+.It Fl e Aq 1|0
+Enable/disable mouse support (default: 0)
 .It Fl H Aq 1|0
 Enable/disable headless mode (default: 1 if no tty, else 0)
 .It Fl i Aq 1|0
-Enable/disable auto_indent (default: 0)
+Enable/disable auto indent (default: 0)
 .It Fl K Ar kdef
 Make a kmap definition (use with -k).
 .Pp
@@ -168,9 +170,13 @@ bold
 underline
 .It 1024
 reverse
+.It 2048
+italic
 .El
 .It Fl t Ar size
 Set tab size (default: 4)
+.It Fl u Aq 1|0
+Enable/disable coarse undo/redo (default: 0)
 .It Fl v
 Print version and exit
 .It Fl w Aq 1|0
@@ -183,8 +189,38 @@ If '-' is specified, use the built-in generic syntax.
 .Ar syntax
 is any syntax name.
 .It Fl z Aq 1|0
-Enable/disable trim_paste (default: 1)
+Enable/disable trimmed paste (default: 1)
 .El
+.Sh KEY NAMES
+Key names for -k, -M, and -m are formatted as `<key>` or `<mod>-<key>`.
+.Pp
+.Ar key
+is any character or one of the following:
+space, tab, enter, backspace, comma, up, down, left, right, insert, delete,
+home, end, pgup, pgdn, backtab, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11,
+f12.
+.Pp
+.Ar mod
+is one of
+.Bl -tag -width "############" -offset indent
+.It S
+Shift
+.It M
+Alt (Meta)
+.It MS
+Alt-Shift
+.It C
+Ctrl
+.It CS
+Ctrl-Shift
+.It CM
+Ctrl-Alt
+.It CMS
+Ctrl-Alt-Shift
+.El
+.Pp
+Not all key names are valid or supported by all terminals.
+Run with `-Qk` to display key names for given input.
 .Sh ADVANCED USAGE
 Below are some advanced things you can do with mle.
 .Ss rc file
@@ -276,6 +312,6 @@ mle makes extensive use of the following libraries.
 for hash maps and linked lists
 .It Em termbox2
 for TUI
-.It Em PCRE
+.It Em PCRE2
 for syntax highlighting and search
 .El
