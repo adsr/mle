@@ -126,6 +126,7 @@ struct editor_s {
     char infostr[MLE_ERRSTR_SIZE];
     int debug_exit_after_startup;
     int debug_dump_state_on_exit;
+    int debug_key_input;
     int exit_code;
 };
 

@@ -34,6 +34,7 @@ static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx);
 static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx);
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx);
 static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx);
+static int _editor_debug_key_input();
 static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *cmd_ctx);
 static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before);
 static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input);
@@ -49,6 +50,7 @@ static cmd_t *_editor_get_command(editor_t *editor, cmd_context_t *ctx, kinput_t
 static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, cmd_context_t *ctx, int is_paste, int *ret_is_numeric);
 static cmd_t *_editor_resolve_cmd(editor_t *editor, cmd_t **rcmd, char *cmd_name);
 static int _editor_key_to_input(char *key, kinput_t *ret_input);
+static int _editor_event_to_key(struct tb_event *ev, char *ret_key);
 static void _editor_init_signal_handlers(editor_t *editor);
 static void _editor_continue(int signum);
 static void _editor_graceful_exit(int signum);
@@ -168,6 +170,9 @@ int editor_run(editor_t *editor) {
     loop_context_t loop_ctx;
     memset(&loop_ctx, 0, sizeof(loop_context_t));
     _editor_resize(editor, -1, -1);
+    if (editor->debug_key_input) {
+        return _editor_debug_key_input();
+    }
     _editor_loop(editor, &loop_ctx);
     if (editor->headless_mode && editor->active_edit) {
         buffer_write_to_fd(editor->active_edit->buffer, STDOUT_FILENO, NULL);
@@ -983,6 +988,44 @@ static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
     editor->loop_depth -= 1;
 }
 
+// Run debug routine to show key names as they input
+static int _editor_debug_key_input() {
+    char keyname[16];
+    struct tb_event ev;
+    int y, h;
+    y = 0;
+    h = tb_height();
+    tb_print(0, y++, 0, 0, "_editor_debug_key_input: Press q to quit.");
+    tb_present();
+    y++;
+    while (1) {
+        if (tb_poll_event(&ev) != TB_OK) {
+            if (tb_last_errno() != EINTR) {
+                break;
+            } else {
+                continue;
+            }
+        }
+        if (ev.type == TB_EVENT_RESIZE) {
+            h = tb_height();
+        } else if (ev.type == TB_EVENT_KEY) {
+            if (ev.ch == 'q' && ev.mod == 0) {
+                break;
+            }
+            if (_editor_event_to_key(&ev, keyname) != MLE_OK) {
+                sprintf(keyname, "<unknown>");
+            }
+            if (y >= h) {
+                tb_clear();
+                y = 0;
+            }
+            tb_print(0, y++, 0, 0, keyname);
+        }
+        tb_present();
+    }
+    return MLE_OK;
+}
+
 // Set fresh values on cmd_context
 static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *cmd_ctx) {
     cmd_ctx->cursor = editor->active->active_cursor;
@@ -1476,6 +1519,40 @@ static int _editor_key_to_input(char *key, kinput_t *ret_input) {
         return MLE_ERR;
     }
     ret_input->ch = ch;
+    return MLE_OK;
+}
+
+// Return a key name given a key event
+static int _editor_event_to_key(struct tb_event *ev, char *ret_keyname) {
+    char key[16];
+    #define MLE_KEY_DEF(pkname, pmodmin, pmodadd, pch, pkey) \
+        } else if (                                          \
+            (((pch) && ev->ch == (pch))                      \
+            || (!(pch) && ev->key == (pkey)))                \
+            && (((pmodmin) & ev->mod) == (pmodmin))          \
+        ) {                                                  \
+            if ((pmodadd)) ev->mod &= ~(pmodadd);            \
+            sprintf(key, (pkname));
+    if (0) {
+        return MLE_ERR;
+        #include "keys.h"
+    } else {
+        utf8_unicode_to_char(key, ev->ch);
+    }
+    #undef MLE_KEY_DEF
+    if (ev->mod & TB_MOD_CTRL) {
+        *ret_keyname++ = 'C';
+    }
+    if (ev->mod & TB_MOD_ALT) {
+        *ret_keyname++ = 'M';
+    }
+    if (ev->mod & TB_MOD_SHIFT) {
+        *ret_keyname++ = 'S';
+    }
+    if (ev->mod & TB_MOD_CTRL || ev->mod & TB_MOD_ALT || ev->mod & TB_MOD_SHIFT) {
+        *ret_keyname++ = '-';
+    }
+    sprintf(ret_keyname, "%s", key);
     return MLE_OK;
 }
 
@@ -2383,6 +2460,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 switch (*optarg) {
                     case 'q': editor->debug_exit_after_startup = 1; break;
                     case 'd': editor->debug_dump_state_on_exit = 1; break;
+                    case 'k': editor->debug_key_input = 1; break;
                 }
                 break;
             default: // Unknown option
