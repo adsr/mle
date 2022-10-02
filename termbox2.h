@@ -2,7 +2,7 @@
 MIT License
 
 Copyright (c) 2010-2020 nsf <no.smile.face@gmail.com>
-              2015-2021 Adam Saponara <as@php.net>
+              2015-2022 Adam Saponara <as@php.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,20 @@ SOFTWARE.
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+// __ffi_start
+
+#define TB_VERSION_STR "2.1.0-dev"
+
+#if defined(TB_LIB_OPTS) || 0 // __tb_lib_opts
+// Ensure consistent compile-time options when using as a library
+#undef TB_OPT_TRUECOLOR
+#undef TB_OPT_EGC
+#undef TB_OPT_PRINTF_BUF
+#undef TB_OPT_READ_BUF
+#define TB_OPT_TRUECOLOR
+#define TB_OPT_EGC
 #endif
 
 /* ASCII key constants (tb_event.key) */
@@ -182,7 +196,6 @@ extern "C" {
 #define TB_HARDCAP_EXIT_MOUSE   "\x1b[?1006l\x1b[?1015l\x1b[?1002l\x1b[?1000l"
 
 /* Colors (numeric) and attributes (bitwise) (tb_cell.fg, tb_cell.bg) */
-#define TB_DEFAULT              0x0000
 #define TB_BLACK                0x0001
 #define TB_RED                  0x0002
 #define TB_GREEN                0x0003
@@ -196,12 +209,14 @@ extern "C" {
 #define TB_REVERSE              0x0400
 #define TB_ITALIC               0x0800
 #define TB_BLINK                0x1000
+#define TB_DEFAULT              0x2000
 #ifdef TB_OPT_TRUECOLOR
 #define TB_TRUECOLOR_BOLD      0x01000000
 #define TB_TRUECOLOR_UNDERLINE 0x02000000
 #define TB_TRUECOLOR_REVERSE   0x04000000
 #define TB_TRUECOLOR_ITALIC    0x08000000
 #define TB_TRUECOLOR_BLINK     0x10000000
+#define TB_TRUECOLOR_DEFAULT   0x20000000
 #endif
 
 /* Event types (tb_event.type) */
@@ -298,8 +313,6 @@ extern "C" {
 #define tb_free    free
 #endif
 
-// __ffi_start
-
 #ifdef TB_OPT_TRUECOLOR
 typedef uint32_t uintattr_t;
 #else
@@ -329,8 +342,8 @@ typedef uint16_t uintattr_t;
  */
 struct tb_cell {
     uint32_t ch;   /* a Unicode character */
-    uintattr_t fg; /* bit-wise foreground attributes */
-    uintattr_t bg; /* bit-wise background attributes */
+    uintattr_t fg; /* bitwise foreground attributes */
+    uintattr_t bg; /* bitwise background attributes */
 #ifdef TB_OPT_EGC
     uint32_t *ech; /* a grapheme cluster of Unicode code points */
     size_t nech;   /* length in bytes of ech, 0 means use ch instead of ech */
@@ -353,7 +366,7 @@ struct tb_cell {
  */
 struct tb_event {
     uint8_t type; /* one of TB_EVENT_* constants */
-    uint8_t mod;  /* bit-wise TB_MOD_* constants */
+    uint8_t mod;  /* bitwise TB_MOD_* constants */
     uint16_t key; /* one of TB_KEY_* constants */
     uint32_t ch;  /* a Unicode code point */
     int32_t w;    /* resize width */
@@ -367,11 +380,11 @@ struct tb_event {
  * successful initialization, the library must be finalized using the
  * tb_shutdown() function.
  */
-int tb_init();
+int tb_init(void);
 int tb_init_file(const char *path);
 int tb_init_fd(int ttyfd);
 int tb_init_rwfd(int rfd, int wfd);
-int tb_shutdown();
+int tb_shutdown(void);
 
 /* Returns the size of the internal back buffer (which is the same as terminal's
  * window size in rows and columns). The internal buffer can be resized after
@@ -379,27 +392,32 @@ int tb_shutdown();
  * unspecified negative value when called before tb_init() or after
  * tb_shutdown().
  */
-int tb_width();
-int tb_height();
+int tb_width(void);
+int tb_height(void);
 
 /* Clears the internal back buffer using TB_DEFAULT color or the
  * color/attributes set by tb_set_clear_attrs() function.
  */
-int tb_clear();
+int tb_clear(void);
 int tb_set_clear_attrs(uintattr_t fg, uintattr_t bg);
 
 /* Synchronizes the internal back buffer with the terminal by writing to tty. */
-int tb_present();
+int tb_present(void);
 
 /* Sets the position of the cursor. Upper-left character is (0, 0). */
 int tb_set_cursor(int cx, int cy);
-int tb_hide_cursor();
+int tb_hide_cursor(void);
 
-/* Set cell contents in the internal back buffer at the specified position. Use
- * tb_set_cell_ex() for rendering grapheme clusters (e.g., combining diacritical
- * marks). Function tb_set_cell(x, y, ch, fg, bg) is equivalent to
- * tb_set_cell_ex(x, y, &ch, 1, fg, bg). tb_extend_cell() is a shortcut for
- * appending 1 code point to cell->ech.
+/* Set cell contents in the internal back buffer at the specified position.
+ *
+ * Use tb_set_cell_ex() for rendering grapheme clusters (e.g., combining
+ * diacritical marks).
+ *
+ * Function tb_set_cell(x, y, ch, fg, bg) is equivalent to
+ * tb_set_cell_ex(x, y, &ch, 1, fg, bg).
+ *
+ * Function tb_extend_cell() is a shortcut for appending 1 code point to
+ * cell->ech.
  */
 int tb_set_cell(int x, int y, uint32_t ch, uintattr_t fg, uintattr_t bg);
 int tb_set_cell_ex(int x, int y, uint32_t *ch, size_t nch, uintattr_t fg,
@@ -429,14 +447,21 @@ int tb_extend_cell(int x, int y, uint32_t ch);
  */
 int tb_set_input_mode(int mode);
 
-/* Sets the termbox output mode. Termbox has three output modes:
+/* Sets the termbox output mode. Termbox has multiple output modes:
  *
- * 1. TB_OUTPUT_NORMAL     => [1..8]
+ * 1. TB_OUTPUT_NORMAL     => [0..8]
+ *
  *    This mode provides 8 different colors:
  *      TB_BLACK, TB_RED, TB_GREEN, TB_YELLOW,
  *      TB_BLUE, TB_MAGENTA, TB_CYAN, TB_WHITE
- *    Colors may be bitwise OR'd with attributes:
+ *
+ *    Plus TB_DEFAULT which skips sending a color code (i.e., uses the
+ *    terminal's default color).
+ *
+ *    Colors (including TB_DEFAULT) may be bitwise OR'd with attributes:
  *      TB_BOLD, TB_UNDERLINE, TB_REVERSE, TB_ITALIC, TB_BLINK
+ *
+ *    The value 0 is interpreted as TB_DEFAULT.
  *
  *    Some notes: TB_REVERSE can be applied as either fg or bg attributes for
  *    the same effect. TB_BOLD, TB_UNDERLINE, TB_ITALIC, TB_BLINK apply as fg
@@ -446,31 +471,48 @@ int tb_set_input_mode(int mode);
  *      tb_set_cell(x, y, '@', TB_BLACK | TB_BOLD, TB_RED);
  *
  * 2. TB_OUTPUT_256        => [0..255]
+ *
  *    In this mode you get 256 distinct colors:
  *      0x00 - 0x07: the 8 colors as in TB_OUTPUT_NORMAL
  *      0x08 - 0x0f: bright versions of the above
  *      0x10 - 0xe7: 216 different colors
  *      0xe8 - 0xff: 24 different shades of grey
  *
- *    Example usage:
- *      tb_set_cell(x, y, '@', 184, 240);
- *      tb_set_cell(x, y, '@', 0xb8, 0xf0);
+ *    Attributes may be bitwise OR'd as in TB_OUTPUT_NORMAL.
  *
- * 3. TB_OUTPUT_216        => [0..215]
+ *    In this mode 0x00 represents TB_BLACK, so TB_DEFAULT must be used for
+ *    default colors.
+ *
+ * 3. TB_OUTPUT_216        => [0..216]
+ *
  *    This mode supports the 3rd range of TB_OUTPUT_256 only, but you don't
  *    need to provide an offset.
  *
- * 4. TB_OUTPUT_GRAYSCALE  => [0..23]
+ *    The value 0 is interpreted as TB_DEFAULT.
+ *
+ * 4. TB_OUTPUT_GRAYSCALE  => [0..24]
+ *
  *    This mode supports the 4th range of TB_OUTPUT_256 only, but you don't
  *    need to provide an offset.
  *
+ *    The value 0 is interpreted as TB_DEFAULT.
+ *
  * 5. TB_OUTPUT_TRUECOLOR  => [0x000000..0xffffff]
+ *
  *    This mode provides 24-bit color on supported terminals. The format is
  *    0xRRGGBB. Colors may be bitwise OR'd with `TB_TRUECOLOR_*` attributes.
+ *
+ *    In this mode 0x000000 represents black, so TB_TRUECOLOR_DEFAULT must be
+ *    used for default colors.
  *
  * If mode is TB_OUTPUT_CURRENT, the function returns the current output mode.
  *
  * The default output mode is TB_OUTPUT_NORMAL.
+ *
+ * To use the terminal default color (i.e., to not send an escape code), pass
+ * TB_DEFAULT (or TB_TRUECOLOR_DEFAULT in TB_OUTPUT_TRUECOLOR mode). For
+ * convenience, the value 0 is interpreted as TB_DEFAULT in TB_OUTPUT_NORMAL,
+ * TB_OUTPUT_216, and TB_OUTPUT_GRAYSCALE.
  *
  * Note, not all terminals support all output modes, especially beyond
  * TB_OUTPUT_NORMAL. There is also no very reliable way to determine color
@@ -526,11 +568,12 @@ int tb_set_func(int fn_type, int (*fn)(struct tb_event *, size_t *));
 int tb_utf8_char_length(char c);
 int tb_utf8_char_to_unicode(uint32_t *out, const char *c);
 int tb_utf8_unicode_to_char(char *out, uint32_t c);
-int tb_last_errno();
+int tb_last_errno(void);
 const char *tb_strerror(int err);
-struct tb_cell *tb_cell_buffer();
-int tb_has_truecolor();
-int tb_has_egc();
+struct tb_cell *tb_cell_buffer(void);
+int tb_has_truecolor(void);
+int tb_has_egc(void);
+const char *tb_version(void);
 
 #ifdef __cplusplus
 }
@@ -624,6 +667,7 @@ struct tb_global_t {
     int initialized;
     int (*fn_extract_esc_pre)(struct tb_event *, size_t *);
     int (*fn_extract_esc_post)(struct tb_event *, size_t *);
+    char errbuf[1024];
 };
 
 static struct tb_global_t global = {0};
@@ -1312,28 +1356,28 @@ static const unsigned char utf8_length[256] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 
 static const unsigned char utf8_mask[6] = {0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01};
 
-static int tb_reset();
+static int tb_reset(void);
 static int tb_printf_inner(int x, int y, uintattr_t fg, uintattr_t bg,
     size_t *out_w, const char *fmt, va_list vl);
-static int init_term_attrs();
-static int init_term_caps();
-static int init_cap_trie();
+static int init_term_attrs(void);
+static int init_term_caps(void);
+static int init_cap_trie(void);
 static int cap_trie_add(const char *cap, uint16_t key, uint8_t mod);
 static int cap_trie_find(const char *buf, size_t nbuf, struct cap_trie_t **last,
     size_t *depth);
 static int cap_trie_deinit(struct cap_trie_t *node);
-static int init_resize_handler();
-static int send_init_escape_codes();
-static int send_clear();
-static int update_term_size();
-static int update_term_size_via_esc();
-static int init_cellbuf();
-static int tb_deinit();
-static int load_terminfo();
+static int init_resize_handler(void);
+static int send_init_escape_codes(void);
+static int send_clear(void);
+static int update_term_size(void);
+static int update_term_size_via_esc(void);
+static int init_cellbuf(void);
+static int tb_deinit(void);
+static int load_terminfo(void);
 static int load_terminfo_from_path(const char *path, const char *term);
 static int read_terminfo_path(const char *path);
-static int parse_terminfo_caps();
-static int load_builtin_caps();
+static int parse_terminfo_caps(void);
+static int load_builtin_caps(void);
 static const char *get_terminfo_string(int16_t str_offsets_pos,
     int16_t str_table_pos, int16_t str_table_len, int16_t str_index);
 static int wait_event(struct tb_event *event, int timeout);
@@ -1342,10 +1386,11 @@ static int extract_esc(struct tb_event *event);
 static int extract_esc_user(struct tb_event *event, int is_post);
 static int extract_esc_cap(struct tb_event *event);
 static int extract_esc_mouse(struct tb_event *event);
-static int resize_cellbufs();
+static int resize_cellbufs(void);
 static void handle_resize(int sig);
 static int send_attr(uintattr_t fg, uintattr_t bg);
-static int send_sgr(uintattr_t fg, uintattr_t bg);
+static int send_sgr(uintattr_t fg, uintattr_t bg, uintattr_t fg_is_default,
+    uintattr_t bg_is_default);
 static int send_cursor_if(int x, int y);
 static int send_char(int x, int y, uint32_t ch);
 static int send_cluster(int x, int y, uint32_t *ch, size_t nch);
@@ -1368,7 +1413,7 @@ static int bytebuf_flush(struct bytebuf_t *b, int fd);
 static int bytebuf_reserve(struct bytebuf_t *b, size_t sz);
 static int bytebuf_free(struct bytebuf_t *b);
 
-int tb_init() {
+int tb_init(void) {
     return tb_init_file("/dev/tty");
 }
 
@@ -1416,23 +1461,23 @@ int tb_init_rwfd(int rfd, int wfd) {
     return rv;
 }
 
-int tb_shutdown() {
+int tb_shutdown(void) {
     if_not_init_return();
     tb_deinit();
     return TB_OK;
 }
 
-int tb_width() {
+int tb_width(void) {
     if_not_init_return();
     return global.width;
 }
 
-int tb_height() {
+int tb_height(void) {
     if_not_init_return();
     return global.height;
 }
 
-int tb_clear() {
+int tb_clear(void) {
     if_not_init_return();
     return cellbuf_clear(&global.back);
 }
@@ -1444,7 +1489,7 @@ int tb_set_clear_attrs(uintattr_t fg, uintattr_t bg) {
     return TB_OK;
 }
 
-int tb_present() {
+int tb_present(void) {
     if_not_init_return();
 
     int rv;
@@ -1468,7 +1513,8 @@ int tb_present() {
                     w = wcswidth((wchar_t *)back->ech, back->nech);
                 else
 #endif
-                    w = wcwidth(back->ch);
+                    /* wcwidth() simply returns -1 on overflow of wchar_t */
+                    w = wcwidth((wchar_t)back->ch);
             }
             if (w < 1) {
                 w = 1;
@@ -1527,7 +1573,7 @@ int tb_set_cursor(int cx, int cy) {
     return TB_OK;
 }
 
-int tb_hide_cursor() {
+int tb_hide_cursor(void) {
     if_not_init_return();
     int rv;
     if (global.cursor_x >= 0) {
@@ -1660,7 +1706,7 @@ int tb_print_ex(int x, int y, uintattr_t fg, uintattr_t bg, size_t *out_w,
     }
     while (*str) {
         str += tb_utf8_char_to_unicode(&uni, str);
-        w = wcwidth(uni);
+        w = wcwidth((wchar_t)uni);
         if (w < 0) {
             w = 1;
         }
@@ -1726,7 +1772,7 @@ int tb_set_func(int fn_type, int (*fn)(struct tb_event *, size_t *)) {
     return TB_ERR;
 }
 
-struct tb_cell *tb_cell_buffer() {
+struct tb_cell *tb_cell_buffer(void) {
     if (!global.initialized)
         return NULL;
     return global.back.cells;
@@ -1788,7 +1834,7 @@ int tb_utf8_unicode_to_char(char *out, uint32_t c) {
     return len;
 }
 
-int tb_last_errno() {
+int tb_last_errno(void) {
     return global.last_errno;
 }
 
@@ -1830,11 +1876,12 @@ const char *tb_strerror(int err) {
         case TB_ERR_RESIZE_POLL:
         case TB_ERR_RESIZE_READ:
         default:
-            return strerror(global.last_errno);
+            strerror_r(global.last_errno, global.errbuf, sizeof(global.errbuf));
+            return (const char *)global.errbuf;
     }
 }
 
-int tb_has_truecolor() {
+int tb_has_truecolor(void) {
 #ifdef TB_OPT_TRUECOLOR
     return 1;
 #else
@@ -1842,7 +1889,7 @@ int tb_has_truecolor() {
 #endif
 }
 
-int tb_has_egc() {
+int tb_has_egc(void) {
 #ifdef TB_OPT_EGC
     return 1;
 #else
@@ -1850,7 +1897,11 @@ int tb_has_egc() {
 #endif
 }
 
-static int tb_reset() {
+const char *tb_version(void) {
+    return TB_VERSION_STR;
+}
+
+static int tb_reset(void) {
     int ttyfd_open = global.ttyfd_open;
     memset(&global, 0, sizeof(global));
     global.ttyfd = -1;
@@ -1874,7 +1925,7 @@ static int tb_reset() {
     return TB_OK;
 }
 
-static int init_term_attrs() {
+static int init_term_attrs(void) {
     if (global.ttyfd < 0) {
         return TB_OK;
     }
@@ -1911,14 +1962,14 @@ int tb_printf_inner(int x, int y, uintattr_t fg, uintattr_t bg, size_t *out_w,
     return tb_print_ex(x, y, fg, bg, out_w, buf);
 }
 
-static int init_term_caps() {
+static int init_term_caps(void) {
     if (load_terminfo() == TB_OK) {
         return parse_terminfo_caps();
     }
     return load_builtin_caps();
 }
 
-static int init_cap_trie() {
+static int init_cap_trie(void) {
     int rv, i;
 
     // Add caps from terminfo or built-in
@@ -2026,7 +2077,7 @@ static int cap_trie_deinit(struct cap_trie_t *node) {
     return TB_OK;
 }
 
-static int init_resize_handler() {
+static int init_resize_handler(void) {
     if (pipe(global.resize_pipefd) != 0) {
         global.last_errno = errno;
         return TB_ERR_RESIZE_PIPE;
@@ -2043,7 +2094,7 @@ static int init_resize_handler() {
     return TB_OK;
 }
 
-static int send_init_escape_codes() {
+static int send_init_escape_codes(void) {
     int rv;
     if_err_return(rv, bytebuf_puts(&global.out, global.caps[TB_CAP_ENTER_CA]));
     if_err_return(rv,
@@ -2053,7 +2104,7 @@ static int send_init_escape_codes() {
     return TB_OK;
 }
 
-static int send_clear() {
+static int send_clear(void) {
     int rv;
 
     if_err_return(rv, send_attr(global.fg, global.bg));
@@ -2069,7 +2120,7 @@ static int send_clear() {
     return TB_OK;
 }
 
-static int update_term_size() {
+static int update_term_size(void) {
     int rv, ioctl_errno;
 
     if (global.ttyfd < 0) {
@@ -2094,7 +2145,7 @@ static int update_term_size() {
     return TB_ERR_RESIZE_IOCTL;
 }
 
-static int update_term_size_via_esc() {
+static int update_term_size_via_esc(void) {
 #ifndef TB_RESIZE_FALLBACK_MS
 #define TB_RESIZE_FALLBACK_MS 1000
 #endif
@@ -2139,7 +2190,7 @@ static int update_term_size_via_esc() {
     return TB_OK;
 }
 
-static int init_cellbuf() {
+static int init_cellbuf(void) {
     int rv;
     if_err_return(rv, cellbuf_init(&global.back, global.width, global.height));
     if_err_return(rv, cellbuf_init(&global.front, global.width, global.height));
@@ -2148,7 +2199,7 @@ static int init_cellbuf() {
     return TB_OK;
 }
 
-static int tb_deinit() {
+static int tb_deinit(void) {
     if (global.caps[0] != NULL && global.wfd >= 0) {
         bytebuf_puts(&global.out, global.caps[TB_CAP_SHOW_CURSOR]);
         bytebuf_puts(&global.out, global.caps[TB_CAP_SGR0]);
@@ -2188,7 +2239,7 @@ static int tb_deinit() {
     return TB_OK;
 }
 
-static int load_terminfo() {
+static int load_terminfo(void) {
     int rv;
     char tmp[PATH_MAX];
 
@@ -2297,7 +2348,7 @@ static int read_terminfo_path(const char *path) {
     return TB_OK;
 }
 
-static int parse_terminfo_caps() {
+static int parse_terminfo_caps(void) {
     // See term(5) "LEGACY STORAGE FORMAT" and "EXTENDED STORAGE FORMAT" for a
     // description of this behavior.
 
@@ -2349,7 +2400,7 @@ static int parse_terminfo_caps() {
     return TB_OK;
 }
 
-static int load_builtin_caps() {
+static int load_builtin_caps(void) {
     int i, j;
     const char *term = getenv("TERM");
 
@@ -2687,10 +2738,10 @@ static int extract_esc_mouse(struct tb_event *event) {
             } else {
                 int start = (type == TYPE_1015 ? 2 : 3);
 
-                int n1 = strtoul(&in->buf[start], NULL, 10);
-                int n2 =
+                unsigned n1 = strtoul(&in->buf[start], NULL, 10);
+                unsigned n2 =
                     strtoul(&in->buf[indices[FIRST_SEMICOLON] + 1], NULL, 10);
-                int n3 =
+                unsigned n3 =
                     strtoul(&in->buf[indices[LAST_SEMICOLON] + 1], NULL, 10);
 
                 if (type == TYPE_1015) {
@@ -2754,7 +2805,7 @@ static int extract_esc_mouse(struct tb_event *event) {
     return ret;
 }
 
-static int resize_cellbufs() {
+static int resize_cellbufs(void) {
     int rv;
     if_err_return(rv,
         cellbuf_resize(&global.back, global.width, global.height));
@@ -2795,35 +2846,36 @@ static int send_attr(uintattr_t fg, uintattr_t bg) {
 
         case TB_OUTPUT_216:
             cfg = fg & 0xff;
-            if (cfg > 215)
-                cfg = 7;
             cbg = bg & 0xff;
-            if (cbg > 215)
-                cbg = 0;
-            cfg += 0x10;
-            cbg += 0x10;
+            if (cfg > 216)
+                cfg = 216;
+            if (cbg > 216)
+                cbg = 216;
+            cfg += 0x0f;
+            cbg += 0x0f;
             break;
 
         case TB_OUTPUT_GRAYSCALE:
             cfg = fg & 0xff;
-            if (cfg > 23)
-                cfg = 23;
             cbg = bg & 0xff;
-            if (cbg > 23)
-                cbg = 0;
-            cfg += 0xe8;
-            cbg += 0xe8;
+            if (cfg > 24)
+                cfg = 24;
+            if (cbg > 24)
+                cbg = 24;
+            cfg += 0xe7;
+            cbg += 0xe7;
             break;
 
 #ifdef TB_OPT_TRUECOLOR
         case TB_OUTPUT_TRUECOLOR:
-            cfg = fg;
-            cbg = bg;
+            cfg = fg & 0xffffff;
+            cbg = bg & 0xffffff;
             break;
 #endif
     }
 
-    uintattr_t attr_bold, attr_blink, attr_italic, attr_underline, attr_reverse;
+    uintattr_t attr_bold, attr_blink, attr_italic, attr_underline, attr_reverse,
+        attr_default;
 #ifdef TB_OPT_TRUECOLOR
     if (global.output_mode == TB_OUTPUT_TRUECOLOR) {
         attr_bold = TB_TRUECOLOR_BOLD;
@@ -2831,6 +2883,7 @@ static int send_attr(uintattr_t fg, uintattr_t bg) {
         attr_italic = TB_TRUECOLOR_ITALIC;
         attr_underline = TB_TRUECOLOR_UNDERLINE;
         attr_reverse = TB_TRUECOLOR_REVERSE;
+        attr_default = TB_TRUECOLOR_DEFAULT;
     } else
 #endif
     {
@@ -2839,6 +2892,19 @@ static int send_attr(uintattr_t fg, uintattr_t bg) {
         attr_italic = TB_ITALIC;
         attr_underline = TB_UNDERLINE;
         attr_reverse = TB_REVERSE;
+        attr_default = TB_DEFAULT;
+    }
+
+    /* For convenience (and some back compat), interpret 0 as default in some
+     * modes */
+    if (global.output_mode == TB_OUTPUT_NORMAL ||
+        global.output_mode == TB_OUTPUT_216 ||
+        global.output_mode == TB_OUTPUT_GRAYSCALE)
+    {
+        if ((fg & 0xff) == 0)
+            fg |= attr_default;
+        if ((bg & 0xff) == 0)
+            bg |= attr_default;
     }
 
     if (fg & attr_bold)
@@ -2859,7 +2925,7 @@ static int send_attr(uintattr_t fg, uintattr_t bg) {
         if_err_return(rv,
             bytebuf_puts(&global.out, global.caps[TB_CAP_REVERSE]));
 
-    if_err_return(rv, send_sgr(cfg, cbg));
+    if_err_return(rv, send_sgr(cfg, cbg, fg & attr_default, bg & attr_default));
 
     global.last_fg = fg;
     global.last_bg = bg;
@@ -2867,16 +2933,12 @@ static int send_attr(uintattr_t fg, uintattr_t bg) {
     return TB_OK;
 }
 
-static int send_sgr(uintattr_t fg, uintattr_t bg) {
+static int send_sgr(uintattr_t cfg, uintattr_t cbg, uintattr_t fg_is_default,
+    uintattr_t bg_is_default) {
     int rv;
     char nbuf[32];
 
-    if (
-#ifdef TB_OPT_TRUECOLOR
-        global.output_mode != TB_OUTPUT_TRUECOLOR &&
-#endif
-        fg == TB_DEFAULT && bg == TB_DEFAULT)
-    {
+    if (fg_is_default && bg_is_default) {
         return TB_OK;
     }
 
@@ -2884,16 +2946,16 @@ static int send_sgr(uintattr_t fg, uintattr_t bg) {
         default:
         case TB_OUTPUT_NORMAL:
             send_literal(rv, "\x1b[");
-            if (fg != TB_DEFAULT) {
+            if (!fg_is_default) {
                 send_literal(rv, "3");
-                send_num(rv, nbuf, fg - 1);
-                if (bg != TB_DEFAULT) {
+                send_num(rv, nbuf, cfg - 1);
+                if (!bg_is_default) {
                     send_literal(rv, ";");
                 }
             }
-            if (bg != TB_DEFAULT) {
+            if (!bg_is_default) {
                 send_literal(rv, "4");
-                send_num(rv, nbuf, bg - 1);
+                send_num(rv, nbuf, cbg - 1);
             }
             send_literal(rv, "m");
             break;
@@ -2902,34 +2964,42 @@ static int send_sgr(uintattr_t fg, uintattr_t bg) {
         case TB_OUTPUT_216:
         case TB_OUTPUT_GRAYSCALE:
             send_literal(rv, "\x1b[");
-            if (fg != TB_DEFAULT) {
+            if (!fg_is_default) {
                 send_literal(rv, "38;5;");
-                send_num(rv, nbuf, fg);
-                if (bg != TB_DEFAULT) {
+                send_num(rv, nbuf, cfg);
+                if (!bg_is_default) {
                     send_literal(rv, ";");
                 }
             }
-            if (bg != TB_DEFAULT) {
+            if (!bg_is_default) {
                 send_literal(rv, "48;5;");
-                send_num(rv, nbuf, bg);
+                send_num(rv, nbuf, cbg);
             }
             send_literal(rv, "m");
             break;
 
 #ifdef TB_OPT_TRUECOLOR
         case TB_OUTPUT_TRUECOLOR:
-            send_literal(rv, "\x1b[38;2;");
-            send_num(rv, nbuf, (fg >> 16) & 0xff);
-            send_literal(rv, ";");
-            send_num(rv, nbuf, (fg >> 8) & 0xff);
-            send_literal(rv, ";");
-            send_num(rv, nbuf, fg & 0xff);
-            send_literal(rv, ";48;2;");
-            send_num(rv, nbuf, (bg >> 16) & 0xff);
-            send_literal(rv, ";");
-            send_num(rv, nbuf, (bg >> 8) & 0xff);
-            send_literal(rv, ";");
-            send_num(rv, nbuf, bg & 0xff);
+            send_literal(rv, "\x1b[");
+            if (!fg_is_default) {
+                send_literal(rv, "38;2;");
+                send_num(rv, nbuf, (cfg >> 16) & 0xff);
+                send_literal(rv, ";");
+                send_num(rv, nbuf, (cfg >> 8) & 0xff);
+                send_literal(rv, ";");
+                send_num(rv, nbuf, cfg & 0xff);
+                if (!bg_is_default) {
+                    send_literal(rv, ";");
+                }
+            }
+            if (!bg_is_default) {
+                send_literal(rv, "48;2;");
+                send_num(rv, nbuf, (cbg >> 16) & 0xff);
+                send_literal(rv, ";");
+                send_num(rv, nbuf, (cbg >> 8) & 0xff);
+                send_literal(rv, ";");
+                send_num(rv, nbuf, cbg & 0xff);
+            }
             send_literal(rv, "m");
             break;
 #endif
@@ -2980,9 +3050,10 @@ static int send_cluster(int x, int y, uint32_t *ch, size_t nch) {
 
 static int convert_num(uint32_t num, char *buf) {
     int i, l = 0;
-    int ch;
+    char ch;
     do {
-        buf[l++] = '0' + (num % 10);
+        /* '0' = 48; 48 + num%10 < 58 < MAX_8bitCHAR */
+        buf[l++] = (char)('0' + (num % 10));
         num /= 10;
     } while (num);
     for (i = 0; i < l / 2; i++) {
