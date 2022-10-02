@@ -1,4 +1,4 @@
-.Dd August 1, 2018
+.Dd October 1, 2022
 .Dt MLE 1
 .Os
 .Sh NAME
@@ -6,15 +6,13 @@
 .Nd flexible terminal-based text editor
 .Sh SYNOPSIS
 .Nm mle
-.Op Fl habcHiKklMmNnpSstvwxyz
+.Op Fl abcHhiKklMmNnpSstvwxyz
 .Op Ar file[:line]
 .Li ...
 .Sh DESCRIPTION
 .Nm
-is a small, flexible, terminal-based text editor written in
-C. It runs on Linux, Windows (cygwin), FreeBSD, and MacOS.
-Visit https://github.com/adsr/mle for more info.
-.Pp
+is a small, flexible, terminal-based text editor written in C.
+It runs on Linux, Windows (Cygwin), FreeBSD, and macOS.
 .Ss Basic usage
 .Bd -literal
   $ mle             # Open blank buffer
@@ -24,12 +22,11 @@ Visit https://github.com/adsr/mle for more info.
   $ mle -h          # Show command line help
 .Ed
 .Pp
-The default key bindings are intuitive. Input text as
-normal, use directional keys to move around, use `Ctrl-S`
-to save, `Ctrl-O` to open, `Ctrl-X` to exit.
+The default key bindings are intuitive.
+Input text as normal, use directional keys to move around, use
+`Ctrl-S` to save, `Ctrl-O` to open, `Ctrl-X` to exit.
 .Pp
 Press `F2` for full help.
-.Pp
 .Ss Options
 .Bl -tag -width ".Fl foo barbaz" -offset indent
 .It Fl h
@@ -181,8 +178,8 @@ Enable/disable soft word wrap (default: 0)
 .It Fl x Ar uscript
 Run a Lua user script (experimental)
 .It Fl y Ar syntax
-Set override syntax for files opened at start up. If '-' is
-specified, use the built-in generic syntax.
+Set override syntax for files opened at start up.
+If '-' is specified, use the built-in generic syntax.
 .Ar syntax
 is any syntax name.
 .It Fl z Aq 1|0
@@ -195,13 +192,13 @@ To customize the editor, make an rc file named
 .Pa ~/.mlerc
 or
 .Pa /etc/mlerc .
-The contents of the rc file are any number of cli options
-separated by newlines. Lines that begin with a semi-colon
-are interpretted as comments.
+The contents of the rc file are any number of cli options separated
+by newlines.
+Lines that begin with a semi-colon are interpreted as comments.
 .Pp
-If the rc file is executable, mle executes it and
-interprets the resulting stdout as described above. For
-example, consider the following snippet from an executable
+If the rc file is executable, mle executes it and interprets the
+resulting stdout as described above.
+For example, consider the following snippet from an executable
 .Ar ~/.mlerc
 .Xr bash 1
 script:
@@ -224,7 +221,8 @@ This overrides the built-in grep command with `git grep` if
 .Pa .git
 exists in the current working directory.
 .Ss Shell command integration
-The following programs will enable or enhance certain features of mle if they exist in
+The following programs will enable or enhance certain features of
+mle if they exist in
 .Em PATH .
 .Bl -tag -width "############" -offset indent
 .It Xr bash 1
@@ -245,31 +243,32 @@ file browsing
 .Pp
 Arbitrary shell commands can also be run via `cmd_shell`
 (M-e by default). If any text is selected, it is sent to
-stdin of the command. Any resulting stdout is inserted into
-the text buffer.
+stdin of the command.
+Any resulting stdout is inserted into the text buffer.
 .Ss Headless mode
-mle provides support for non-interactive editing which may
-be useful for using the editor as a regular command line
-tool. In headless mode, mle reads stdin into a buffer,
-applies a startup macro if specified, and then writes the
-buffer contents to stdout. For example:
+mle provides support for non-interactive editing which may be useful
+for using the editor as a regular command line tool.
+In headless mode, mle reads stdin into a buffer, applies a startup
+macro if specified, and then writes the buffer contents to stdout.
+For example:
 .Bd -literal
   $ echo -n hello | mle -M 'test C-e space w o r l d enter' -p test
   hello world
 .Ed
 .Pp
-If stdin is a pipe, mle goes into headless mode
-automatically. Headless mode can be explicitly enabled or
-disabled with the `-H` option.
+If stdin is a pipe, mle goes into headless mode automatically.
+Headless mode can be explicitly enabled or disabled with the `-H`
+option.
 .Pp
-If stdin is a pipe and headless mode is disabled via -H0,
-mle reads stdin into a new buffer and then runs as normal
-in interactive mode.
+If stdin is a pipe and headless mode is disabled via -H0, mle reads
+stdin into a new buffer and then runs as normal in interactive mode.
 .Ss Scripting (experimental)
-mle is extensible via the Lua programming language. Scripts
-are loaded via the `-x` cli option. Commands registered by
-scripts can be mapped to keys as normal via `-k`. See
-https://github.com/adsr/mle for more info.
+mle is extensible via the Lua programming language.
+Scripts are loaded via the `-x` cli option.
+Commands registered by scripts can be mapped to keys as normal via `-k`.
+See
+.Lk https://github.com/adsr/mle
+for more info.
 .Sh ACKNOWLEDGEMENTS
 mle makes extensive use of the following libraries.
 .Bl -tag -width "############" -offset indent
