@@ -2439,6 +2439,10 @@ static const char *get_terminfo_string(int16_t str_offsets_pos,
     const int16_t *str_offset =
         (int16_t *)(global.terminfo + (int)str_offsets_pos +
                     ((int)str_index * (int)sizeof(int16_t)));
+    if (*str_offset < 0) {
+        // A negative indicates the cap is absent from this terminal
+        return "";
+    }
     if (*str_offset >= str_table_len) {
         // Invalid string offset
         return NULL;
