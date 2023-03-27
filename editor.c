@@ -1862,6 +1862,7 @@ static void _editor_init_kmaps(editor_t *editor) {
     });
     _editor_init_kmap(editor, &editor->kmap_prompt_input, "mle_prompt_input", NULL, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF("_editor_prompt_input_submit", "enter"),
+        MLE_KBINDING_DEF("_editor_prompt_input_submit", "M-enter"),
         MLE_KBINDING_DEF("_editor_prompt_input_complete", "tab"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "C-c"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "C-x"),
@@ -1892,6 +1893,7 @@ static void _editor_init_kmaps(editor_t *editor) {
     });
     _editor_init_kmap(editor, &editor->kmap_menu, "mle_menu", NULL, 1, (kbinding_def_t[]){
         MLE_KBINDING_DEF("_editor_menu_submit", "enter"),
+        MLE_KBINDING_DEF("_editor_menu_submit", "M-enter"),
         MLE_KBINDING_DEF("_editor_menu_cancel", "C-c"),
         MLE_KBINDING_DEF(NULL, NULL)
     });
@@ -1902,6 +1904,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("_editor_prompt_isearch_viewport_down", "pgdn"),
         MLE_KBINDING_DEF("_editor_prompt_isearch_drop_cursors", "C-/"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "enter"),
+        MLE_KBINDING_DEF("_editor_prompt_cancel", "M-enter"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "C-c"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "C-x"),
         MLE_KBINDING_DEF("_editor_prompt_cancel", "M-c"),

@@ -706,8 +706,6 @@ TODO major changes
 TODO bugfixes
 [ ] review error checking, esp catch ENOSPC, malloc fail
 [ ] review compiler warnings
-[ ] fix alt/ctrl-enter in prompt inserts newline
-[ ] fix invalid cli switch should exit(1)
 TODO new features/improvements
 [ ] add block select/move
 [ ] add cmd_tabulate
@@ -727,7 +725,6 @@ TODO MAYBE
 [ ] ?add vim emulation mode
 [ ] ?make colors, status line, layout configurable
 [ ] ?add multi-level undo/redo
-[ ] ?add simple mouse support
 */
 
 #endif
