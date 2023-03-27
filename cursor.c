@@ -56,14 +56,6 @@ int cursor_toggle_anchor(cursor_t *cursor, int use_srules) {
     return MLE_OK;
 }
 
-// Toggle cursor anchor
-int cursor_lift_temp_anchor(cursor_t *cursor) {
-    if (!cursor->is_temp_anchored) {
-        return MLE_OK;
-    }
-    return cursor_toggle_anchor(cursor, 1);
-}
-
 // Drop cursor anchor
 int cursor_drop_anchor(cursor_t *cursor, int use_srules) {
     if (cursor->is_anchored) return MLE_OK;

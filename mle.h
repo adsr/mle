@@ -117,6 +117,7 @@ struct editor_s {
     loop_context_t *loop_ctx;
     int loop_depth;
     int is_in_init;
+    int is_mousedown;
     char *insertbuf;
     size_t insertbuf_size;
     char *cut_buffer;

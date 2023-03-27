@@ -1244,26 +1244,43 @@ static void _editor_handle_mouse(editor_t *editor, tb_event_t *ev) {
     bview_t *root;
     cursor_t *cursor;
     mark_t *mark;
-    if (ev->key != TB_KEY_MOUSE_LEFT && ev->key != TB_KEY_MOUSE_RIGHT) {
-        return;
-    }
+    int drop_anchor;
+
     root = bview_get_split_root(editor->active);
     if (bview_screen_to_bline_col(root, ev->x, ev->y, &bview, &bline, &col) != MLE_OK) {
         return;
     }
     cursor = bview->active_cursor;
+
+    drop_anchor = 0;
     if (ev->key == TB_KEY_MOUSE_LEFT) {
+        if (!editor->is_mousedown) {
+            editor->is_mousedown = 1;
+            drop_anchor = 1;
+        }
         mark = cursor->mark;
     } else {
-        if (!cursor->is_anchored) {
-            cursor_drop_anchor(cursor, 1);
-            cursor->is_temp_anchored = 1;
+        editor->is_mousedown = 0;
+        if (ev->key == TB_KEY_MOUSE_RELEASE
+            && cursor->is_anchored
+            && mark_is_eq(cursor->mark, cursor->anchor)
+        ) {
+            cursor_lift_anchor(cursor);
         }
-        mark = cursor->anchor;
+        return;
     }
+
     mark_move_to_w_bline(mark, bline, col);
     editor_set_active(editor, bview);
     // TODO move other cursors?
+
+    if (drop_anchor) {
+        if (cursor->is_anchored) {
+            cursor_lift_anchor(cursor);
+        }
+        cursor_drop_anchor(cursor, 1);
+        cursor->is_temp_anchored = 1;
+    }
 }
 
 static void _editor_append_pastebuf(editor_t *editor, cmd_context_t *ctx, kinput_t *input) {
