@@ -1555,13 +1555,13 @@ static int _uscript_func_mark_delete_before(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_mark_delete_between_mark(lua_State *L) {
+static int _uscript_func_mark_delete_between(lua_State *L) {
     int rv;
     mark_t *self;
     mark_t *other;
     self = (mark_t *)luaL_checkpointer(L, 1);
     other = (mark_t *)luaL_checkpointer(L, 2);
-    rv = mark_delete_between_mark(self, other);
+    rv = mark_delete_between(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1753,7 +1753,7 @@ static int _uscript_func_mark_find_prev_str(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_mark_get_between_mark(lua_State *L) {
+static int _uscript_func_mark_get_between(lua_State *L) {
     int rv;
     mark_t *self;
     mark_t *other;
@@ -1761,7 +1761,7 @@ static int _uscript_func_mark_get_between_mark(lua_State *L) {
     bint_t ret_str_len = 0;
     self = (mark_t *)luaL_checkpointer(L, 1);
     other = (mark_t *)luaL_checkpointer(L, 2);
-    rv = mark_get_between_mark(self, other, &ret_str, &ret_str_len);
+    rv = mark_get_between(self, other, &ret_str, &ret_str_len);
     lua_createtable(L, 0, 3);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -2510,7 +2510,7 @@ static int _uscript_func_mark_replace(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_mark_replace_between_mark(lua_State *L) {
+static int _uscript_func_mark_replace_between(lua_State *L) {
     int rv;
     mark_t *self;
     mark_t *other;
@@ -2520,7 +2520,7 @@ static int _uscript_func_mark_replace_between_mark(lua_State *L) {
     other = (mark_t *)luaL_checkpointer(L, 2);
     data = (char *)luaL_checkstring(L, 3);
     data_len = (bint_t)luaL_checkinteger(L, 4);
-    rv = mark_replace_between_mark(self, other, data, data_len);
+    rv = mark_replace_between(self, other, data, data_len);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -2529,13 +2529,13 @@ static int _uscript_func_mark_replace_between_mark(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_mark_swap_with_mark(lua_State *L) {
+static int _uscript_func_mark_swap(lua_State *L) {
     int rv;
     mark_t *self;
     mark_t *other;
     self = (mark_t *)luaL_checkpointer(L, 1);
     other = (mark_t *)luaL_checkpointer(L, 2);
-    rv = mark_swap_with_mark(self, other);
+    rv = mark_swap(self, other);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -2652,7 +2652,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "mark_clone_w_letter", _uscript_func_mark_clone_w_letter },
     { "mark_delete_after", _uscript_func_mark_delete_after },
     { "mark_delete_before", _uscript_func_mark_delete_before },
-    { "mark_delete_between_mark", _uscript_func_mark_delete_between_mark },
+    { "mark_delete_between", _uscript_func_mark_delete_between },
     { "mark_destroy", _uscript_func_mark_destroy },
     { "mark_find_bracket_pair", _uscript_func_mark_find_bracket_pair },
     { "mark_find_bracket_top", _uscript_func_mark_find_bracket_top },
@@ -2660,7 +2660,7 @@ static const struct luaL_Reg mle_lib[] = {
     { "mark_find_next_str", _uscript_func_mark_find_next_str },
     { "mark_find_prev_re", _uscript_func_mark_find_prev_re },
     { "mark_find_prev_str", _uscript_func_mark_find_prev_str },
-    { "mark_get_between_mark", _uscript_func_mark_get_between_mark },
+    { "mark_get_between", _uscript_func_mark_get_between },
     { "mark_get_char_after", _uscript_func_mark_get_char_after },
     { "mark_get_char_before", _uscript_func_mark_get_char_before },
     { "mark_get_nchars_between", _uscript_func_mark_get_nchars_between },
@@ -2703,8 +2703,8 @@ static const struct luaL_Reg mle_lib[] = {
     { "mark_move_to_w_bline", _uscript_func_mark_move_to_w_bline },
     { "mark_move_vert", _uscript_func_mark_move_vert },
     { "mark_replace", _uscript_func_mark_replace },
-    { "mark_replace_between_mark", _uscript_func_mark_replace_between_mark },
-    { "mark_swap_with_mark", _uscript_func_mark_swap_with_mark },
+    { "mark_replace_between", _uscript_func_mark_replace_between },
+    { "mark_swap", _uscript_func_mark_swap },
     { "util_escape_shell_arg", _uscript_func_util_escape_shell_arg },
     { "util_shell_exec", _uscript_func_util_shell_exec },
     { NULL, NULL }

@@ -222,7 +222,7 @@ int cursor_cut_copy(cursor_t *cursor, int is_cut, int use_srules, int append) {
         mark_move_eol(cursor->anchor);
         mark_move_by(cursor->anchor, 1);
     }
-    mark_get_between_mark(cursor->mark, cursor->anchor, &cutbuf, &cutbuf_len);
+    mark_get_between(cursor->mark, cursor->anchor, &cutbuf, &cutbuf_len);
     if (append && cursor->cut_buffer) {
         cur_len = strlen(cursor->cut_buffer);
         cursor->cut_buffer = realloc(cursor->cut_buffer, cur_len + cutbuf_len + 1);
@@ -234,7 +234,7 @@ int cursor_cut_copy(cursor_t *cursor, int is_cut, int use_srules, int append) {
     if (cursor->bview->editor->cut_buffer) free(cursor->bview->editor->cut_buffer);
     cursor->bview->editor->cut_buffer = strdup(cursor->cut_buffer);
     if (is_cut) {
-        mark_delete_between_mark(cursor->mark, cursor->anchor);
+        mark_delete_between(cursor->mark, cursor->anchor);
     }
     cursor_toggle_anchor(cursor, use_srules);
     return MLE_OK;
@@ -348,7 +348,7 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
                     break;
                 } else if (0 == strcmp(yn, MLE_PROMPT_YES) || 0 == strcmp(yn, MLE_PROMPT_ALL)) {
                     str_append_replace_with_backrefs(&repl_backref, search_mark->bline->data, replacement, pcre_rc, pcre_ovector, 30);
-                    mark_replace_between_mark(search_mark, search_mark_end, repl_backref.data, repl_backref.len);
+                    mark_replace_between(search_mark, search_mark_end, repl_backref.data, repl_backref.len);
                     str_free(&repl_backref);
                     num_replacements += 1;
                     if (0 == strcmp(yn, MLE_PROMPT_ALL)) all = 1;

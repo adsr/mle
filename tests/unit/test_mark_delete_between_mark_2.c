@@ -8,7 +8,7 @@ void test(buffer_t *buf, mark_t *cur) {
     mark_move_next_str(cur, "{", 1);
     mark_move_by(cur, 1);
     mark_move_next_str(other, "}", 1);
-    mark_delete_between_mark(cur, other);
+    mark_delete_between(cur, other);
     ASSERT("lnct", 1, buf->line_count);
     ASSERT("data", 0, strncmp("  hello {}", buf->first_line->data, buf->first_line->data_len));
     ASSERT("clin", 0, cur->bline->line_index);

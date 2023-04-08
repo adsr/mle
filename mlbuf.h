@@ -214,7 +214,7 @@ int mark_clone_w_letter(mark_t *self, char letter, mark_t **ret_mark);
 int mark_cmp(mark_t *a, mark_t *b, mark_t **optret_first, mark_t **optret_second);
 int mark_delete_after(mark_t *self, bint_t num_chars);
 int mark_delete_before(mark_t *self, bint_t num_chars);
-int mark_delete_between_mark(mark_t *self, mark_t *other);
+int mark_delete_between(mark_t *self, mark_t *other);
 int mark_destroy(mark_t *self);
 int mark_find_bracket_pair(mark_t *self, bint_t max_chars, bline_t **ret_line, bint_t *ret_col, bint_t *ret_brkt);
 int mark_find_bracket_top(mark_t *self, bint_t max_chars, bline_t **ret_line, bint_t *ret_col, bint_t *ret_brkt);
@@ -224,7 +224,7 @@ int mark_find_next_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_li
 int mark_find_prev_cre(mark_t *self, pcre2_code *cre, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 int mark_find_prev_re(mark_t *self, char *re, bint_t re_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 int mark_find_prev_str(mark_t *self, char *str, bint_t str_len, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
-int mark_get_between_mark(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len);
+int mark_get_between(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len);
 int mark_get_char_after(mark_t *self, uint32_t *ret_char);
 int mark_get_char_before(mark_t *self, uint32_t *ret_char);
 int mark_get_nchars_between(mark_t *self, mark_t *other, bint_t *ret_nchars);
@@ -271,10 +271,10 @@ int mark_move_prev_str(mark_t *self, char *str, bint_t str_len);
 int mark_move_to(mark_t *self, bint_t line_index, bint_t col);
 int mark_move_to_w_bline(mark_t *self, bline_t *bline, bint_t col);
 int mark_move_vert(mark_t *self, bint_t line_delta);
-int mark_replace_between_mark(mark_t *self, mark_t *other, char *data, bint_t data_len);
+int mark_replace_between(mark_t *self, mark_t *other, char *data, bint_t data_len);
 int mark_replace(mark_t *self, bint_t num_chars, char *data, bint_t data_len);
 int mark_set_pcre_capture(int *rc, PCRE2_SIZE *ovector, int ovector_size);
-int mark_swap_with_mark(mark_t *self, mark_t *other);
+int mark_swap(mark_t *self, mark_t *other);
 
 // srule functions
 srule_t *srule_new_single(char *re, bint_t re_len, int caseless, uint16_t fg, uint16_t bg);

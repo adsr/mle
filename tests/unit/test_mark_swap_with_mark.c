@@ -7,7 +7,7 @@ void test(buffer_t *buf, mark_t *cur) {
     other = buffer_add_mark(buf, NULL, 0);
     mark_move_beginning(cur);
     mark_move_end(other);
-    mark_swap_with_mark(cur, other);
+    mark_swap(cur, other);
     ASSERT("end", buf->first_line->next, cur->bline);
     ASSERT("endcol", 5, cur->col);
     ASSERT("beg", buf->first_line, other->bline);

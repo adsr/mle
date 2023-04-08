@@ -70,7 +70,7 @@ int mark_replace(mark_t *self, bint_t num_chars, char *data, bint_t data_len) {
 }
 
 // Replace data between marks
-int mark_replace_between_mark(mark_t *self, mark_t *other, char *data, bint_t data_len) {
+int mark_replace_between(mark_t *self, mark_t *other, char *data, bint_t data_len) {
     bint_t offset_a;
     bint_t offset_b;
     // TODO More efficient buffer_replace_w_bline_and_end
@@ -362,7 +362,7 @@ int mark_find_bracket_pair(mark_t *self, bint_t max_chars, bline_t **ret_line, b
 }
 
 // Delete data between self and other
-int mark_delete_between_mark(mark_t *self, mark_t *other) {
+int mark_delete_between(mark_t *self, mark_t *other) {
     bint_t offset_a;
     bint_t offset_b;
     // TODO More efficient buffer_replace_w_bline_and_end
@@ -377,7 +377,7 @@ int mark_delete_between_mark(mark_t *self, mark_t *other) {
 }
 
 // Return data between self and other
-int mark_get_between_mark(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len) {
+int mark_get_between(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len) {
     bint_t ig;
     mark_t *a, *b;
     if (mark_cmp(self, other, &a, &b) == 0) {
@@ -427,7 +427,7 @@ int mark_join(mark_t *self, mark_t *other) {
 }
 
 // Swap positions of self and other
-int mark_swap_with_mark(mark_t *self, mark_t *other) {
+int mark_swap(mark_t *self, mark_t *other) {
     mark_t tmp_mark;
     tmp_mark.bline = other->bline;
     tmp_mark.col = other->col;

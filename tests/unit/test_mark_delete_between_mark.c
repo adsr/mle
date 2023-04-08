@@ -7,6 +7,6 @@ void test(buffer_t *buf, mark_t *cur) {
     other = buffer_add_mark(buf, NULL, 0);
     mark_move_beginning(cur);
     mark_move_end(other);
-    mark_delete_between_mark(cur, other);
+    mark_delete_between(cur, other);
     ASSERT("count", 0, buf->byte_count);
 }

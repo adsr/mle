@@ -340,7 +340,7 @@ int cmd_delete_word_before(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_clone(cursor->mark, &tmark);
         mark_move_prev_re(tmark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
-        mark_delete_between_mark(cursor->mark, tmark);
+        mark_delete_between(cursor->mark, tmark);
         mark_destroy(tmark);
     );
     return MLE_OK;
@@ -352,7 +352,7 @@ int cmd_delete_word_after(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         mark_clone(cursor->mark, &tmark);
         mark_move_next_re(tmark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
-        mark_delete_between_mark(cursor->mark, tmark);
+        mark_delete_between(cursor->mark, tmark);
         mark_destroy(tmark);
     );
     return MLE_OK;
@@ -370,7 +370,7 @@ int cmd_toggle_anchor(cmd_context_t *ctx) {
 int cmd_swap_anchor(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (cursor->is_anchored) {
-            mark_swap_with_mark(cursor->mark, cursor->anchor);
+            mark_swap(cursor->mark, cursor->anchor);
         }
     );
     return MLE_OK;
@@ -684,7 +684,7 @@ int cmd_ctag(cmd_context_t *ctx) {
     if (cursor_select_by(ctx->cursor, "word", 0) != MLE_OK) {
         MLE_RETURN_ERR(ctx->editor, "%s", "Failed to select word under cursor");
     }
-    mark_get_between_mark(ctx->cursor->mark, ctx->cursor->anchor, &word, &word_len);
+    mark_get_between(ctx->cursor->mark, ctx->cursor->anchor, &word, &word_len);
     cursor_toggle_anchor(ctx->cursor, 0);
     word_arg = util_escape_shell_arg(word, word_len);
     free(word);
@@ -1596,8 +1596,8 @@ static int _cmd_find_word_ex(cmd_context_t *ctx, int is_prev) {
 
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         if (cursor_select_by(cursor, "word", 0) == MLE_OK) {
-            mark_swap_with_mark(cursor->mark, cursor->anchor);
-            mark_get_between_mark(cursor->mark, cursor->anchor, &word, &word_len);
+            mark_swap(cursor->mark, cursor->anchor);
+            mark_get_between(cursor->mark, cursor->anchor, &word, &word_len);
             re_len = asprintf(&re, "\\b%s\\b", word);
             free(word);
             cursor_toggle_anchor(cursor, 0);
@@ -1935,7 +1935,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         // Get data to send to stdin
         if (cursor->is_anchored) {
-            mark_get_between_mark(cursor->mark, cursor->anchor, &input, &input_len);
+            mark_get_between(cursor->mark, cursor->anchor, &input, &input_len);
         } else {
             input = NULL;
             input_len = 0;
@@ -1949,7 +1949,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
             if (output_len > 0) {
                 // Write output to buffer
                 if (cursor->is_anchored) {
-                    mark_delete_between_mark(cursor->mark, cursor->anchor);
+                    mark_delete_between(cursor->mark, cursor->anchor);
                 }
                 mark_insert_before(cursor->mark, output, output_len);
             }
