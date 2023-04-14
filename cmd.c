@@ -608,6 +608,12 @@ int cmd_prev(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Go to last bview
+int cmd_last(cmd_context_t *ctx) {
+    if (!ctx->editor->active_edit_last) return MLE_OK;
+    return editor_set_active(ctx->editor, ctx->editor->active_edit_last);
+}
+
 // Go to nth bview
 int cmd_goto(cmd_context_t *ctx) {
     bview_t *bview;

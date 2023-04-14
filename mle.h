@@ -66,6 +66,7 @@ struct editor_s {
     bview_t *all_bviews;
     bview_t *active;
     bview_t *active_edit;
+    bview_t *active_edit_last;
     bview_t *active_edit_root;
     bview_t *status;
     bview_t *prompt;
@@ -511,6 +512,7 @@ int cmd_insert_newline(cmd_context_t *ctx);
 int cmd_insert_tab(cmd_context_t *ctx);
 int cmd_isearch(cmd_context_t *ctx);
 int cmd_jump(cmd_context_t *ctx);
+int cmd_last(cmd_context_t *ctx);
 int cmd_less(cmd_context_t *ctx);
 int cmd_move_beginning(cmd_context_t *ctx);
 int cmd_move_bol(cmd_context_t *ctx);

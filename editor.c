@@ -405,6 +405,7 @@ int editor_set_active(editor_t *editor, bview_t *bview) {
     }
     editor->active = bview;
     if (MLE_BVIEW_IS_EDIT(bview)) {
+        editor->active_edit_last = editor->active_edit;
         editor->active_edit = bview;
         editor->active_edit_root = bview_get_split_root(bview);
     }
@@ -1647,6 +1648,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_insert_newline_below", cmd_insert_newline_below);
     _editor_register_cmd_fn(editor, "cmd_isearch", cmd_isearch);
     _editor_register_cmd_fn(editor, "cmd_jump", cmd_jump);
+    _editor_register_cmd_fn(editor, "cmd_last", cmd_last);
     _editor_register_cmd_fn(editor, "cmd_less", cmd_less);
     _editor_register_cmd_fn(editor, "cmd_move_beginning", cmd_move_beginning);
     _editor_register_cmd_fn(editor, "cmd_move_bol", cmd_move_bol);
@@ -1785,9 +1787,9 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_uncut_last", "CM-u"),
         MLE_KBINDING_DEF("cmd_redraw", "M-x l"),
         MLE_KBINDING_DEF("cmd_less", "M-l"),
-        MLE_KBINDING_DEF("cmd_viewport_top", "M-9"),
+        MLE_KBINDING_DEF("cmd_viewport_top", "CM-o"),
         MLE_KBINDING_DEF("cmd_viewport_toggle", "C-l"),
-        MLE_KBINDING_DEF("cmd_viewport_bot", "M-0"),
+        MLE_KBINDING_DEF("cmd_viewport_bot", "CM-p"),
         MLE_KBINDING_DEF("cmd_push_kmap", "M-x p"),
         MLE_KBINDING_DEF("cmd_pop_kmap", "M-x P"),
         MLE_KBINDING_DEF_EX("cmd_copy_by", "C-c d", "bracket"),
@@ -1828,6 +1830,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_apply_macro_by", "M-m **"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),
         MLE_KBINDING_DEF("cmd_prev", "M-p"),
+        MLE_KBINDING_DEF("cmd_last", "M-0"),
         MLE_KBINDING_DEF_EX("cmd_goto", "M-1", "1"),
         MLE_KBINDING_DEF_EX("cmd_goto", "M-2", "2"),
         MLE_KBINDING_DEF_EX("cmd_goto", "M-3", "3"),
