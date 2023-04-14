@@ -608,6 +608,39 @@ int cmd_prev(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Go to nth bview
+int cmd_goto(cmd_context_t *ctx) {
+    bview_t *bview;
+    int bview_num, num_bviews, bview_i;
+    char *bview_num_str;
+    char prompt[64];
+
+    num_bviews = editor_bview_edit_count(ctx->editor);
+    snprintf(prompt, sizeof(prompt), "goto: Buffer #? (1-%d)", num_bviews);
+
+    // Get bview_num
+    if (ctx->static_param) {
+        bview_num_str = strdup(ctx->static_param);
+    } else {
+        editor_prompt(ctx->editor, prompt, NULL, &bview_num_str);
+        if (!bview_num_str) return MLE_OK;
+    }
+    bview_num = atoi(bview_num_str);
+    free(bview_num_str);
+
+    // Check
+    if (bview_num < 1 || bview_num > num_bviews) return MLE_OK;
+
+    bview_i = 1;
+    CDL_FOREACH2(ctx->editor->all_bviews, bview, all_next) {
+        if (!MLE_BVIEW_IS_EDIT(bview)) continue;
+        if (bview_i == bview_num) return editor_set_active(ctx->editor, bview);
+        bview_i += 1;
+    }
+
+    return MLE_OK;
+}
+
 // Split a bview vertically
 int cmd_split_vertical(cmd_context_t *ctx) {
     bview_t *child;

@@ -1639,6 +1639,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_find_word", cmd_find_word);
     _editor_register_cmd_fn(editor, "cmd_fsearch", cmd_fsearch);
     _editor_register_cmd_fn(editor, "cmd_fsearch_fzy", cmd_fsearch_fzy);
+    _editor_register_cmd_fn(editor, "cmd_goto", cmd_goto);
     _editor_register_cmd_fn(editor, "cmd_grep", cmd_grep);
     _editor_register_cmd_fn(editor, "cmd_indent", cmd_indent);
     _editor_register_cmd_fn(editor, "cmd_insert_data", cmd_insert_data);
@@ -1827,6 +1828,15 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_apply_macro_by", "M-m **"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),
         MLE_KBINDING_DEF("cmd_prev", "M-p"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-1", "1"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-2", "2"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-3", "3"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-4", "4"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-5", "5"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-6", "6"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-7", "7"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-8", "8"),
+        MLE_KBINDING_DEF_EX("cmd_goto", "M-9", "9"),
         MLE_KBINDING_DEF("cmd_split_vertical", "M-v"),
         MLE_KBINDING_DEF("cmd_split_horizontal", "M-h"),
         MLE_KBINDING_DEF("cmd_grep", "M-q"),
