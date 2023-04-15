@@ -78,6 +78,8 @@ static void _editor_init_bviews(editor_t *editor, int argc, char **argv);
 static int _editor_init_headless_mode(editor_t *editor);
 static int _editor_init_startup_macro(editor_t *editor);
 static int _editor_init_term(editor_t *editor);
+static void _editor_display_keys(editor_t *editor);
+static void _editor_remember_keys(cmd_context_t *ctx);
 
 // Init editor from args
 int editor_init(editor_t *editor, int argc, char **argv) {
@@ -563,6 +565,8 @@ int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *
         // Record macro input
         _editor_record_macro_input(editor->macro_record, &ctx->input);
     }
+    // Remember keys for display
+    if (editor->debug_display_keys) _editor_remember_keys(ctx);
     return MLE_OK;
 }
 
@@ -577,6 +581,7 @@ int editor_display(editor_t *editor) {
     DL_FOREACH2(editor->top_bviews, bview, top_next) {
         _editor_draw_cursors(editor, bview);
     }
+    if (editor->debug_display_keys) _editor_display_keys(editor);
     tb_present();
     return MLE_OK;
 }
@@ -991,7 +996,7 @@ static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
 
 // Run debug routine to show key names as they input
 static int _editor_debug_key_input() {
-    char keyname[16];
+    char key[MLE_MAX_KEYNAME_LEN + 1];
     struct tb_event ev;
     int y, h;
     y = 0;
@@ -1013,14 +1018,14 @@ static int _editor_debug_key_input() {
             if (ev.ch == 'q' && ev.mod == 0) {
                 break;
             }
-            if (_editor_event_to_key(&ev, keyname) != MLE_OK) {
-                sprintf(keyname, "<unknown>");
+            if (_editor_event_to_key(&ev, key) != MLE_OK) {
+                sprintf(key, "<unknown>");
             }
             if (y >= h) {
                 tb_clear();
                 y = 0;
             }
-            tb_print(0, y++, 0, 0, keyname);
+            tb_print(0, y++, 0, 0, key);
         }
         tb_present();
     }
@@ -1169,6 +1174,45 @@ static void _editor_draw_cursors(editor_t *editor, bview_t *bview) {
     if (bview->split_child) {
         _editor_draw_cursors(editor, bview->split_child);
     }
+}
+
+static void _editor_display_keys(editor_t *editor) {
+    int i;
+    char key[MLE_MAX_KEYNAME_LEN + 1];
+    char *buf;
+    int keylen;
+
+    buf = editor->display_keys_buf;
+    for (i = 0; i < MLE_DISPLAY_KEYS_NKEYS; i++) {
+        memset(key, 0, sizeof(key));
+        memcpy(key, buf + (i * MLE_MAX_KEYNAME_LEN), MLE_MAX_KEYNAME_LEN);
+        keylen = strlen(key);
+        tb_printf(
+            editor->w - keylen,
+            editor->h - i - 3,
+            TB_GREEN | TB_BOLD, 0,
+            key
+        );
+    }
+}
+
+static void _editor_remember_keys(cmd_context_t *ctx) {
+    char key[MLE_MAX_KEYNAME_LEN + 1];
+    struct tb_event ev;
+    char *buf;
+
+    memset(&ev, 0, sizeof(ev));
+    ev.type = TB_EVENT_KEY;
+    ev.mod = ctx->input.mod;
+    ev.key = ctx->input.key;
+    ev.ch = ctx->input.ch;
+    _editor_event_to_key(&ev, key);
+
+    buf = ctx->editor->display_keys_buf;
+    memmove(buf + MLE_MAX_KEYNAME_LEN, buf, (MLE_DISPLAY_KEYS_NKEYS - 1) * MLE_MAX_KEYNAME_LEN);
+
+    memset(buf, 0, MLE_MAX_KEYNAME_LEN);
+    memcpy(buf, key, MLE_MAX_KEYNAME_LEN);
 }
 
 // Get user input
@@ -1542,7 +1586,7 @@ static int _editor_key_to_input(char *key, kinput_t *ret_input) {
 
 // Return a key name given a key event
 static int _editor_event_to_key(struct tb_event *ev, char *ret_keyname) {
-    char key[16];
+    char key[MLE_MAX_KEYNAME_LEN + 1];
     #define MLE_KEY_DEF(pkname, pmodmin, pmodadd, pch, pkey) \
         } else if (                                          \
             (((pch) && ev->ch == (pch))                      \
@@ -2494,6 +2538,7 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                     case 'q': editor->debug_exit_after_startup = 1; break;
                     case 'd': editor->debug_dump_state_on_exit = 1; break;
                     case 'k': editor->debug_key_input = 1; break;
+                    case 'i': editor->debug_display_keys = 1; break;
                 }
                 break;
             default: // Unknown option

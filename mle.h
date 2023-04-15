@@ -129,6 +129,10 @@ struct editor_s {
     int debug_exit_after_startup;
     int debug_dump_state_on_exit;
     int debug_key_input;
+    #define MLE_DISPLAY_KEYS_NKEYS 8
+    #define MLE_MAX_KEYNAME_LEN 16
+    int debug_display_keys;
+    char display_keys_buf[MLE_DISPLAY_KEYS_NKEYS * MLE_MAX_KEYNAME_LEN];
     int exit_code;
 };
 
