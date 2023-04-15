@@ -1614,13 +1614,6 @@ static int _buffer_bline_apply_style_multi(srule_t *srule, bline_t *bline, srule
     int found_start;
     int found_end;
 
-    if (srule->type == MLBUF_SRULE_TYPE_RANGE
-        && mark_is_eq(srule->range_a, srule->range_b)
-    ) {
-        // Empty range rule
-        return MLBUF_OK;
-    }
-
     MLBUF_BLINE_ENSURE_CHARS(bline);
 
     do {
@@ -1656,11 +1649,6 @@ static int _buffer_bline_apply_style_multi(srule_t *srule, bline_t *bline, srule
         // Write styles
         for (; start < end; start++) {
             bline->chars[start].style = srule->style;
-        }
-
-        // Range rules can only match once
-        if (srule->type == MLBUF_SRULE_TYPE_RANGE) {
-            break;
         }
     } while (found_start && found_end && *look_offset < bline->char_count);
 
