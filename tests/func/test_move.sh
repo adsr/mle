@@ -85,3 +85,11 @@ macro='a n t space b a t space c a t space d o g M-j a c'
 declare -A expected
 expected[jump_cursor_col]='^bview.0.cursor.0.mark.col=8$'
 source 'test.sh'
+
+# cmd_(drop|goto)_lettered_mark
+macro='a enter b enter c M-m M-\ a M-m c up b M-z z M-m c M-z z b M-m c'
+declare -A expected
+expected[lettmark_a]='^aa$'
+expected[lettmark_b]='^bbb$'
+expected[lettmark_c]='^cccc$'
+source 'test.sh'

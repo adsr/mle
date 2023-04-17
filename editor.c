@@ -1680,11 +1680,13 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_delete_word_after", cmd_delete_word_after);
     _editor_register_cmd_fn(editor, "cmd_delete_word_before", cmd_delete_word_before);
     _editor_register_cmd_fn(editor, "cmd_drop_cursor_column", cmd_drop_cursor_column);
+    _editor_register_cmd_fn(editor, "cmd_drop_lettered_mark", cmd_drop_lettered_mark);
     _editor_register_cmd_fn(editor, "cmd_drop_sleeping_cursor", cmd_drop_sleeping_cursor);
     _editor_register_cmd_fn(editor, "cmd_find_word", cmd_find_word);
     _editor_register_cmd_fn(editor, "cmd_fsearch", cmd_fsearch);
     _editor_register_cmd_fn(editor, "cmd_fsearch_fzy", cmd_fsearch_fzy);
     _editor_register_cmd_fn(editor, "cmd_goto", cmd_goto);
+    _editor_register_cmd_fn(editor, "cmd_goto_lettered_mark", cmd_goto_lettered_mark);
     _editor_register_cmd_fn(editor, "cmd_grep", cmd_grep);
     _editor_register_cmd_fn(editor, "cmd_indent", cmd_indent);
     _editor_register_cmd_fn(editor, "cmd_insert_data", cmd_insert_data);
@@ -1863,6 +1865,10 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_delete_word_before", "C-w"),
         MLE_KBINDING_DEF("cmd_delete_word_after", "M-d"),
         MLE_KBINDING_DEF("cmd_delete_word_after", "C-delete"),
+        MLE_KBINDING_DEF("cmd_drop_lettered_mark", "CM-z **"),
+        MLE_KBINDING_DEF_EX("cmd_drop_lettered_mark", "CM-m", "a"),
+        MLE_KBINDING_DEF("cmd_goto_lettered_mark", "M-z **"),
+        MLE_KBINDING_DEF_EX("cmd_goto_lettered_mark", "M-m", "a"),
         MLE_KBINDING_DEF("cmd_toggle_anchor", "M-a"),
         MLE_KBINDING_DEF("cmd_drop_sleeping_cursor", "C-/ ."),
         MLE_KBINDING_DEF("cmd_wake_sleeping_cursors", "C-/ a"),
@@ -1870,8 +1876,8 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_drop_cursor_column", "C-/ '"),
         MLE_KBINDING_DEF("cmd_swap_anchor", "C-/ ;"),
         MLE_KBINDING_DEF("cmd_align_cursors", "C-/ l"),
-        MLE_KBINDING_DEF("cmd_apply_macro", "M-z"),
-        MLE_KBINDING_DEF("cmd_apply_macro_by", "M-m **"),
+        MLE_KBINDING_DEF("cmd_apply_macro", "M-Z"),
+        MLE_KBINDING_DEF("cmd_apply_macro_by", "M-M **"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),
         MLE_KBINDING_DEF("cmd_prev", "M-p"),
         MLE_KBINDING_DEF("cmd_last", "M-0"),

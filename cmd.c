@@ -51,6 +51,7 @@ static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t *ctx);
 static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd);
 static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input);
 static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd);
+static int _cmd_get_char_param(cmd_context_t *ctx, char *ret_ch);
 
 // Insert data
 int cmd_insert_data(cmd_context_t *ctx) {
@@ -432,6 +433,42 @@ int cmd_drop_cursor_column(cmd_context_t *ctx) {
         }
         cursor_toggle_anchor(cursor, 1);
     );
+    return MLE_OK;
+}
+
+// Drop lettered mark
+int cmd_drop_lettered_mark(cmd_context_t *ctx) {
+    mark_t *mark;
+    char letter;
+    _cmd_get_char_param(ctx, &letter);
+    mark_clone_w_letter(ctx->cursor->mark, letter, &mark);
+    return MLE_OK;
+}
+
+// Jump back and forth to a lettered mark
+// - If letter exists and we're not at it, drop rot13(letter) and goto letter
+// - If letter exists and we're already at it, jump to rot13(letter)
+// - If letter doesn't exist, drop it in place
+int cmd_goto_lettered_mark(cmd_context_t *ctx) {
+    mark_t *mark, *mark_tmp;
+    char letter, other;
+    _cmd_get_char_param(ctx, &letter);
+    other = 'a' + (((letter - 'a') + 13) % 26);
+    mark = NULL;
+    buffer_get_lettered_mark(ctx->buffer, letter, &mark);
+    if (mark) {
+        if (mark_is_eq(mark, ctx->cursor->mark)) {
+            mark = NULL;
+            buffer_get_lettered_mark(ctx->buffer, other, &mark);
+            if (mark) mark_join(ctx->cursor->mark, mark);
+        } else {
+            mark_clone_w_letter(ctx->cursor->mark, other, &mark_tmp);
+            mark_join(ctx->cursor->mark, mark);
+        }
+        bview_rectify_viewport(ctx->bview);
+    } else {
+        mark_clone_w_letter(ctx->cursor->mark, letter, &mark);
+    }
     return MLE_OK;
 }
 
@@ -2037,5 +2074,18 @@ static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd) {
         }
     }
     free(path);
+    return MLE_OK;
+}
+
+// Get char from static param or wildcard param
+static int _cmd_get_char_param(cmd_context_t *ctx, char *ret_ch) {
+    uint32_t ch;
+    if (ctx->static_param) {
+        *ret_ch = *ctx->static_param;
+    } else if ((ch = MLE_PARAM_WILDCARD(ctx, 0))) {
+        *ret_ch = (char)ch;
+    } else {
+        *ret_ch = '\0';
+    }
     return MLE_OK;
 }
