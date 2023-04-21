@@ -235,6 +235,7 @@ struct cursor_s {
     mark_t *anchor;
     int is_anchored;
     int is_temp_anchored;
+    int is_block;
     int is_asleep;
     srule_t *sel_rule;
     char *cut_buffer;
@@ -574,6 +575,7 @@ int cmd_split_vertical(cmd_context_t *ctx);
 int cmd_suspend(cmd_context_t *ctx);
 int cmd_swap_anchor(cmd_context_t *ctx);
 int cmd_toggle_anchor(cmd_context_t *ctx);
+int cmd_toggle_block(cmd_context_t *ctx);
 int cmd_uncut(cmd_context_t *ctx);
 int cmd_uncut_last(cmd_context_t *ctx);
 int cmd_undo(cmd_context_t *ctx);

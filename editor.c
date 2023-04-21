@@ -1151,7 +1151,9 @@ static void _editor_resize(editor_t *editor, int w, int h) {
 // Lift temporary anchors on cursor if not running cmd_move_temp_anchor
 static void _editor_maybe_lift_temp_anchors(cmd_context_t *ctx) {
     cursor_t *cursor;
-    if (ctx->cmd->func == cmd_move_temp_anchor) {
+    if (   ctx->cmd->func == cmd_move_temp_anchor
+        || ctx->cmd->func == cmd_toggle_block
+    ) {
         return;
     }
     _editor_refresh_cmd_context(ctx->editor, ctx);
@@ -1749,6 +1751,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_suspend", cmd_suspend);
     _editor_register_cmd_fn(editor, "cmd_swap_anchor", cmd_swap_anchor);
     _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
+    _editor_register_cmd_fn(editor, "cmd_toggle_block", cmd_toggle_block);
     _editor_register_cmd_fn(editor, "cmd_uncut", cmd_uncut);
     _editor_register_cmd_fn(editor, "cmd_uncut_last", cmd_uncut_last);
     _editor_register_cmd_fn(editor, "cmd_undo", cmd_undo);
@@ -1870,6 +1873,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_goto_lettered_mark", "M-z **"),
         MLE_KBINDING_DEF_EX("cmd_goto_lettered_mark", "M-m", "a"),
         MLE_KBINDING_DEF("cmd_toggle_anchor", "M-a"),
+        MLE_KBINDING_DEF("cmd_toggle_block", "insert"),
         MLE_KBINDING_DEF("cmd_drop_sleeping_cursor", "C-/ ."),
         MLE_KBINDING_DEF("cmd_wake_sleeping_cursors", "C-/ a"),
         MLE_KBINDING_DEF("cmd_remove_extra_cursors", "C-/ /"),
@@ -2177,19 +2181,19 @@ static void _editor_init_syntaxes(editor_t *editor) {
           "undef|union|unless|unsafe|unset|unsigned|until|use|ushort|using|"
           "var|virtual|void|volatile|when|while|with|xor|xor_eq|y|yield"
           ")\\b", NULL, TB_GREEN, TB_DEFAULT },
-        { "[(){}<>\\[\\].,;:?!+=/\\\\%^*-]", NULL, TB_RED | TB_BOLD, TB_DEFAULT },
-        { "(?<!\\w)[\\%@$][a-zA-Z_$][a-zA-Z0-9_]*\\b", NULL, TB_GREEN, TB_DEFAULT },
-        { "\\b[A-Z_][A-Z0-9_]*\\b", NULL, TB_RED | TB_BOLD, TB_DEFAULT },
-        { "\\b(-?(0x)?[0-9]+|true|false|null)\\b", NULL, TB_BLUE | TB_BOLD, TB_DEFAULT },
-        { "'([^']|\\')*?'", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
-        { "\"(\\\"|[^\"])*?\"", NULL, TB_YELLOW | TB_BOLD, TB_DEFAULT },
-        { "/" "/.*$", NULL, TB_CYAN, TB_DEFAULT },
-        { "^\\s*#( .*|)$", NULL, TB_CYAN, TB_DEFAULT },
-        { "^#!/.*$", NULL, TB_CYAN, TB_DEFAULT },
-        { "/\\" "*", "\\*" "/", TB_CYAN, TB_DEFAULT },
-        { "\\t+", NULL, TB_RED | TB_UNDERLINE, TB_DEFAULT },
-        { "\\s+$", NULL, TB_GREEN | TB_UNDERLINE, TB_DEFAULT },
-        { NULL, NULL, 0, 0 }
+        { "[(){}<>\\[\\].,;:?!+=/\\\\%^*-]",           NULL,      TB_RED | TB_BOLD,        TB_DEFAULT },
+        { "(?<!\\w)[\\%@$][a-zA-Z_$][a-zA-Z0-9_]*\\b", NULL,      TB_GREEN,                TB_DEFAULT },
+        { "\\b[A-Z_][A-Z0-9_]*\\b",                    NULL,      TB_RED | TB_BOLD,        TB_DEFAULT },
+        { "\\b(-?(0x)?[0-9]+|true|false|null)\\b",     NULL,      TB_BLUE | TB_BOLD,       TB_DEFAULT },
+        { "'([^']|\\')*?'",                            NULL,      TB_YELLOW | TB_BOLD,     TB_DEFAULT },
+        { "\"(\\\"|[^\"])*?\"",                        NULL,      TB_YELLOW | TB_BOLD,     TB_DEFAULT },
+        { "/" "/.*$",                                  NULL,      TB_CYAN,                 TB_DEFAULT },
+        { "^\\s*#( .*|)$",                             NULL,      TB_CYAN,                 TB_DEFAULT },
+        { "^#!/.*$",                                   NULL,      TB_CYAN,                 TB_DEFAULT },
+        { "/\\" "*",                                   "\\*" "/", TB_CYAN,                 TB_DEFAULT },
+        { "\\t+",                                      NULL,      TB_RED | TB_UNDERLINE,   TB_DEFAULT },
+        { "\\s+$",                                     NULL,      TB_GREEN | TB_UNDERLINE, TB_DEFAULT },
+        { NULL,                                        NULL,      0,                       0          }
     });
 }
 

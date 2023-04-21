@@ -82,3 +82,18 @@ int utf8_unicode_to_char(char *out, uint32_t c) {
 
     return len;
 }
+
+size_t utf8_str_length(char *data, size_t len) {
+    size_t slen;
+    int clen;
+    char *data_stop, *c;
+    data_stop = data + len;
+    c = data;
+    slen = 0;
+    while (c < data_stop) {
+        clen = utf8_char_length(*c);
+        c += clen;
+        slen += 1;
+    }
+    return slen;
+}

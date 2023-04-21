@@ -220,9 +220,13 @@ int cursor_cut_copy(cursor_t *cursor, int is_cut, int use_srules, int append) {
         cursor_toggle_anchor(cursor, use_srules);
         mark_move_bol(cursor->mark);
         mark_move_eol(cursor->anchor);
-        mark_move_by(cursor->anchor, 1);
+        if (!cursor->is_block) mark_move_by(cursor->anchor, 1);
     }
-    mark_get_between(cursor->mark, cursor->anchor, &cutbuf, &cutbuf_len);
+    if (cursor->is_block) {
+        mark_block_get_between(cursor->mark, cursor->anchor, &cutbuf, &cutbuf_len);
+    } else {
+        mark_get_between(cursor->mark, cursor->anchor, &cutbuf, &cutbuf_len);
+    }
     if (append && cursor->cut_buffer) {
         cur_len = strlen(cursor->cut_buffer);
         cursor->cut_buffer = realloc(cursor->cut_buffer, cur_len + cutbuf_len + 1);
@@ -234,7 +238,11 @@ int cursor_cut_copy(cursor_t *cursor, int is_cut, int use_srules, int append) {
     if (cursor->bview->editor->cut_buffer) free(cursor->bview->editor->cut_buffer);
     cursor->bview->editor->cut_buffer = strdup(cursor->cut_buffer);
     if (is_cut) {
-        mark_delete_between(cursor->mark, cursor->anchor);
+        if (cursor->is_block) {
+            mark_block_delete_between(cursor->mark, cursor->anchor);
+        } else {
+            mark_delete_between(cursor->mark, cursor->anchor);
+        }
     }
     cursor_toggle_anchor(cursor, use_srules);
     return MLE_OK;
@@ -398,6 +406,10 @@ static int cursor_uncut_ex(cursor_t *cursor, int editor_wide) {
     char *cut_buffer;
     cut_buffer = cursor->cut_buffer && !editor_wide ? cursor->cut_buffer : cursor->bview->editor->cut_buffer;
     if (!cut_buffer) return MLE_ERR;
-    mark_insert_before(cursor->mark, cut_buffer, strlen(cut_buffer));
+    if (cursor->is_block) {
+        mark_block_insert_before(cursor->mark, cut_buffer, strlen(cut_buffer));
+    } else {
+        mark_insert_before(cursor->mark, cut_buffer, strlen(cut_buffer));
+    }
     return MLE_OK;
 }

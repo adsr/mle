@@ -209,6 +209,11 @@ int bline_get_col_from_vcol(bline_t *self, bint_t vcol, bint_t *ret_col);
 int bline_count_chars(bline_t *bline);
 
 // mark functions
+int mark_block_delete_between(mark_t *self, mark_t *other);
+int mark_block_get_between(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len);
+int mark_block_get_top_left(mark_t *self, mark_t *other, bline_t **ret_bline, bint_t *ret_col);
+int mark_block_insert_before(mark_t *self, char *data, bint_t data_len);
+int mark_block_is_between(mark_t *self, mark_t *ma, mark_t *mb);
 int mark_clone(mark_t *self, mark_t **ret_mark);
 int mark_clone_w_letter(mark_t *self, char letter, mark_t **ret_mark);
 int mark_cmp(mark_t *a, mark_t *b, mark_t **optret_first, mark_t **optret_second);
@@ -286,6 +291,7 @@ int srule_destroy(srule_t *srule);
 int utf8_char_length(char c);
 int utf8_char_to_unicode(uint32_t *out, const char *c, const char *stop);
 int utf8_unicode_to_char(char *out, uint32_t c);
+size_t utf8_str_length(char *data, size_t len);
 
 // util functions
 void *recalloc(void *ptr, size_t orig_num, size_t new_num, size_t el_size);

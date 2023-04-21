@@ -4,6 +4,7 @@
 #include <pcre2.h>
 #include "mlbuf.h"
 
+static int mark_block_x_between(mark_t *self, mark_t *other, int del, char **optret_str, bint_t *optret_str_len);
 typedef char* (*mark_find_match_fn)(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *u1, void *u2, bint_t *ret_needle_len);
 static int mark_find_match(mark_t *self, mark_find_match_fn matchfn, void *u1, void *u2, int reverse, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
 static int mark_find_re(mark_t *self, char *re, bint_t re_len, int reverse, bline_t **ret_line, bint_t *ret_col, bint_t *ret_num_chars);
@@ -670,6 +671,123 @@ int mark_cmp(mark_t *a, mark_t *b, mark_t **optret_first, mark_t **optret_second
     if (optret_first)  *optret_first = first;
     if (optret_second) *optret_second = second;
     return retval;
+}
+
+int mark_block_insert_before(mark_t *self, char *data, bint_t data_len) {
+    char *data_cur, *data_nl;
+    bint_t data_rem_len, line_len, char_len, del_len, prefix_col;
+    mark_t *m;
+
+    m = self;
+
+    prefix_col = m->col;
+    data_cur = data;
+    data_rem_len = data_len;
+    while (1) {
+        // Get line of data
+        data_nl = memchr(data_cur, '\n', data_rem_len);
+        line_len = data_nl ? (bint_t)(data_nl - data_cur) : data_rem_len;
+        char_len = utf8_str_length(data_cur, line_len);
+
+        // Replace up to char_len-worth of line
+        del_len = MLBUF_MIN(m->bline->char_count - m->col, char_len);
+        buffer_replace_w_bline(m->bline->buffer, m->bline, m->col, del_len, data_cur, line_len);
+
+        // Advance
+        if (!data_nl) break;
+        data_cur = data_nl + 1;
+        data_rem_len -= line_len + 1;
+
+        // Ensure next line exists
+        if (m->bline->next) {
+            mark_move_to_w_bline(m, m->bline->next, 0);
+        } else {
+            mark_move_eol(m);
+            mark_insert_before(m, "\n", 1);
+        }
+
+        // Ensure mark at prefix_col
+        if (m->bline->char_count < prefix_col) {
+            mark_move_eol(m);
+            while (m->bline->char_count < prefix_col) mark_insert_before(m, " ", 1);
+        }
+        _mark_mark_move_inner(m, m->bline, prefix_col, 0);
+    }
+
+    return MLBUF_OK;
+}
+
+int mark_block_get_between(mark_t *self, mark_t *other, char **ret_str, bint_t *ret_str_len) {
+    return mark_block_x_between(self, other, 0, ret_str, ret_str_len);
+}
+
+int mark_block_delete_between(mark_t *self, mark_t *other) {
+    return mark_block_x_between(self, other, 1, NULL, NULL);
+}
+
+int mark_block_is_between(mark_t *self, mark_t *ma, mark_t *mb) {
+    mark_t *a, *b;
+    bint_t s, e;
+    mark_cmp(ma, mb, &a, &b);
+    s = MLBUF_MIN(a->col, b->col);
+    e = MLBUF_MAX(a->col, b->col);
+    return (
+           self->bline->line_index >= a->bline->line_index
+        && self->bline->line_index <= b->bline->line_index
+        && self->col >= s
+        && self->col <  e
+    ) ? 1 : 0;
+}
+
+int mark_block_get_top_left(mark_t *self, mark_t *other, bline_t **ret_bline, bint_t *ret_col) {
+    mark_t *a, *b;
+    mark_cmp(self, other, &a, &b);
+    *ret_bline = a->bline;
+    *ret_col =  MLBUF_MIN(a->col, b->col);
+    return MLBUF_OK;
+}
+
+static int mark_block_x_between(mark_t *self, mark_t *other, int del, char **optret_str, bint_t *optret_str_len) {
+    str_t buf = {0};
+    char *s;
+    bint_t slen, start_col, end_col, end_col_adj, ig;
+    bline_t *bline;
+    mark_t *a, *b;
+
+    if (mark_cmp(self, other, &a, &b) == 0 || a->col == b->col) {
+        if (!del) {
+            *optret_str = strdup("");
+            *optret_str_len = 0;
+        }
+        return MLBUF_OK;
+    }
+
+    start_col = MLBUF_MIN(a->col, b->col);
+    end_col = MLBUF_MAX(a->col, b->col);
+
+    for (bline = a->bline; bline != b->bline->next; bline = bline->next) {
+        if (start_col < bline->char_count) {
+            end_col_adj = MLBUF_MIN(end_col, bline->char_count);
+            if (del) {
+                while (end_col_adj - start_col > (bint_t)buf.len) str_append_char(&buf, ' ');
+                buffer_replace_w_bline(bline->buffer, bline, start_col, end_col_adj - start_col, buf.data, end_col_adj - start_col);
+            } else {
+                buffer_substr(bline->buffer, bline, start_col, bline, end_col_adj, &s, &slen, &ig);
+                if (slen > 0) str_append_len(&buf, s, slen);
+            }
+        }
+        if (!del && bline != b->bline->next) {
+            str_append_char(&buf, '\n');
+        }
+    }
+
+    if (del) {
+        str_free(&buf);
+    } else {
+        *optret_str = buf.data;
+        *optret_str_len = buf.len;
+    }
+    return MLBUF_OK;
 }
 
 // Find first occurrence of match according to matchfn. Search backwards if

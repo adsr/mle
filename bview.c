@@ -19,7 +19,7 @@ static void _bview_draw_status(bview_t *self);
 static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t **optret_bline, int *optret_rect_y);
 static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark);
-static int _bview_is_in_range(bline_t *bline, bint_t col, srule_t **ret_srule);
+static int _bview_is_in_range(bline_t *bline, bint_t col, int is_block, srule_t **ret_srule);
 
 // Create a new bview
 bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len, buffer_t *opt_buffer) {
@@ -268,6 +268,7 @@ int bview_add_cursor(bview_t *self, bline_t *opt_bline, bint_t opt_col, cursor_t
     if (!self->active_cursor) {
         self->active_cursor = cursor;
     }
+    cursor->is_block = self->active_cursor->is_block;
     if (optret_cursor) {
         *optret_cursor = cursor;
     }
@@ -846,6 +847,19 @@ static void _bview_draw_status(bview_t *self) {
         anchor_nlines = 0;
     }
 
+    // Block indicator
+    int i_block_fg, i_block_bg;
+    char *i_block;
+    if (active_edit->active_cursor->is_block) {
+        i_block_fg = TB_WHITE | TB_BOLD;
+        i_block_bg = TB_BLACK;
+        i_block = "b";
+    } else {
+        i_block_fg = 0;
+        i_block_bg = 0;
+        i_block = ".";
+    }
+
     // Async indicator
     int i_async_fg, i_async_bg;
     char *i_async;
@@ -887,16 +901,17 @@ static void _bview_draw_status(bview_t *self) {
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
     tb_printf_rect(editor->rect_status, 0, 0, 0, 0, "%*.*s", editor->rect_status.w, editor->rect_status.w, " ");
     tb_printf_attr(editor->rect_status, 0, 0,
-        "@%d,%d;%s@%d,%d;"                                // mle_normal    mode
-        "[@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;]  " // [....]        need_input,anchor,macro,async
-        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "         // buf:1/2       bview num
-        "<@%d,%d;%s@%d,%d;>  "                            // <php>         syntax
-        "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  "    // line:1/100    line
-        "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  "     // col:0/80      col
-        "%s@%d,%d;%lld@%d,%d;,@%d,%d;%llu@%d,%d;  ",      // sel:10,1      sel len, nlines
+        "@%d,%d;%s@%d,%d;"                                         // mle_normal    mode
+        "[@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;%s@%d,%d;]  " // [.....]       need_input,anchor,block,macro,async
+        "buf:@%d,%d;%d@%d,%d;/@%d,%d;%d@%d,%d;  "                  // buf:1/2       bview num
+        "<@%d,%d;%s@%d,%d;>  "                                     // <php>         syntax
+        "line:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  "             // line:1/100    line
+        "col:@%d,%d;%llu@%d,%d;/@%d,%d;%llu@%d,%d;  "              // col:0/80      col
+        "%s@%d,%d;%lld@%d,%d;,@%d,%d;%llu@%d,%d;  ",               // sel:10,1      sel len, nlines
         TB_MAGENTA | TB_BOLD, 0, active->kmap_tail->kmap->name, 0, 0,
         i_needinput_fg, i_needinput_bg, i_needinput,
         i_anchor_fg, i_anchor_bg, i_anchor,
+        i_block_fg, i_block_bg, i_block,
         i_macro_fg, i_macro_bg, i_macro,
         i_async_fg, i_async_bg, i_async, 0, 0,
         TB_BLUE | TB_BOLD, 0, bview_num, 0, 0, TB_BLUE, 0, bview_count, 0, 0,
@@ -1065,7 +1080,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
             // Highlight menu line
             bg |= TB_REVERSE;
         }
-        if (_bview_is_in_range(bline, char_col, &range_srule)) {
+        if (_bview_is_in_range(bline, char_col, self->active_cursor->is_block, &range_srule)) {
             // Highlight range
             fg = range_srule->style.fg;
             bg = range_srule->style.bg;
@@ -1204,13 +1219,17 @@ int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, 
     return MLE_ERR;
 }
 
-static int _bview_is_in_range(bline_t *bline, bint_t col, srule_t **ret_srule) {
+static int _bview_is_in_range(bline_t *bline, bint_t col, int is_block, srule_t **ret_srule) {
     mark_t mark = {0};
     srule_node_t *node;
     mark.bline = bline;
     mark.col = col;
+    int rv;
     DL_FOREACH(bline->buffer->range_srules, node) {
-        if (mark_is_between(&mark, node->srule->range_a, node->srule->range_b)) {
+        rv = is_block
+            ? mark_block_is_between(&mark, node->srule->range_a, node->srule->range_b)
+            : mark_is_between(&mark, node->srule->range_a, node->srule->range_b);
+        if (rv) {
             *ret_srule = node->srule;
             return 1;
         }

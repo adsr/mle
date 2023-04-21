@@ -61,6 +61,7 @@ int cmd_insert_data(cmd_context_t *ctx) {
     size_t insert_size;
     kinput_t *input;
     int i;
+    int (*mark_insert_func)(mark_t *, char *, bint_t);
 
     // Ensure space in insertbuf
     insert_size = MLE_MAX(6, ctx->bview->buffer->tab_width) * (ctx->pastebuf_len + 1);
@@ -102,6 +103,7 @@ int cmd_insert_data(cmd_context_t *ctx) {
     ctx->editor->insertbuf[insertbuf_len] = '\0';
 
     // Insert
+    mark_insert_func = ctx->cursor->is_block ? mark_block_insert_before : mark_insert_before;
     if (insertbuf_len > 1
         && ctx->editor->trim_paste
         && memchr(ctx->editor->insertbuf, '\n', insertbuf_len) != NULL
@@ -110,15 +112,15 @@ int cmd_insert_data(cmd_context_t *ctx) {
         char *trimmed = NULL;
         int trimmed_len = 0;
         util_pcre_replace("(?m) +$", ctx->editor->insertbuf, "", &trimmed, &trimmed_len);
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, trimmed, trimmed_len);
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_func, trimmed, trimmed_len);
         free(trimmed);
-    } else if (ctx->editor->auto_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '\n') {
+    } else if (ctx->editor->auto_indent && !ctx->cursor->next && !ctx->cursor->is_block && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '\n') {
         _cmd_insert_auto_indent_newline(ctx);
-    } else if (ctx->editor->auto_indent && !ctx->cursor->next && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '}') {
+    } else if (ctx->editor->auto_indent && !ctx->cursor->next && !ctx->cursor->is_block && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '}') {
         _cmd_insert_auto_indent_closing_bracket(ctx);
     } else {
         // Insert without trim
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_before, ctx->editor->insertbuf, insertbuf_len);
+        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_func, ctx->editor->insertbuf, insertbuf_len);
     }
 
     // Remember last insert data
@@ -363,6 +365,14 @@ int cmd_delete_word_after(cmd_context_t *ctx) {
 int cmd_toggle_anchor(cmd_context_t *ctx) {
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         cursor_toggle_anchor(cursor, 1);
+    );
+    return MLE_OK;
+}
+
+// Toggle block mode on cursors
+int cmd_toggle_block(cmd_context_t *ctx) {
+    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+        cursor->is_block = 1 - cursor->is_block;
     );
     return MLE_OK;
 }
@@ -2006,12 +2016,16 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
     char *output;
     size_t output_len;
     int exit_code;
+    bline_t *block_bline;
+    bint_t block_col;
+    mark_t *block_mark;
 
     // Loop for each cursor
     MLE_MULTI_CURSOR_CODE(ctx->cursor,
         // Get data to send to stdin
         if (cursor->is_anchored) {
-            mark_get_between(cursor->mark, cursor->anchor, &input, &input_len);
+            (cursor->is_block ? mark_block_get_between : mark_get_between)
+                (cursor->mark, cursor->anchor, &input, &input_len);
         } else {
             input = NULL;
             input_len = 0;
@@ -2021,18 +2035,32 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
         output = NULL;
         output_len = 0;
         exit_code = -1;
+        block_mark = NULL;
         if (util_shell_exec(ctx->editor, cmd, 1, input, input_len, 0, NULL, &output, &output_len, &exit_code) == MLE_OK) {
             if (output_len > 0) {
                 // Write output to buffer
                 if (cursor->is_anchored) {
-                    mark_delete_between(cursor->mark, cursor->anchor);
+                    if (cursor->is_block) {
+                        mark_block_get_top_left(cursor->mark, cursor->anchor, &block_bline, &block_col);
+                        mark_clone(cursor->mark, &block_mark);
+                        block_mark->lefty = 1;
+                        mark_move_to_w_bline(block_mark, block_bline, block_col);
+                        mark_block_delete_between(cursor->mark, cursor->anchor);
+                    } else {
+                        mark_delete_between(cursor->mark, cursor->anchor);
+                    }
                 }
-                mark_insert_before(cursor->mark, output, output_len);
+                if (cursor->is_block) {
+                    mark_block_insert_before(block_mark ? block_mark : cursor->mark, output, output_len);
+                } else {
+                    mark_insert_before(cursor->mark, output, output_len);
+                }
             }
             MLE_SET_INFO(ctx->editor, "shell: Exited %d", exit_code);
         }
 
-        // Free input and output
+        // Frees
+        if (block_mark) mark_destroy(block_mark);
         if (input) free(input);
         if (output) free(output);
     ); // Loop for next cursor
