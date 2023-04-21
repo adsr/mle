@@ -1865,6 +1865,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 e", "eol"),
         MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 c", "string"),
         MLE_KBINDING_DEF_EX("cmd_anchor_by", "C-2 q", "all"),
+        MLE_KBINDING_DEF_EX("cmd_anchor_by", "CM-a", "all"),
         MLE_KBINDING_DEF("cmd_delete_word_before", "C-w"),
         MLE_KBINDING_DEF("cmd_delete_word_after", "M-d"),
         MLE_KBINDING_DEF("cmd_delete_word_after", "C-delete"),
