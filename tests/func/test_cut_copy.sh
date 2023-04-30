@@ -62,7 +62,12 @@ source 'test.sh'
 
 macro='a space " q u o t e d " space s t r i n g C-f u o t e enter C-d c'
 declare -A expected
-expected[cut_by_eol_data]='^a "" string$'
+expected[cut_by_str1_data]='^a "" string$'
+source 'test.sh'
+
+macro="\" a ' b \" C-f b enter C-d c"
+declare -A expected
+expected[cut_by_str2_data]='^""$'
 source 'test.sh'
 
 macro='o n e - a b c M-a left left left C-k C-n t w o - C-u'

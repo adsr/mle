@@ -166,30 +166,45 @@ int cursor_select_by_word_forward(cursor_t *cursor, int use_srules) {
 int cursor_select_by_string(cursor_t *cursor, int use_srules) {
     mark_t *orig;
     uint32_t qchar;
-    char *qre;
+    char *qre1 = "(?<!\\\\)[`'\"]";
+    char qre2[16];
+    int rv, left_right = 0;
+
     mark_clone(cursor->mark, &orig);
-    if (mark_move_prev_re(cursor->mark, "(?<!\\\\)[`'\"]", strlen("(?<!\\\\)[`'\"]")) != MLBUF_OK) {
-        mark_destroy(orig);
-        return MLE_ERR;
-    }
-    cursor_toggle_anchor(cursor, use_srules);
-    mark_get_char_after(cursor->mark, &qchar);
-    mark_move_by(cursor->mark, 1);
-    if (qchar == '"') {
-        qre = "(?<!\\\\)\"";
-    } else if (qchar == '\'') {
-        qre = "(?<!\\\\)'";
-    } else {
-        qre = "(?<!\\\\)`";
-    }
-    if (mark_move_next_re_nudge(cursor->anchor, qre, strlen(qre)) != MLBUF_OK) {
-        cursor_toggle_anchor(cursor, use_srules);
+
+    for (left_right = 0; left_right <= 1; left_right++) {
         mark_join(cursor->mark, orig);
+
+        // left_right==0 initially look left for quote
+        // left_right==1 initially look right for quote
+        rv = (left_right == 0 ? mark_move_prev_re : mark_move_next_re)
+            (cursor->mark, qre1, strlen(qre1));
+        if (rv != MLBUF_OK) continue;
+
+        // Get quote char and make qre2
+        mark_get_char_after(cursor->mark, &qchar);
+        snprintf(qre2, sizeof(qre2), "(?<!\\\\)%c", (char)qchar);
+
+        // Drop anchor
+        if (left_right == 0) mark_move_by(cursor->mark, 1);
+        cursor_drop_anchor(cursor, use_srules);
+
+        // left_right==0 look right for quote pair
+        // left_right==1 look left for quote pair
+        rv = (left_right == 0 ? mark_move_next_re : mark_move_prev_re)
+            (cursor->anchor, qre2, strlen(qre2));
+        if (rv != MLBUF_OK) continue;
+
+        // Selected!
+        if (left_right == 1) mark_move_by(cursor->anchor, 1);
         mark_destroy(orig);
-        return MLE_ERR;
+        return MLE_OK;
     }
+
+    cursor_lift_anchor(cursor);
+    mark_join(cursor->mark, orig);
     mark_destroy(orig);
-    return MLE_OK;
+    return MLE_ERR;
 }
 
 // Select by word
