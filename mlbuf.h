@@ -18,6 +18,7 @@ typedef struct mark_s mark_t; // A mark in a buffer
 typedef struct srule_s srule_t; // A style rule
 typedef struct srule_node_s srule_node_t; // A node in a list of style rules
 typedef struct sblock_s sblock_t; // A style of a particular character
+typedef struct smemo_s smemo_t; // A memoization of pcre2_match
 typedef struct str_s str_t; // A dynamically resizeable string
 typedef void (*buffer_callback_t)(buffer_t *buffer, baction_t *action, void *udata);
 typedef intmax_t bint_t;
@@ -36,8 +37,7 @@ struct buffer_s {
     bline_t *last_line;
     bint_t byte_count;
     bint_t line_count;
-    srule_node_t *single_srules;
-    srule_node_t *multi_srules;
+    srule_node_t *srules;
     srule_node_t *range_srules;
     baction_t *actions;
     baction_t *action_tail;
@@ -79,7 +79,6 @@ struct bline_s {
     bline_char_t *chars;
     bint_t chars_cap;
     mark_t *marks;
-    srule_t *bol_rule;
     srule_t *eol_rule;
     int is_chars_dirty;
     int is_slabbed;
@@ -136,6 +135,15 @@ struct mark_s {
     int lefty;
 };
 
+// smemo_t
+struct smemo_s {
+    int looked;
+    bint_t look_offset;
+    int found;
+    bint_t start;
+    bint_t stop;
+};
+
 // srule_t
 struct srule_s {
     int type; // MLBUF_SRULE_TYPE_*
@@ -146,6 +154,8 @@ struct srule_s {
     mark_t *range_a;
     mark_t *range_b;
     sblock_t style;
+    smemo_t memo;
+    smemo_t memo_end;
 };
 
 // srule_node_t

@@ -613,7 +613,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "1.6.1-dev"
+#define MLE_VERSION "1.7.0-dev"
 
 #define MLE_OK 0
 #define MLE_ERR 1
@@ -710,15 +710,13 @@ extern editor_t _editor;
 TODO major changes
 [ ] delete lua api
 [ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks; consolidate input_trail + pastebuf)
-[ ] rewrite srules (complex/unreadable; use_srules sucks; overlapping multi srules bug; make stateful, e.g., in-string, in-comment)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
 [ ] rewrite buffer_set_mmapped to avoid huge mallocs
 [ ] use wcwidth9 autc instead of relying on locale and wcwidth (tests/unit/test_bline_insert.c)
-TODO bugfixes
+TODO review
 [ ] review error checking, esp catch ENOSPC, malloc fail
 [ ] review compiler warnings
 TODO new features/improvements
-[ ] add block select/move
 [ ] add cmd_tabulate
 [ ] add ## param to page_up/down (by half/third etc)
 [ ] replace mark_set_pcre_capture with mark local
@@ -726,12 +724,12 @@ TODO new features/improvements
 [ ] improve isearch kmap (next/prev history)
 [ ] add mark stack (push, move around, pop to go back)
 [ ] add last cmd status indicator
-[ ] add option to display key inputs for demos
 [ ] check if buffer exists by inode instead of path
 [ ] move single-use macros out of mle.h
 [ ] review use of multi_cursor_code
 [ ] review use of MLE_RETURN_ERR
-TODO MAYBE
+[ ] try to get rid of use_srules
+TODO maybe
 [ ] ?allow uscripts to preempt control, use shared uscriptfd
 [ ] ?add vim emulation mode
 [ ] ?make colors, status line, layout configurable

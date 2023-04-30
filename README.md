@@ -171,10 +171,6 @@ be mapped to keys as normal via `-k`. See `uscript.lua` for a simple example.
 There is also a `wren` branch with [Wren](http://wren.io) scripting support.
 That work is on pause.
 
-### Known bugs
-
-* Multi-line style rules don't work properly when overlapped/staggered.
-
 ### Forks
 
 * [eon](https://github.com/tomas/eon) - mouse support and Notepad-like

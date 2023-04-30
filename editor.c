@@ -444,6 +444,7 @@ int editor_debug_dump(editor_t *editor, FILE *fp) {
         fprintf(fp, "bview.%d.buffer.line_count=%" PRIdMAX "\n", bview_index, buffer->line_count);
         fprintf(fp, "bview.%d.buffer.path=%s\n", bview_index, buffer->path ? buffer->path : "");
         for (bline = buffer->first_line; bline != NULL; bline = bline->next) {
+            MLBUF_BLINE_ENSURE_CHARS(bline);
             fprintf(fp, "bview.%d.buffer.blines.%" PRIdMAX ".chars=", bview_index, bline->line_index);
             for (c = 0; c < bline->char_count; ++c) {
                 fprintf(fp, "<ch=%" PRIu32 " fg=%" PRIu16 " bg=%" PRIu16 ">",
@@ -2156,7 +2157,19 @@ static int _editor_add_macro_by_str(editor_t *editor, char *str) {
 
 // Init built-in syntax map
 static void _editor_init_syntaxes(editor_t *editor) {
-    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cc|cpp|h|hh|hpp|php|py|rb|erb|sh|pl|go|js|java|jsp|lua|rs|zig)$", -1, -1, (srule_def_t[]){
+    _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cc|cpp|h|hh|hpp|d|php|py|rb|erb|sh|pl|go|js|java|jsp|lua|rs|zig)$", -1, -1, (srule_def_t[]){
+        { "'([^'\\\\]|\\\\.)*'",                       NULL,              TB_YELLOW | TB_BOLD,     TB_DEFAULT },
+        { "\"([^\"\\\\]|\\\\.)*\"",                    NULL,              TB_YELLOW | TB_BOLD,     TB_DEFAULT },
+        { "/\\*",                                      "\\*/",            TB_CYAN,                 TB_DEFAULT },
+        { "//.*$",                                     NULL,              TB_CYAN,                 TB_DEFAULT },
+        { "^\\s*#( .*|)$",                             NULL,              TB_CYAN,                 TB_DEFAULT },
+        { "^#!/.*$",                                   NULL,              TB_CYAN,                 TB_DEFAULT },
+        { "[(){}<>\\[\\].,;:?!+=/\\\\%^*-]",           NULL,              TB_RED | TB_BOLD,        TB_DEFAULT },
+        { "(?<!\\w)[\\%@$][a-zA-Z_$][a-zA-Z0-9_]*\\b", NULL,              TB_GREEN,                TB_DEFAULT },
+        { "\\b[A-Z_][A-Z0-9_]*\\b",                    NULL,              TB_RED | TB_BOLD,        TB_DEFAULT },
+        { "\\b(-?(0x)?[0-9]+|true|false|null|nil)\\b", NULL,              TB_BLUE | TB_BOLD,       TB_DEFAULT },
+        { "\\t+",                                      NULL,              TB_RED | TB_UNDERLINE,   TB_DEFAULT },
+        { "\\s+$",                                     NULL,              TB_GREEN | TB_UNDERLINE, TB_DEFAULT },
         { "(?<![\\w%@$])("
           "abstract|alias|alignas|alignof|and|and_eq|arguments|array|as|asm|"
           "assert|auto|base|begin|bitand|bitor|bool|boolean|break|byte|"
@@ -2166,35 +2179,23 @@ static void _editor_init_syntaxes(editor_t *editor) {
           "dynamic_cast|echo|elif|else|elseif|elsif|empty|end|enddeclare|"
           "endfor|endforeach|endif|endswitch|endwhile|ensure|enum|eq|esac|"
           "eval|event|except|exec|exit|exp|explicit|export|extends|extern|"
-          "fallthrough|false|fi|final|finally|fixed|float|fn|for|foreach|"
+          "fallthrough|fi|final|finally|fixed|float|fn|for|foreach|"
           "friend|from|func|function|ge|global|go|goto|gt|if|implements|"
           "implicit|import|in|include|include_once|inline|instanceof|insteadof|"
           "int|interface|internal|is|isset|lambda|le|let|list|lock|long|lt|m|"
-          "map|module|mutable|namespace|native|ne|new|next|nil|no|noexcept|not|"
-          "not_eq|null|nullptr|object|operator|or|or_eq|out|override|package|"
+          "map|module|mutable|namespace|native|ne|new|next|no|noexcept|not|"
+          "not_eq|nullptr|object|operator|or|or_eq|out|override|package|"
           "params|pass|print|private|protected|public|q|qq|qr|qw|qx|raise|"
           "range|readonly|redo|ref|register|reinterpret_cast|require|"
           "require_once|rescue|retry|return|s|sbyte|sealed|select|self|short|"
           "signed|sizeof|stackalloc|static|static_assert|static_cast|"
           "strictfp|string|struct|sub|super|switch|synchronized|template|"
-          "then|this|thread_local|throw|throws|time|tr|trait|transient|true|"
+          "then|this|thread_local|throw|throws|time|tr|trait|transient|"
           "try|type|typedef|typeid|typename|typeof|uint|ulong|unchecked|"
           "undef|union|unless|unsafe|unset|unsigned|until|use|ushort|using|"
           "var|virtual|void|volatile|when|while|with|xor|xor_eq|y|yield"
           ")\\b", NULL, TB_GREEN, TB_DEFAULT },
-        { "[(){}<>\\[\\].,;:?!+=/\\\\%^*-]",           NULL,      TB_RED | TB_BOLD,        TB_DEFAULT },
-        { "(?<!\\w)[\\%@$][a-zA-Z_$][a-zA-Z0-9_]*\\b", NULL,      TB_GREEN,                TB_DEFAULT },
-        { "\\b[A-Z_][A-Z0-9_]*\\b",                    NULL,      TB_RED | TB_BOLD,        TB_DEFAULT },
-        { "\\b(-?(0x)?[0-9]+|true|false|null)\\b",     NULL,      TB_BLUE | TB_BOLD,       TB_DEFAULT },
-        { "'([^']|\\')*?'",                            NULL,      TB_YELLOW | TB_BOLD,     TB_DEFAULT },
-        { "\"(\\\"|[^\"])*?\"",                        NULL,      TB_YELLOW | TB_BOLD,     TB_DEFAULT },
-        { "/" "/.*$",                                  NULL,      TB_CYAN,                 TB_DEFAULT },
-        { "^\\s*#( .*|)$",                             NULL,      TB_CYAN,                 TB_DEFAULT },
-        { "^#!/.*$",                                   NULL,      TB_CYAN,                 TB_DEFAULT },
-        { "/\\" "*",                                   "\\*" "/", TB_CYAN,                 TB_DEFAULT },
-        { "\\t+",                                      NULL,      TB_RED | TB_UNDERLINE,   TB_DEFAULT },
-        { "\\s+$",                                     NULL,      TB_GREEN | TB_UNDERLINE, TB_DEFAULT },
-        { NULL,                                        NULL,      0,                       0          }
+        { NULL, NULL, 0, 0 }
     });
 }
 

@@ -22,10 +22,10 @@ static int _buffer_undo(buffer_t *self, int by_group);
 static int _buffer_redo(buffer_t *self, int by_group);
 static int _buffer_truncate_undo_stack(buffer_t *self, baction_t *action_from);
 static int _buffer_add_to_undo_stack(buffer_t *self, baction_t *action);
-static int _buffer_apply_styles_singles(bline_t *start_line, bint_t min_nlines);
-static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines);
-static int _buffer_bline_apply_style_single(srule_t *srule, bline_t *bline);
-static int _buffer_bline_apply_style_multi(srule_t *srule, bline_t *bline, srule_t **open_rule, bint_t *look_offset);
+static int _buffer_apply_styles_all(bline_t *bline, bint_t min_nlines);
+static int _buffer_match_srule(bline_t *bline, bint_t look_offset, srule_t *srule, int end_rule, bint_t *ret_start, bint_t *ret_stop);
+static void _buffer_bline_reset_styles(bline_t *bline);
+static void _buffer_bline_style(bline_t *bline, bint_t start, bint_t stop, sblock_t *style);
 static bline_t *_buffer_bline_new(buffer_t *self);
 static int _buffer_bline_free(bline_t *bline, bline_t *maybe_mark_line, bint_t col_delta);
 static bline_t *_buffer_bline_break(bline_t *bline, bint_t col);
@@ -36,9 +36,6 @@ static bint_t _buffer_bline_delete(bline_t *bline, bint_t col, bint_t num_chars)
 static bint_t _buffer_bline_col_to_index(bline_t *bline, bint_t col);
 static bint_t _buffer_bline_index_to_col(bline_t *bline, bint_t index);
 static int _buffer_munmap(buffer_t *self);
-static int _srule_multi_find(srule_t *rule, int find_end, bline_t *bline, bint_t start_offset, bint_t *ret_start, bint_t *ret_stop);
-static int _srule_multi_find_start(srule_t *rule, bline_t *bline, bint_t start_offset, bint_t *ret_start, bint_t *ret_stop);
-static int _srule_multi_find_end(srule_t *rule, bline_t *bline, bint_t start_offset, bint_t *ret_stop);
 static int _baction_destroy(baction_t *action);
 static void _bline_advance_col(bline_t **self, bint_t *col);
 
@@ -271,10 +268,9 @@ int buffer_destroy_mark(buffer_t *self, mark_t *mark) {
     srule_node_t *node_tmp;
     DL_DELETE(mark->bline->marks, mark);
     if (mark->letter) MLBUF_LETT_MARK(self, mark->letter) = NULL;
-    DL_FOREACH_SAFE(self->multi_srules, node, node_tmp) {
-        if (node->srule->type == MLBUF_SRULE_TYPE_RANGE
-            && (node->srule->range_a == mark
-            ||  node->srule->range_b == mark)
+    DL_FOREACH_SAFE(self->range_srules, node, node_tmp) {
+        if (node->srule->range_a == mark
+            || node->srule->range_b == mark
         ) {
             buffer_remove_srule(self, node->srule);
         }
@@ -382,7 +378,6 @@ int buffer_set_mmapped(buffer_t *self, char *data, bint_t data_len) {
             .chars = (self->slabbed_chars + (data_len - data_remaining_len)),
             .chars_cap = line_len,
             .marks = NULL,
-            .bol_rule = NULL,
             .eol_rule = NULL,
             .is_chars_dirty = 1,
             .is_slabbed = 1,
@@ -792,10 +787,8 @@ int buffer_add_srule(buffer_t *self, srule_t *srule) {
     srule_node_t *node;
     node = calloc(1, sizeof(srule_node_t));
     node->srule = srule;
-    if (srule->type == MLBUF_SRULE_TYPE_SINGLE) {
-        DL_APPEND(self->single_srules, node);
-    } else if (srule->type == MLBUF_SRULE_TYPE_MULTI) {
-        DL_APPEND(self->multi_srules, node);
+    if (srule->type == MLBUF_SRULE_TYPE_SINGLE || srule->type == MLBUF_SRULE_TYPE_MULTI) {
+        DL_APPEND(self->srules, node);
     } else if (srule->type == MLBUF_SRULE_TYPE_RANGE) {
         srule->range_a->range_srule = srule;
         srule->range_b->range_srule = srule;
@@ -814,10 +807,8 @@ int buffer_remove_srule(buffer_t *self, srule_t *srule) {
     srule_node_t **head;
     srule_node_t *node;
     srule_node_t *node_tmp;
-    if (srule->type == MLBUF_SRULE_TYPE_SINGLE) {
-        head = &self->single_srules;
-    } else if (srule->type == MLBUF_SRULE_TYPE_MULTI) {
-        head = &self->multi_srules;
+    if (srule->type == MLBUF_SRULE_TYPE_SINGLE || srule->type == MLBUF_SRULE_TYPE_MULTI) {
+        head = &self->srules;
     } else if (srule->type == MLBUF_SRULE_TYPE_RANGE) {
         head = &self->range_srules;
     } else {
@@ -994,15 +985,12 @@ int buffer_apply_styles(buffer_t *self, bline_t *start_line, bint_t line_delta) 
 
     // Count current srules
     srule_count = 0;
-    DL_COUNT(self->single_srules, srule_node, count_tmp);
-    srule_count += count_tmp;
-    DL_COUNT(self->multi_srules, srule_node, count_tmp);
+    DL_COUNT(self->srules, srule_node, count_tmp);
     srule_count += count_tmp;
 
     // Apply rules if there are any, or if the number of rules changed
     if (srule_count > 0 || self->num_applied_srules != srule_count) {
-        _buffer_apply_styles_singles(start_line, min_nlines);
-        _buffer_apply_styles_multis(start_line, min_nlines);
+        _buffer_apply_styles_all(start_line, min_nlines);
         self->num_applied_srules = srule_count;
     }
 
@@ -1474,185 +1462,142 @@ static int _buffer_add_to_undo_stack(buffer_t *self, baction_t *action) {
     return MLBUF_OK;
 }
 
-static int _buffer_apply_styles_singles(bline_t *start_line, bint_t min_nlines) {
-    bline_t *cur_line;
+static int _buffer_apply_styles_all(bline_t *bline, bint_t min_nlines) {
+    buffer_t *buffer;
     srule_node_t *srule_node;
-    bint_t styled_nlines;
-    bint_t i;
+    srule_t *open_rule, *found_rule, *eol_rule_orig;
+    bint_t col, styled_nlines, start, stop;
+    int eol_rule_changed;
 
-    // Apply styles starting at start_line
-    cur_line = start_line;
+    buffer = bline->buffer;
+    open_rule = bline->prev ? bline->prev->eol_rule : NULL;
     styled_nlines = 0;
-    while (cur_line && styled_nlines < min_nlines) {
-        // Reset styles of cur_line
-        for (i = 0; i < cur_line->data_cap; i++) {
-            cur_line->chars[i].style = (sblock_t){0, 0};
-        }
+    col = 0;
+    eol_rule_changed = 0;
 
-        // Apply single-line styles to cur_line
-        if (cur_line->data_len > 0) {
-            DL_FOREACH(start_line->buffer->single_srules, srule_node) {
-                _buffer_bline_apply_style_single(srule_node->srule, cur_line);
+    _buffer_bline_reset_styles(bline);
+
+    while (1) {
+        found_rule = NULL;
+
+        // Reset style cache at beginning of each line
+        if (col == 0) {
+            DL_FOREACH(buffer->srules, srule_node) {
+                memset(&srule_node->srule->memo, 0, sizeof(srule_node->srule->memo));
+                memset(&srule_node->srule->memo_end, 0, sizeof(srule_node->srule->memo_end));
             }
         }
 
-        // Done styling cur_line; increment styled_nlines
-        styled_nlines += 1;
-
-        // Continue to next line
-        cur_line = cur_line->next;
-    } // end while (cur_line)
-
-    return MLBUF_OK;
-}
-
-static int _buffer_apply_styles_multis(bline_t *start_line, bint_t min_nlines) {
-    bline_t *cur_line;
-    srule_node_t *srule_node;
-    srule_t *open_rule;
-    bint_t styled_nlines;
-    bint_t multi_look_offset;
-    int open_rule_ended;
-    int already_open;
-
-    // Apply styles starting at start_line
-    cur_line = start_line;
-    open_rule = NULL;
-    styled_nlines = 0;
-    open_rule_ended = 0;
-    multi_look_offset = 0;
-    while (cur_line) {
-        if (cur_line->prev && cur_line->prev->eol_rule && !open_rule && !open_rule_ended) {
-            // Resume open_rule from previous line
-            open_rule = cur_line->prev->eol_rule;
-        }
-        if (!open_rule_ended) {
-            multi_look_offset = 0;
-        }
-        if (open_rule) {
-            // Apply open_rule to cur_line
-            already_open = cur_line->eol_rule == open_rule ? 1 : 0;
-            _buffer_bline_apply_style_multi(open_rule, cur_line, &open_rule, &multi_look_offset);
-            if (open_rule) {
-                // open_rule is still open
-                if (styled_nlines > min_nlines && already_open) {
-                    // We are past min_nlines and styles have not changed; done
+        if (bline->char_count <= 0) {
+            // Nothing to do on empty line
+        } else if (open_rule) {
+            // Look for end of open_rule
+            if (_buffer_match_srule(bline, col, open_rule, 1, &start, &stop)) {
+                // End of open_rule found; close rule
+                found_rule = open_rule;
+                open_rule = NULL;
+            } else {
+                // End of open_rule NOT found; style entire line
+                found_rule = open_rule;
+                start = col;
+                stop = bline->char_count;
+            }
+        } else {
+            // Look for any rule
+            DL_FOREACH(buffer->srules, srule_node) {
+                if (_buffer_match_srule(bline, col, srule_node->srule, 0, &start, &stop) && start == col) {
+                    found_rule = srule_node->srule;
+                    if (srule_node->srule->cre_end) open_rule = srule_node->srule;
                     break;
                 }
-            } else {
-                // open_rule ended on this line; resume normal styling on same line
-                open_rule_ended = 1;
-                continue;
             }
+        }
+
+        if (found_rule) {
+            // Set style of found_rule
+            _buffer_bline_style(bline, MLBUF_MIN(start, col), stop, &found_rule->style);
+            col = MLBUF_MAX(stop, col + 1);
         } else {
-            // Re-apply single line rules if a multi-line rule was resolved
-            if (cur_line->prev && cur_line->bol_rule != cur_line->prev->eol_rule) {
-                _buffer_apply_styles_singles(cur_line, 1);
-            }
-            // Reset bol_rule and eol_rule
-            if (!open_rule_ended) cur_line->bol_rule = NULL;
-            cur_line->eol_rule = NULL;
-            // Apply multi-line styles to cur_line
-            DL_FOREACH(start_line->buffer->multi_srules, srule_node) {
-                _buffer_bline_apply_style_multi(srule_node->srule, cur_line, &open_rule, &multi_look_offset);
-                multi_look_offset = 0;
-                if (open_rule) break; // We have an open_rule; break
-            }
+            // Nothing found; advance one char
+            col += 1;
         }
 
-        // Done styling cur_line; increment styled_nlines
-        styled_nlines += 1;
+        if (col >= bline->char_count) {
+            // At end of line
 
-        // If there is no open_rule and we are past min_nlines, we are done.
-        if (!open_rule && (!cur_line->next || !cur_line->next->bol_rule) && styled_nlines > min_nlines) {
-            break;
-        }
+            // Set eol_rule and already_open
+            eol_rule_orig = bline->eol_rule;
+            bline->eol_rule = open_rule; // can be NULL
+            eol_rule_changed = eol_rule_orig != bline->eol_rule ? 1 : 0;
 
-        // Reset open_rule_ended flag
-        if (open_rule_ended) open_rule_ended = 0;
+            // Advance to next line
+            styled_nlines += 1;
+            bline = bline->next;
+            col = 0;
 
-        // Continue to next line
-        cur_line = cur_line->next;
-    } // end while (cur_line)
-
-    return MLBUF_OK;
-}
-
-static int _buffer_bline_apply_style_single(srule_t *srule, bline_t *bline) {
-    int rc;
-    PCRE2_SIZE substrs[3];
-    bint_t start;
-    bint_t stop;
-    bint_t look_offset;
-    look_offset = 0;
-
-    MLBUF_BLINE_ENSURE_CHARS(bline);
-    while (look_offset < bline->data_len) {
-        if ((rc = pcre2_match(srule->cre, (PCRE2_SPTR)bline->data, (PCRE2_SIZE)bline->data_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL)) >= 0) {
-            memcpy(substrs, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
-            if (substrs[1] == PCRE2_UNSET) {
-                // substrs[0..1] can be -1 sometimes, See http://pcre.org/pcre.txt
+            // Check stop conditions
+            if (!bline || (styled_nlines >= min_nlines && !eol_rule_changed)) {
                 break;
             }
-            start = _buffer_bline_index_to_col(bline, substrs[0]);
-            stop = _buffer_bline_index_to_col(bline, substrs[1]);
-            for (; start < stop; start++) {
-                bline->chars[start].style = srule->style;
-            }
-            look_offset = MLBUF_MAX(substrs[1], (PCRE2_SIZE)(look_offset + 1));
-        } else {
-            break;
+
+            // Clear style of next line
+            _buffer_bline_reset_styles(bline);
         }
     }
+
     return MLBUF_OK;
 }
 
-static int _buffer_bline_apply_style_multi(srule_t *srule, bline_t *bline, srule_t **open_rule, bint_t *look_offset) {
-    bint_t start;
-    bint_t start_stop;
-    bint_t end;
-    int found_start;
-    int found_end;
+static int _buffer_match_srule(bline_t *bline, bint_t look_offset, srule_t *srule, int end_rule, bint_t *ret_start, bint_t *ret_stop) {
+    int rc;
+    PCRE2_SIZE substrs[3];
+    pcre2_code *cre;
+    smemo_t *memo;
 
-    MLBUF_BLINE_ENSURE_CHARS(bline);
+    cre = end_rule ? srule->cre_end : srule->cre;
+    memo = end_rule ? &srule->memo_end : &srule->memo;
 
-    do {
-        found_start = 0;
-        found_end = 0;
-        if (*open_rule == NULL) {
-            // Look for start and end of rule
-            if ((found_start = _srule_multi_find_start(srule, bline, *look_offset, &start, &start_stop))) {
-                *look_offset = start_stop;
-                found_end = *look_offset < bline->char_count
-                    ? _srule_multi_find_end(srule, bline, *look_offset, &end)
-                    : 0;
-                if (found_end) *look_offset = end;
-            } else {
-                return MLBUF_OK; // No match; bail
+    if (memo->looked && look_offset >= memo->look_offset) {
+        if (memo->found) {
+            if (look_offset <= memo->start) {
+                *ret_start = memo->start;
+                *ret_stop = memo->stop;
+                return 1;
             }
         } else {
-            // Look for end of rule
-            start = 0;
-            bline->bol_rule = srule;
-            found_end = _srule_multi_find_end(srule, bline, *look_offset, &end);
+            return 0;
         }
+    }
 
-        // Set start, end, bol_rule, and eol_rule
-        if (!found_end) {
-            end = bline->char_count; // Style until eol
-            bline->eol_rule = srule; // Set eol_rule
-            *open_rule = srule;
-        } else if (*open_rule != NULL) {
-            *open_rule = NULL;
-        }
+    rc = pcre2_match(cre, (PCRE2_SPTR)bline->data, (PCRE2_SIZE)bline->data_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL);
+    memo->looked = 1;
+    memo->look_offset = look_offset;
+    memo->found = 0;
+    if (rc < 0) return 0;
 
-        // Write styles
-        for (; start < end; start++) {
-            bline->chars[start].style = srule->style;
-        }
-    } while (found_start && found_end && *look_offset < bline->char_count);
+    memcpy(substrs, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
+    if (substrs[1] == PCRE2_UNSET) return 0;
 
-    return MLBUF_OK;
+    *ret_start = _buffer_bline_index_to_col(bline, substrs[0]);
+    *ret_stop = _buffer_bline_index_to_col(bline, substrs[1]);
+
+    memo->found = 1;
+    memo->start = *ret_start;
+    memo->stop = *ret_stop;
+
+    return 1;
+}
+
+static void _buffer_bline_reset_styles(bline_t *bline) {
+    sblock_t reset = {0};
+    _buffer_bline_style(bline, 0, bline->char_count, &reset);
+}
+
+static void _buffer_bline_style(bline_t *bline, bint_t start, bint_t stop, sblock_t *style) {
+    bint_t i;
+    for (i = start; i < stop && i < bline->char_count; i++) {
+        bline->chars[i].style = *style;
+    }
 }
 
 static bline_t *_buffer_bline_new(buffer_t *self) {
@@ -2003,46 +1948,6 @@ int srule_destroy(srule_t *srule) {
     if (srule->cre_end) pcre2_code_free(srule->cre_end);
     free(srule);
     return MLBUF_OK;
-}
-
-static int _srule_multi_find(srule_t *rule, int find_end, bline_t *bline, bint_t start_offset, bint_t *ret_start, bint_t *ret_stop) {
-    int rc;
-    pcre2_code *cre;
-    PCRE2_SIZE substrs[3];
-    bint_t start_index;
-    mark_t *mark;
-
-    if (rule->type == MLBUF_SRULE_TYPE_RANGE) {
-        mark = mark_is_gt(rule->range_a, rule->range_b)
-            ? (find_end ? rule->range_a : rule->range_b)
-            : (find_end ? rule->range_b : rule->range_a);
-        if (mark->bline == bline && mark->col >= start_offset) {
-            *ret_start = mark->col;
-            *ret_stop = mark->col;
-            return 1;
-        }
-        return 0;
-    }
-
-    // MLBUF_SRULE_TYPE_MULTI
-    cre = find_end ? rule->cre_end : rule->cre;
-    start_index = _buffer_bline_col_to_index(bline, start_offset);
-    if ((rc = pcre2_match(cre, (PCRE2_SPTR)bline->data, (PCRE2_SIZE)bline->data_len, (PCRE2_SIZE)start_index, 0, pcre2_md, NULL)) >= 0) {
-        memcpy(substrs, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
-        *ret_start = _buffer_bline_index_to_col(bline, substrs[0]);
-        *ret_stop = _buffer_bline_index_to_col(bline, substrs[1]);
-        return 1;
-    }
-    return 0;
-}
-
-static int _srule_multi_find_start(srule_t *rule, bline_t *bline, bint_t start_offset, bint_t *ret_start, bint_t *ret_stop) {
-    return _srule_multi_find(rule, 0, bline, start_offset, ret_start, ret_stop);
-}
-
-static int _srule_multi_find_end(srule_t *rule, bline_t *bline, bint_t start_offset, bint_t *ret_stop) {
-    bint_t ignore;
-    return _srule_multi_find(rule, 1, bline, start_offset, &ignore, ret_stop);
 }
 
 static int _baction_destroy(baction_t *action) {

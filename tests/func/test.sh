@@ -23,15 +23,26 @@ else
         exit 1
     fi
 
-    for testname in "${!expected[@]}"; do
-        expected_re="${expected[$testname]}"
+    for assert_name in "${!expected[@]}"; do
+        expected_re="${expected[$assert_name]}"
         if grep -Eq "$expected_re" <<<"$actual"; then
-            echo -e "  \x1b[32mOK  \x1b[0m $testname"
+            echo -e "  \x1b[32mOK  \x1b[0m $assert_name"
         else
-            echo -e "  \x1b[31mERR \x1b[0m $testname expected=$expected_re\n\n$actual"
+            echo -e "  \x1b[31mERR \x1b[0m $assert_name expected=$expected_re\n\n$actual"
+            exit 1
+        fi
+    done
+
+    for assert_name in "${!not_expected[@]}"; do
+        not_expected_re="${not_expected[$assert_name]}"
+        if ! grep -Eq "$not_expected_re" <<<"$actual"; then
+            echo -e "  \x1b[32mOK  \x1b[0m $assert_name"
+        else
+            echo -e "  \x1b[31mERR \x1b[0m $assert_name not_expected=$not_expected_re\n\n$actual"
             exit 1
         fi
     done
 
     unset expected
+    unset not_expected
 fi
