@@ -668,10 +668,10 @@ extern editor_t _editor;
     : ( (pmark)->col <= 0 ? 0 : (pmark)->bline->chars[(pmark)->col].vcol ) \
 )
 
-#define MLE_COL_TO_VCOL(pline, pcol, pmax) ( \
+#define MLE_COL_TO_VCOL(pline, pcol) ( \
     (pcol) >= (pline)->char_count \
-    ? (pmax) \
-    : ( (pcol) <= 0 ? 0 : (pline)->chars[(pcol)].vcol ) \
+    ? ((pline)->char_vwidth) \
+    : ((pcol) <= 0 ? 0 : (pline)->chars[(pcol)].vcol) \
 )
 
 // Setter macros for kinput structs
