@@ -216,6 +216,7 @@ int bline_delete(bline_t *self, bint_t col, bint_t num_chars);
 int bline_replace(bline_t *self, bint_t col, bint_t num_chars, char *data, bint_t data_len);
 int bline_get_col(bline_t *self, bint_t index, bint_t *ret_col);
 int bline_get_col_from_vcol(bline_t *self, bint_t vcol, bint_t *ret_col);
+int bline_index_to_col(bline_t *bline, bint_t index, bint_t *ret_col);
 int bline_count_chars(bline_t *bline);
 
 // mark functions

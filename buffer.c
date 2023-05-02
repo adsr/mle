@@ -1177,6 +1177,11 @@ int bline_get_col_from_vcol(bline_t *bline, bint_t vcol, bint_t *ret_col) {
     return MLBUF_OK;
 }
 
+int bline_index_to_col(bline_t *bline, bint_t index, bint_t *ret_col) {
+    *ret_col = _buffer_bline_index_to_col(bline, index);
+    return MLBUF_OK;
+}
+
 static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
     char tmppath[16];
     int tmpfd;

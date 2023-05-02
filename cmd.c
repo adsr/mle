@@ -1734,7 +1734,6 @@ static void _cmd_isearch_prompt_cb(bview_t *bview_prompt, baction_t *action, voi
     bview = bview_prompt->editor->active_edit;
 
     if (bview->isearch_rule) {
-        buffer_remove_srule(bview->buffer, bview->isearch_rule);
         srule_destroy(bview->isearch_rule);
         bview->isearch_rule = NULL;
     }
@@ -1743,10 +1742,10 @@ static void _cmd_isearch_prompt_cb(bview_t *bview_prompt, baction_t *action, voi
     regex_len = bview_prompt->buffer->first_line->data_len;
     if (regex_len < 1) return;
 
+    // isearch_rule is applied in bview.c
     bview->isearch_rule = srule_new_single(regex, regex_len, 1, TB_BOLD, TB_MAGENTA);
     if (!bview->isearch_rule) return;
 
-    buffer_add_srule(bview->buffer, bview->isearch_rule);
     mark_move_next_cre(bview->active_cursor->mark, bview->isearch_rule->cre);
 
     bview_center_viewport_y(bview);

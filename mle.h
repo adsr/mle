@@ -201,6 +201,9 @@ struct bview_s {
     cursor_t *active_cursor;
     char *last_search;
     srule_t *isearch_rule;
+    bint_t *isearch_ranges;
+    size_t isearch_ranges_len;
+    size_t isearch_ranges_cap;
     int tab_width;
     int tab_to_space;
     int soft_wrap;
