@@ -573,7 +573,6 @@ int cmd_isearch(cmd_context_t *ctx) {
         .prompt_cb = _cmd_isearch_prompt_cb
     }, NULL);
     if (ctx->bview->isearch_rule) {
-        buffer_remove_srule(ctx->bview->buffer, ctx->bview->isearch_rule);
         srule_destroy(ctx->bview->isearch_rule);
         ctx->bview->isearch_rule = NULL;
     }

@@ -23,7 +23,8 @@ static bint_t _bview_get_viewport_x(bview_t *self, bline_t *bline);
 static int _bview_is_cursor_line(bview_t *self, bline_t *bline);
 static int _bview_is_soft_wrapped(bview_t *self, bline_t *bline);
 static int _bview_is_in_range(bline_t *bline, bint_t col, int is_block, srule_t **ret_srule);
-static int _bview_is_in_isearch(bview_t *self, bline_t *bline, bint_t col, srule_t **ret_srule);
+static int _bview_is_in_isearch(bview_t *self, bint_t col, srule_t **ret_srule);
+static int _bview_populate_isearch_ranges(bview_t *self, bline_t *bline);
 
 // Create a new bview
 bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len, buffer_t *opt_buffer) {
@@ -1068,6 +1069,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
     orig_rect_y = rect_y;
     rect_x = 0;
     char_col = viewport_x;
+    _bview_populate_isearch_ranges(self, bline);
     while (char_col < bline->char_count) {
         ch = bline->chars[char_col].ch;
         fg = bline->chars[char_col].style.fg;
@@ -1084,7 +1086,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
             // Highlight menu line
             bg |= TB_REVERSE;
         }
-        if (_bview_is_in_isearch(self, bline, char_col, &srule)) {
+        if (_bview_is_in_isearch(self, char_col, &srule)) {
         } else if (_bview_is_in_range(bline, char_col, self->active_cursor->is_block, &srule)) {
         } else {
             srule = NULL;
@@ -1267,41 +1269,8 @@ static int _bview_is_in_range(bline_t *bline, bint_t col, int is_block, srule_t 
     return 0;
 }
 
-static int _bview_is_in_isearch(bview_t *self, bline_t *bline, bint_t col, srule_t **ret_srule) {
-    int rc;
-    PCRE2_SIZE substrs[3];
-    pcre2_code *cre;
-    bint_t look_offset, start, stop;
+static int _bview_is_in_isearch(bview_t *self, bint_t col, srule_t **ret_srule) {
     size_t lo, hi, i;
-
-    static bline_t *last_bline = NULL;
-
-    if (!self->isearch_rule) return 0;
-
-    if (last_bline != bline) {
-        self->isearch_ranges_len = 0;
-        look_offset = 0;
-        cre = self->isearch_rule->cre;
-        while (look_offset < bline->data_len) {
-            rc = pcre2_match(cre, (PCRE2_SPTR)bline->data, (PCRE2_SIZE)bline->data_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL);
-            if (rc < 0) break;
-            memcpy(substrs, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
-            if (substrs[1] == PCRE2_UNSET) break;
-            self->isearch_ranges_len += 2;
-            if (self->isearch_ranges_len > self->isearch_ranges_cap) {
-                while (self->isearch_ranges_len > self->isearch_ranges_cap) {
-                    self->isearch_ranges_cap = 2 * MLE_MAX(self->isearch_ranges_cap, 2);
-                }
-                self->isearch_ranges = realloc(self->isearch_ranges, sizeof(bint_t) * self->isearch_ranges_cap);
-            }
-            bline_index_to_col(bline, substrs[0], &start);
-            bline_index_to_col(bline, substrs[1], &stop);
-            self->isearch_ranges[self->isearch_ranges_len - 2] = start;
-            self->isearch_ranges[self->isearch_ranges_len - 1] = stop;
-            look_offset = MLBUF_MAX(stop, look_offset + 1);
-        }
-        last_bline = bline;
-    }
 
     lo = 0;
     hi = self->isearch_ranges_len / 2;
@@ -1318,4 +1287,38 @@ static int _bview_is_in_isearch(bview_t *self, bline_t *bline, bint_t col, srule
     }
 
     return 0;
+}
+
+static int _bview_populate_isearch_ranges(bview_t *self, bline_t *bline) {
+    int rc;
+    PCRE2_SIZE substrs[3];
+    pcre2_code *cre;
+    bint_t look_offset, start, stop;
+
+    if (!self->isearch_rule) return MLBUF_OK;
+
+    cre = self->isearch_rule->cre;
+    self->isearch_ranges_len = 0;
+    look_offset = 0;
+
+    while (look_offset < bline->data_len) {
+        rc = pcre2_match(cre, (PCRE2_SPTR)bline->data, (PCRE2_SIZE)bline->data_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL);
+        if (rc < 0) break;
+        memcpy(substrs, pcre2_get_ovector_pointer(pcre2_md), 3 * sizeof(PCRE2_SIZE));
+        if (substrs[1] == PCRE2_UNSET) break;
+        self->isearch_ranges_len += 2;
+        if (self->isearch_ranges_len > self->isearch_ranges_cap) {
+            while (self->isearch_ranges_len > self->isearch_ranges_cap) {
+                self->isearch_ranges_cap = 2 * MLE_MAX(self->isearch_ranges_cap, 2);
+            }
+            self->isearch_ranges = realloc(self->isearch_ranges, sizeof(bint_t) * self->isearch_ranges_cap);
+        }
+        bline_index_to_col(bline, substrs[0], &start);
+        bline_index_to_col(bline, substrs[1], &stop);
+        self->isearch_ranges[self->isearch_ranges_len - 2] = start;
+        self->isearch_ranges[self->isearch_ranges_len - 1] = stop;
+        look_offset = MLBUF_MAX(stop, look_offset + 1);
+    }
+
+    return MLBUF_OK;
 }
