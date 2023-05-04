@@ -927,28 +927,29 @@ static char *mark_find_prev_str_matchfn(char *haystack, bint_t haystack_len, bin
 }
 
 static char *mark_find_next_cre_matchfn(char *haystack, bint_t haystack_len, bint_t look_offset, bint_t max_offset, void *cre, void *unused, bint_t *ret_needle_len) {
-    int rc;
-    PCRE2_SIZE substrs[3];
-    int *use_rc;
-    PCRE2_SIZE *use_substrs;
-    int use_substrs_size;
+    int local_rc;
+    PCRE2_SIZE local_ovector[3];
+    int *rc;
+    PCRE2_SIZE *ovector;
+    int ovector_count;
     if (!haystack || haystack_len == 0) {
         haystack = "";
         haystack_len = 0;
     }
     if (pcre_ovector) {
-        use_substrs = pcre_ovector;
-        use_substrs_size = pcre_ovector_size;
-        use_rc = pcre_rc;
+        ovector = pcre_ovector;
+        ovector_count = pcre_ovector_size;
+        rc = pcre_rc;
     } else {
-        use_substrs = substrs;
-        use_substrs_size = 3;
-        use_rc = &rc;
+        ovector = local_ovector;
+        ovector_count = 3;
+        rc = &local_rc;
     }
-    if ((*use_rc = pcre2_match((pcre2_code *)cre, (PCRE2_SPTR)haystack, (PCRE2_SIZE)haystack_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL)) >= 0) {
-        memcpy(use_substrs, pcre2_get_ovector_pointer(pcre2_md), use_substrs_size * sizeof(PCRE2_SIZE));
-        if (ret_needle_len) *ret_needle_len = (bint_t)(use_substrs[1] - use_substrs[0]);
-        return haystack + use_substrs[0];
+    if ((*rc = pcre2_match((pcre2_code *)cre, (PCRE2_SPTR)haystack, (PCRE2_SIZE)haystack_len, (PCRE2_SIZE)look_offset, 0, pcre2_md, NULL)) >= 0) {
+        ovector_count = MLBUF_MIN((int)(pcre2_get_ovector_count(pcre2_md) * 2), ovector_count);
+        memcpy(ovector, pcre2_get_ovector_pointer(pcre2_md), ovector_count * sizeof(PCRE2_SIZE));
+        if (ret_needle_len) *ret_needle_len = (bint_t)(ovector[1] - ovector[0]);
+        return haystack + ovector[0];
     }
     return NULL;
 }
