@@ -1602,6 +1602,7 @@ static int _editor_event_to_key(struct tb_event *ev, char *ret_keyname) {
         return MLE_ERR;
         #include "keys.h"
     } else {
+        memset(key, 0, sizeof(key));
         utf8_unicode_to_char(key, ev->ch);
     }
     #undef MLE_KEY_DEF
