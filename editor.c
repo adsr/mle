@@ -2161,6 +2161,7 @@ static void _editor_init_syntaxes(editor_t *editor) {
     _editor_init_syntax(editor, NULL, "syn_generic", "\\.(c|cc|cpp|h|hh|hpp|d|php|py|rb|erb|sh|pl|go|js|java|jsp|lua|rs|zig)$", -1, -1, (srule_def_t[]){
         { "'([^'\\\\]|\\\\.)*'",                       NULL,              TB_YELLOW | TB_BOLD,     TB_DEFAULT },
         { "\"([^\"\\\\]|\\\\.)*\"",                    NULL,              TB_YELLOW | TB_BOLD,     TB_DEFAULT },
+        { "`([^`\\\\]|\\\\.)*`",                       NULL,              TB_YELLOW | TB_BOLD,     TB_DEFAULT },
         { "/\\*",                                      "\\*/",            TB_CYAN,                 TB_DEFAULT },
         { "//.*$",                                     NULL,              TB_CYAN,                 TB_DEFAULT },
         { "^\\s*#( .*|)$",                             NULL,              TB_CYAN,                 TB_DEFAULT },
