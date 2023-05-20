@@ -30,7 +30,7 @@ source 'test.sh'
 macro='M-o a 0 enter f o r space { enter i = 1 enter } enter'
 extra_opts=(-i 1)
 declare -A expected
-expected[auto_indent_1]='^for {$'
+expected[auto_indent_1]='^for \{$'
 expected[auto_indent_2]='^'$'\t''i=1$'
 expected[auto_indent_3]='^}$'
 source 'test.sh'

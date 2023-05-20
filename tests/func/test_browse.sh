@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
+# skip if tree is not available
 if ! command -v tree &>/dev/null; then
-    # skip if tree is not available
     skip='tree not in PATH'
+    source 'test.sh'
+    exit 0
+elif ! tree --help | grep -q charset; then
+    skip='tree version looks incorrect'
     source 'test.sh'
     exit 0
 fi
