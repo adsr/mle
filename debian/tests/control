@@ -1,0 +1,3 @@
+Test-Command: make test
+Depends: @, @builddeps@
+Restrictions: allow-stderr
