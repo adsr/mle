@@ -8,7 +8,7 @@ extra_opts=(
 )
 macro='a a a b x a b a a x a z'
 declare -A expected
-expected[data]='^AabBAaz$'
+expected[data_a]='^AabBAaz$'
 source 'test.sh'
 
 # ensure input trail resets on non-matching input w/ fallthru disabled
@@ -18,5 +18,5 @@ extra_opts=(
 )
 macro='b a'
 declare -A expected
-expected[data]='^A$'
+expected[data_b]='^A$'
 source 'test.sh'

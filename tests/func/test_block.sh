@@ -30,7 +30,7 @@ source 'test.sh'
 macro='a b c insert C-k C-u'
 declare -A expected
 expected[cut_line1]='^   abc$'
-expected[cut_line1]='^   $'
+expected[cut_line2]='^   $'
 expected[cut_count]='\.line_count=2$'
 source 'test.sh'
 
@@ -47,6 +47,6 @@ declare -A expected
 expected[adrop_line1]='^  aa$'
 expected[adrop_line2]='^  bb$'
 expected[adrop_line3]='^  cc$'
-expected[adrop_line3]='^  $'
+expected[adrop_line4]='^  $'
 expected[adrop_count]='\.line_count=4$'
 source 'test.sh'

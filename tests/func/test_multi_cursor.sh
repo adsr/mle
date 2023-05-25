@@ -31,7 +31,7 @@ macro="a b enter c d enter e f enter C-r \ S + C-/ M-a C-e C-/ ; x"
 declare -A expected
 expected[swap_line_1]='^xab$'
 expected[swap_line_2]='^xcd$'
-expected[swap_line_2]='^xef$'
+expected[swap_line_3]='^xef$'
 source 'test.sh'
 
 macro="a b enter c d enter C-r \ S + C-/ M-a C-e M-."
@@ -44,5 +44,5 @@ macro="a enter b c enter d e f enter C-r \ S + C-/ M-a C-e M-e w c space - c ent
 declare -A expected
 expected[shell_line_1]='^\s*1$'
 expected[shell_line_2]='^\s*2$'
-expected[shell_line_2]='^\s*3$'
+expected[shell_line_3]='^\s*3$'
 source 'test.sh'
