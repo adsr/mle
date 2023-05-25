@@ -42,7 +42,7 @@ source 'test.sh'
 
 macro="a enter b c enter d e f enter C-r \ S + C-/ M-a C-e M-e w c space - c enter"
 declare -A expected
-expected[shell_line_1]='^1$'
-expected[shell_line_2]='^2$'
-expected[shell_line_2]='^3$'
+expected[shell_line_1]='^\s*1$'
+expected[shell_line_2]='^\s*2$'
+expected[shell_line_2]='^\s*3$'
 source 'test.sh'

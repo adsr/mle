@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# skip if timeout is not available
+if ! command -v timeout &>/dev/null; then
+    skip='timeout not in PATH'
+    source 'test.sh'
+    exit 0
+fi
+
 MLE_ORIG=$MLE
 export MLE="timeout -s KILL 2 $MLE_ORIG"
 
