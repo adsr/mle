@@ -1,4 +1,4 @@
-lua_cflags:=-std=c99 -Wall -Wextra -pedantic -g -O3 -DLUA_USE_POSIX $(CFLAGS)
+lua_cflags:=-std=c99 -Wall -Wextra -g -O3 -DLUA_USE_POSIX $(CFLAGS)
 lua_objects:=$(patsubst lua/%.c,lua/%.o,$(filter-out lua/lua.c lua/onelua.c, $(wildcard lua/*.c)))
 
 all: uthash/src/utlist.h pcre2/.libs/libpcre2-8.a lua/liblua5.4.a
