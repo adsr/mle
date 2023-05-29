@@ -69,4 +69,6 @@ clean:
 	rm -f mle $(mle_objects) $(mle_vendor_deps) $(mle_unit_test_objects) $(mle_unit_tests) $(mle_unit_test_all)
 	$(MAKE) -C vendor clean
 
+.NOTPARALLEL:
+
 .PHONY: all test sloc install uscript clean

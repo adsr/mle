@@ -20,4 +20,6 @@ clean:
 	rm -f pcre2/src/config.h.in~
 	-$(MAKE) -C pcre2 clean
 
+.NOTPARALLEL:
+
 .PHONY: all clean
