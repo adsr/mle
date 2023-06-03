@@ -1070,7 +1070,7 @@ int editor_force_redraw(editor_t *editor) {
     (void)editor;
     if (tb_width() >= 0) tb_shutdown();
     tb_init();
-    tb_select_input_mode(TB_INPUT_ALT);
+    editor_set_input_mode(editor);
     tb_set_cursor(-1, -1);
     w = tb_width();
     h = tb_height();
