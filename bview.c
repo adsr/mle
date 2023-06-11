@@ -1189,8 +1189,8 @@ int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y,
         screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, viewport_x);
         screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_mark->bline->line_index);
     }
-    if (screen_x < self->rect_buffer.x || screen_x >= self->rect_buffer.x + self->rect_buffer.w
-       || screen_y < self->rect_buffer.y || screen_y >= self->rect_buffer.y + self->rect_buffer.h
+    if (screen_x < self->rect_buffer.x || screen_x > self->rect_buffer.x + self->rect_buffer.w
+       || screen_y < self->rect_buffer.y || screen_y > self->rect_buffer.y + self->rect_buffer.h
     ) {
         // Out of bounds
         return MLE_ERR;
