@@ -79,7 +79,7 @@ static int _editor_init_headless_mode(editor_t *editor);
 static int _editor_init_startup_macro(editor_t *editor);
 static int _editor_init_term(editor_t *editor);
 static void _editor_display_keys(editor_t *editor);
-static void _editor_remember_keys(cmd_context_t *ctx);
+static void _editor_remember_keys(editor_t *editor, kinput_t *input);
 
 // Init editor from args
 int editor_init(editor_t *editor, int argc, char **argv) {
@@ -567,7 +567,7 @@ int editor_get_input(editor_t *editor, loop_context_t *loop_ctx, cmd_context_t *
         _editor_record_macro_input(editor->macro_record, &ctx->input);
     }
     // Remember keys for display
-    if (editor->debug_display_keys) _editor_remember_keys(ctx);
+    if (editor->debug_display_keys) _editor_remember_keys(editor, &ctx->input);
     return MLE_OK;
 }
 
@@ -1199,19 +1199,19 @@ static void _editor_display_keys(editor_t *editor) {
     }
 }
 
-static void _editor_remember_keys(cmd_context_t *ctx) {
+static void _editor_remember_keys(editor_t *editor, kinput_t *input) {
     char key[MLE_MAX_KEYNAME_LEN + 1];
     struct tb_event ev;
     char *buf;
 
     memset(&ev, 0, sizeof(ev));
     ev.type = TB_EVENT_KEY;
-    ev.mod = ctx->input.mod;
-    ev.key = ctx->input.key;
-    ev.ch = ctx->input.ch;
+    ev.mod = input->mod;
+    ev.key = input->key;
+    ev.ch = input->ch;
     _editor_event_to_key(&ev, key);
 
-    buf = ctx->editor->display_keys_buf;
+    buf = editor->display_keys_buf;
     memmove(buf + MLE_MAX_KEYNAME_LEN, buf, (MLE_DISPLAY_KEYS_NKEYS - 1) * MLE_MAX_KEYNAME_LEN);
 
     memset(buf, 0, MLE_MAX_KEYNAME_LEN);
@@ -1339,6 +1339,7 @@ static void _editor_append_pastebuf(editor_t *editor, cmd_context_t *ctx, kinput
     }
     // Append
     ctx->pastebuf[ctx->pastebuf_len++] = *input;
+    if (editor->debug_display_keys) _editor_remember_keys(editor, input);
 }
 
 // Copy input into macro buffer
