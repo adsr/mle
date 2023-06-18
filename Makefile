@@ -1,6 +1,6 @@
 prefix?=/usr/local
 
-mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O0 -D_GNU_SOURCE -DPCRE2_CODE_UNIT_WIDTH=8 -I. $(CFLAGS)
+mle_cflags:=-std=c99 -Wall -Wextra -pedantic -Wno-pointer-arith -Wno-unused-result -Wno-unused-parameter -g -O0 -D_GNU_SOURCE -DPCRE2_CODE_UNIT_WIDTH=8 -I. $(CFLAGS) $(CPPFLAGS)
 mle_ldflags:=$(LDFLAGS)
 mle_dynamic_libs:=-lpcre2-8 -llua5.4
 mle_static_libs:=vendor/pcre2/.libs/libpcre2-8.a vendor/lua/liblua5.4.a
