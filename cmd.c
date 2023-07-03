@@ -6,7 +6,7 @@
 #include <inttypes.h>
 #include "mle.h"
 
-#define MLE_MULTI_CURSOR_MARK_FN(pcursor, pfn, ...) do { \
+#define MLE_FOREACH_CURSOR_MARK_FN(pcursor, pfn, ...) do { \
     cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
@@ -14,7 +14,7 @@
     } \
 } while(0)
 
-#define MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(pcursor, pfn) do { \
+#define MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(pcursor, pfn) do { \
     cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
@@ -22,13 +22,13 @@
     } \
 } while(0)
 
-#define MLE_MULTI_CURSOR_CODE(pcursor, pcode) do { \
+#define MLE_FOREACH_CURSOR_EX(pcursor, pctmp) \
+    DL_FOREACH((pcursor)->bview->cursors, (pctmp)) \
+        if (!(pctmp)->is_asleep)
+
+#define MLE_FOREACH_CURSOR(pcursor) \
     cursor_t *cursor; \
-    DL_FOREACH((pcursor)->bview->cursors, cursor) { \
-        if (cursor->is_asleep) continue; \
-        pcode \
-    } \
-} while(0)
+    MLE_FOREACH_CURSOR_EX(pcursor, cursor)
 
 static void _cmd_apply_macro_set(cmd_context_t *ctx, kmacro_t *macro);
 static int _cmd_indent(cmd_context_t *ctx, int outdent);
@@ -113,7 +113,7 @@ int cmd_insert_data(cmd_context_t *ctx) {
         char *trimmed = NULL;
         int trimmed_len = 0;
         util_pcre_replace("(?m) +$", ctx->editor->insertbuf, "", &trimmed, &trimmed_len);
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_func, trimmed, trimmed_len);
+        MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_insert_func, trimmed, trimmed_len);
         free(trimmed);
     } else if (ctx->editor->auto_indent && !ctx->cursor->next && !ctx->cursor->is_block && insertbuf_len == 1 && ctx->editor->insertbuf[0] == '\n') {
         _cmd_insert_auto_indent_newline(ctx);
@@ -121,7 +121,7 @@ int cmd_insert_data(cmd_context_t *ctx) {
         _cmd_insert_auto_indent_closing_bracket(ctx);
     } else {
         // Insert without trim
-        MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_insert_func, ctx->editor->insertbuf, insertbuf_len);
+        MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_insert_func, ctx->editor->insertbuf, insertbuf_len);
     }
 
     // Remember last insert data
@@ -132,24 +132,24 @@ int cmd_insert_data(cmd_context_t *ctx) {
 
 // Insert newline above current line
 int cmd_insert_newline_above(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         mark_move_bol(cursor->mark);
         mark_insert_after(cursor->mark, "\n", 1);
-    );
+    }
     return MLE_OK;
 }
 
 // Insert newline below current line
 int cmd_insert_newline_below(cmd_context_t *ctx) {
     mark_t *mark;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         mark_clone(cursor->mark, &mark);
         mark_move_eol(mark);
         cursor->mark->lefty += 1; // Prevent cursor from moving if at eol
         mark_insert_after(mark, "\n", 1);
         cursor->mark->lefty -= 1;
         mark_destroy(mark);
-    );
+    }
     return MLE_OK;
 }
 
@@ -158,13 +158,13 @@ int cmd_delete_before(cmd_context_t *ctx) {
     bint_t offset;
     mark_get_offset(ctx->cursor->mark, &offset);
     if (offset < 1) return MLE_OK;
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_delete_before, 1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_delete_before, 1);
     return MLE_OK;
 }
 
 // Delete char after cursor mark
 int cmd_delete_after(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_delete_after, 1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_delete_after, 1);
     return MLE_OK;
 }
 
@@ -172,7 +172,7 @@ int cmd_delete_after(cmd_context_t *ctx) {
 int cmd_move_bol(cmd_context_t *ctx) {
     uint32_t ch;
     mark_t *mark;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         mark_clone(cursor->mark, &mark);
         mark_move_bol(mark);
         mark_get_char_after(mark, &ch);
@@ -185,70 +185,70 @@ int cmd_move_bol(cmd_context_t *ctx) {
             mark_move_bol(cursor->mark);
         }
         mark_destroy(mark);
-    );
+    }
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of line
 int cmd_move_eol(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_eol);
+    MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_eol);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to beginning of buffer
 int cmd_move_beginning(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_beginning);
+    MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_beginning);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of buffer
 int cmd_move_end(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_end);
+    MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_end);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor left one char
 int cmd_move_left(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_by, -1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_by, -1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor right one char
 int cmd_move_right(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_by, 1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_by, 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor up one line
 int cmd_move_up(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor down one line
 int cmd_move_down(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, 1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor one page up
 int cmd_move_page_up(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1 * ctx->bview->rect_buffer.h);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1 * ctx->bview->rect_buffer.h);
     bview_zero_viewport_y(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor one page down
 int cmd_move_page_down(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, ctx->bview->rect_buffer.h);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, ctx->bview->rect_buffer.h);
     bview_zero_viewport_y(ctx->bview);
     return MLE_OK;
 }
@@ -262,7 +262,7 @@ int cmd_move_to_line(cmd_context_t *ctx) {
     line = strtoll(linestr, NULL, 10);
     free(linestr);
     if (line < 1) line = 1;
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_to, line - 1, 0);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_to, line - 1, 0);
     bview_center_viewport_y(ctx->bview);
     return MLE_OK;
 }
@@ -276,7 +276,7 @@ int cmd_move_to_offset(cmd_context_t *ctx) {
     offset = strtoll(offsetstr, NULL, 10);
     free(offsetstr);
     if (offset < 0) offset = 0;
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_offset, offset);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_offset, offset);
     bview_center_viewport_y(ctx->bview);
     return MLE_OK;
 }
@@ -295,45 +295,45 @@ int cmd_move_relative(cmd_context_t *ctx) {
         return MLE_ERR;
     }
     delta *= ctx->numeric_params[0];
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, delta);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, delta);
     return MLE_OK;
 }
 
 // Move one word forward
 int cmd_move_word_forward(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re_nudge, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re_nudge, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move one word back
 int cmd_move_word_back(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move to next open bracket
 int cmd_move_bracket_forward(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, "{", 1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, "{", 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move to prev open bracket
 int cmd_move_bracket_back(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, "{", 1);
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, "{", 1);
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
 
 // Move to matching bracket, or prev bracket if not on a bracket
 int cmd_move_bracket_toggle(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         if (mark_move_bracket_pair(cursor->mark, ctx->buffer->byte_count) == MLBUF_ERR) {
             mark_move_prev_re(cursor->mark, "[\\[\\(\\{]", strlen("[\\[\\(\\{]"));
         }
-    );
+    }
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
@@ -341,50 +341,50 @@ int cmd_move_bracket_toggle(cmd_context_t *ctx) {
 // Delete word back
 int cmd_delete_word_before(cmd_context_t *ctx) {
     mark_t *tmark;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         mark_clone(cursor->mark, &tmark);
         mark_move_prev_re(tmark, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
         mark_delete_between(cursor->mark, tmark);
         mark_destroy(tmark);
-    );
+    }
     return MLE_OK;
 }
 
 // Delete word ahead
 int cmd_delete_word_after(cmd_context_t *ctx) {
     mark_t *tmark;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         mark_clone(cursor->mark, &tmark);
         mark_move_next_re(tmark, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
         mark_delete_between(cursor->mark, tmark);
         mark_destroy(tmark);
-    );
+    }
     return MLE_OK;
 }
 
 // Toggle anchor on cursors
 int cmd_toggle_anchor(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_toggle_anchor(cursor, 1);
-    );
+    }
     return MLE_OK;
 }
 
 // Toggle block mode on cursors
 int cmd_toggle_block(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor->is_block = 1 - cursor->is_block;
-    );
+    }
     return MLE_OK;
 }
 
 // Swap anchor with mark on cursors
 int cmd_swap_anchor(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         if (cursor->is_anchored) {
             mark_swap(cursor->mark, cursor->anchor);
         }
-    );
+    }
     return MLE_OK;
 }
 
@@ -392,16 +392,17 @@ int cmd_swap_anchor(cmd_context_t *ctx) {
 int cmd_align_cursors(cmd_context_t *ctx) {
     bint_t max_col;
     max_col = 0;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    cursor_t *cursor;
+    MLE_FOREACH_CURSOR_EX(ctx->cursor, cursor) {
         if (cursor->mark->col > max_col) {
             max_col = cursor->mark->col;
         }
-    );
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    }
+    MLE_FOREACH_CURSOR_EX(ctx->cursor, cursor) {
         while (cursor->mark->col < max_col) {
             mark_insert_before(cursor->mark, " ", 1);
         }
-    );
+    }
     return MLE_OK;
 }
 
@@ -426,7 +427,7 @@ int cmd_drop_cursor_column(cmd_context_t *ctx) {
     bint_t col;
     mark_t *lo;
     mark_t *hi;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         if (!cursor->is_anchored) continue;
         col = cursor->mark->col;
         cursor_get_lo_hi(cursor, &lo, &hi);
@@ -443,7 +444,7 @@ int cmd_drop_cursor_column(cmd_context_t *ctx) {
             }
         }
         cursor_toggle_anchor(cursor, 1);
-    );
+    }
     return MLE_OK;
 }
 
@@ -584,61 +585,61 @@ int cmd_isearch(cmd_context_t *ctx) {
 int cmd_cut(cmd_context_t *ctx) {
     int append;
     append = ctx->loop_ctx->last_cmd_ctx.cmd && ctx->loop_ctx->last_cmd_ctx.cmd->func == cmd_cut ? 1 : 0;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_cut_copy(cursor, 1, 1, append);
-    );
+    }
     return MLE_OK;
 }
 
 // Copy text
 int cmd_copy(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_cut_copy(cursor, 0, 1, 0);
-    );
+    }
     return MLE_OK;
 }
 
 // Paste text (from cursor cut_buffer)
 int cmd_uncut(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_uncut(cursor);
-    );
+    }
     return MLE_OK;
 }
 
 // Paste text (from editor-wide cut_buffer)
 int cmd_uncut_last(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_uncut_last(cursor);
-    );
+    }
     return MLE_OK;
 }
 
 // Copy in between chars
 int cmd_copy_by(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         if (cursor_select_by(cursor, ctx->static_param, 0) == MLE_OK) {
             cursor_cut_copy(cursor, 0, 0, 0);
         }
-    );
+    }
     return MLE_OK;
 }
 
 // Cut in between chars
 int cmd_cut_by(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         if (cursor_select_by(cursor, ctx->static_param, 0) == MLE_OK) {
             cursor_cut_copy(cursor, 1, 0, 0);
         }
-    );
+    }
     return MLE_OK;
 }
 
 // Anchor between chars
 int cmd_anchor_by(cmd_context_t *ctx) {
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_select_by(cursor, ctx->static_param, 1);
-    );
+    }
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
@@ -989,7 +990,7 @@ int cmd_move_until_forward(cmd_context_t *ctx) {
     ch = MLE_PARAM_WILDCARD(ctx, 0);
     if (!ch) return MLE_OK;
     utf8_unicode_to_char(str, ch);
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, str, strlen(str));
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, str, strlen(str));
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
@@ -1001,7 +1002,7 @@ int cmd_move_until_back(cmd_context_t *ctx) {
     ch = MLE_PARAM_WILDCARD(ctx, 0);
     if (!ch) return MLE_OK;
     utf8_unicode_to_char(str, ch);
-    MLE_MULTI_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, str, strlen(str));
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, str, strlen(str));
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
 }
@@ -1035,10 +1036,10 @@ int cmd_move_temp_anchor(cmd_context_t *ctx) {
     } else {
         return MLE_ERR;
     }
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_drop_anchor(cursor, 1);
         cursor->is_temp_anchored = 1;
-    );
+    }
     return fn(ctx);
 }
 
@@ -1417,7 +1418,7 @@ static int _cmd_indent(cmd_context_t *ctx, int outdent) {
     bline_t *cur;
     int use_tabs;
     use_tabs = ctx->bview->tab_to_space ? 0 : 1;
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         start = cursor->mark->bline;
         if (cursor->is_anchored) {
             end = cursor->anchor->bline;
@@ -1435,7 +1436,7 @@ static int _cmd_indent(cmd_context_t *ctx, int outdent) {
         }
         ctx->buffer->is_style_disabled--;
         buffer_apply_styles(ctx->buffer, start, end->line_index - start->line_index);
-    );
+    }
     return MLE_OK;
 }
 
@@ -1606,9 +1607,9 @@ static int _cmd_search_ex(cmd_context_t *ctx, int is_prev) {
     if (!regex) return MLE_OK;
     regex_len = strlen(regex);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         _cmd_search_next(ctx->bview, cursor, search_mark, regex, regex_len, is_prev);
-    );
+    }
     mark_destroy(search_mark);
     if (ctx->bview->last_search) free(ctx->bview->last_search);
     ctx->bview->last_search = regex;
@@ -1622,9 +1623,9 @@ static int _cmd_search_next_ex(cmd_context_t *ctx, int is_prev) {
     if (!ctx->bview->last_search) return MLE_OK;
     regex_len = strlen(ctx->bview->last_search);
     search_mark = buffer_add_mark(ctx->bview->buffer, NULL, 0);
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         _cmd_search_next(ctx->bview, cursor, search_mark, ctx->bview->last_search, regex_len, is_prev);
-    );
+    }
     mark_destroy(search_mark);
     return MLE_OK;
 }
@@ -1694,7 +1695,7 @@ static int _cmd_find_word_ex(cmd_context_t *ctx, int is_prev) {
         move_beginning_end = mark_move_beginning;
     }
 
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         if (cursor_select_by(cursor, "word", 0) == MLE_OK) {
             mark_swap(cursor->mark, cursor->anchor);
             mark_get_between(cursor->mark, cursor->anchor, &word, &word_len);
@@ -1707,7 +1708,7 @@ static int _cmd_find_word_ex(cmd_context_t *ctx, int is_prev) {
             }
             free(re);
         }
-    );
+    }
 
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
@@ -2034,7 +2035,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
     mark_t *block_mark;
 
     // Loop for each cursor
-    MLE_MULTI_CURSOR_CODE(ctx->cursor,
+    MLE_FOREACH_CURSOR(ctx->cursor) {
         // Get data to send to stdin
         if (cursor->is_anchored) {
             (cursor->is_block ? mark_block_get_between : mark_get_between)
@@ -2076,7 +2077,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd) {
         if (block_mark) mark_destroy(block_mark);
         if (input) free(input);
         if (output) free(output);
-    ); // Loop for next cursor
+    } // Loop for next cursor
 }
 
 // Get one kinput_t, saving original input on cmd_context_t
