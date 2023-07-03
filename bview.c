@@ -1272,6 +1272,8 @@ static int _bview_is_in_range(bline_t *bline, bint_t col, int is_block, srule_t 
 static int _bview_is_in_isearch(bview_t *self, bint_t col, srule_t **ret_srule) {
     size_t lo, hi, i;
 
+    if (!self->isearch_rule) return 0;
+
     lo = 0;
     hi = self->isearch_ranges_len / 2;
     while (lo < hi) {
