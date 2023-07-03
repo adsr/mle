@@ -83,6 +83,7 @@ struct editor_s {
     size_t macro_apply_input_index;
     int is_recording_macro;
     char *startup_macro_name;
+    char *macro_last;
     cmd_t *cmd_map;
     kmap_t *kmap_map;
     kmap_t *kmap_normal;
@@ -493,6 +494,7 @@ int cmd_align_cursors(cmd_context_t *ctx);
 int cmd_anchor_by(cmd_context_t *ctx);
 int cmd_apply_macro_by(cmd_context_t *ctx);
 int cmd_apply_macro(cmd_context_t *ctx);
+int cmd_apply_macro_last(cmd_context_t *ctx);
 int cmd_blist(cmd_context_t *ctx);
 int cmd_browse(cmd_context_t *ctx);
 int cmd_close(cmd_context_t *ctx);
@@ -720,6 +722,7 @@ TODO review
 [ ] review error checking, esp catch ENOSPC, malloc fail
 [ ] review compiler warnings
 TODO new features/improvements
+[ ] nested macros
 [ ] add cmd_tabulate
 [ ] add ## param to page_up/down (by half/third etc)
 [ ] replace mark_set_pcre_capture with mark local

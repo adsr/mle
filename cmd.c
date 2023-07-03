@@ -30,6 +30,7 @@
     } \
 } while(0)
 
+static void _cmd_apply_macro_set(cmd_context_t *ctx, kmacro_t *macro);
 static int _cmd_indent(cmd_context_t *ctx, int outdent);
 static void _cmd_help_inner(char *buf, kbinding_t *trie, str_t *h);
 static int _cmd_indent_line(bline_t *bline, int use_tabs, int outdent);
@@ -947,11 +948,9 @@ int cmd_apply_macro_by(cmd_context_t *ctx) {
     utf8_unicode_to_char(name, ch);
     HASH_FIND_STR(ctx->editor->macro_map, name, macro);
     if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found with name '%s'", name);
-    ctx->editor->macro_apply = macro;
-    ctx->editor->macro_apply_input_index = 0;
+    _cmd_apply_macro_set(ctx, macro);
     return MLE_OK;
 }
-
 
 // Apply a macro
 int cmd_apply_macro(cmd_context_t *ctx) {
@@ -963,8 +962,17 @@ int cmd_apply_macro(cmd_context_t *ctx) {
     HASH_FIND_STR(ctx->editor->macro_map, name, macro);
     free(name);
     if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found%s", "");
-    ctx->editor->macro_apply = macro;
-    ctx->editor->macro_apply_input_index = 0;
+    _cmd_apply_macro_set(ctx, macro);
+    return MLE_OK;
+}
+
+// Apply a macro
+int cmd_apply_macro_last(cmd_context_t *ctx) {
+    kmacro_t *macro;
+    if (!ctx->editor->macro_last) return MLE_OK;
+    HASH_FIND_STR(ctx->editor->macro_map, ctx->editor->macro_last, macro);
+    if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found%s", "");
+    _cmd_apply_macro_set(ctx, macro);
     return MLE_OK;
 }
 
@@ -1393,6 +1401,13 @@ int cmd_show_help(cmd_context_t *ctx) {
 
     str_free(&h);
     return MLE_OK;
+}
+
+static void _cmd_apply_macro_set(cmd_context_t *ctx, kmacro_t *macro) {
+    if (ctx->editor->macro_last) free(ctx->editor->macro_last);
+    ctx->editor->macro_last = strdup(macro->name);
+    ctx->editor->macro_apply = macro;
+    ctx->editor->macro_apply_input_index = 0;
 }
 
 // Indent or outdent line(s)

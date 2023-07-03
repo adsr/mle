@@ -249,6 +249,7 @@ int editor_deinit(editor_t *editor) {
     if (editor->cut_buffer) free(editor->cut_buffer);
     if (editor->ttyfd) close(editor->ttyfd);
     if (editor->startup_macro_name) free(editor->startup_macro_name);
+    if (editor->macro_last) free(editor->macro_last);
 
     pcre2_match_data_free(pcre2_md);
 
@@ -1672,6 +1673,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_anchor_by", cmd_anchor_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro_by", cmd_apply_macro_by);
     _editor_register_cmd_fn(editor, "cmd_apply_macro", cmd_apply_macro);
+    _editor_register_cmd_fn(editor, "cmd_apply_macro_last", cmd_apply_macro_last);
     _editor_register_cmd_fn(editor, "cmd_blist", cmd_blist);
     _editor_register_cmd_fn(editor, "cmd_browse", cmd_browse);
     _editor_register_cmd_fn(editor, "cmd_close", cmd_close);
@@ -1886,6 +1888,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_align_cursors", "C-/ l"),
         MLE_KBINDING_DEF("cmd_apply_macro", "M-Z"),
         MLE_KBINDING_DEF("cmd_apply_macro_by", "M-M **"),
+        MLE_KBINDING_DEF("cmd_apply_macro_last", "f6"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),
         MLE_KBINDING_DEF("cmd_prev", "M-p"),
         MLE_KBINDING_DEF("cmd_last", "M-0"),
