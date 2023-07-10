@@ -722,6 +722,7 @@ TODO review
 [ ] review error checking, esp catch ENOSPC, malloc fail
 [ ] review compiler warnings
 TODO new features/improvements
+[ ] save macro as flags
 [ ] nested macros
 [ ] add cmd_tabulate
 [ ] add ## param to page_up/down (by half/third etc)
