@@ -1235,10 +1235,10 @@ int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, 
 
 static bint_t _bview_get_viewport_x(bview_t *self, bline_t *bline) {
     // Use viewport_x only when
-    // - vwidth is longer than buffer width
+    // - vwidth >= buffer width (gte not gt to leave room for cursor)
     // - rendering current line
     // - not soft wrapping
-    return bline->char_vwidth > self->rect_buffer.w
+    return bline->char_vwidth >= self->rect_buffer.w
         && _bview_is_cursor_line(self, bline)
         && !_bview_is_soft_wrapped(self, bline)
         ? self->viewport_x : 0;
