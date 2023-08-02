@@ -722,6 +722,7 @@ TODO review
 [ ] review error checking, esp catch ENOSPC, malloc fail
 [ ] review compiler warnings
 TODO new features/improvements
+[ ] make color_col per bview
 [ ] save macro as flags
 [ ] nested macros
 [ ] add cmd_tabulate
@@ -729,7 +730,6 @@ TODO new features/improvements
 [ ] replace mark_set_pcre_capture with mark local
 [ ] use editor prompt history when bview prompt history is empty
 [ ] improve isearch kmap (next/prev history)
-[ ] add mark stack (push, move around, pop to go back)
 [ ] add last cmd status indicator
 [ ] check if buffer exists by inode instead of path
 [ ] move single-use macros out of mle.h
