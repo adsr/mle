@@ -1097,7 +1097,10 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
         }
         // Draw char_w chars of ch
         for (i = 0; i < char_w && rect_x + i < self->rect_buffer.w; i++) {
-            if (self->editor->color_col == rect_x + i && MLE_BVIEW_IS_EDIT(self)) {
+            if (MLE_BVIEW_IS_EDIT(self)
+                && rect_y == orig_rect_y // not a soft wrapped line
+                && self->editor->color_col == rect_x + i + viewport_x_vcol
+            ) {
                 // Apply color col style
                 tbg = bg | TB_RED;
             } else {
