@@ -21,11 +21,17 @@ expected[eol_cursor_line]='^bview.0.cursor.0.mark.line_index=0$'
 expected[eol_cursor_col ]='^bview.0.cursor.0.mark.col=5$'
 source 'test.sh'
 
-# cmd_move_(beginning,end)
+# cmd_move_(beginning|end)
 macro='h e l l o enter w o r l d M-\ M-/'
 declare -A expected
 expected[beg_end_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
 expected[beg_end_cursor_col ]='^bview.0.cursor.0.mark.col=5$'
+source 'test.sh'
+
+# cmd_move_page_(up|down)
+macro='1 enter 2 enter 3 enter 4 enter 5 enter 6 enter C-pgup a C-pgdn b'
+expected[pgup5]='^a2$'
+expected[pgdn5]='^b$'
 source 'test.sh'
 
 # cmd_move_(to_line)

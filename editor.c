@@ -1803,6 +1803,8 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_move_down", "down"),
         MLE_KBINDING_DEF("cmd_move_page_up", "pgup"),
         MLE_KBINDING_DEF("cmd_move_page_down", "pgdn"),
+        MLE_KBINDING_DEF_EX("cmd_move_page_up", "C-pgup", "5"),
+        MLE_KBINDING_DEF_EX("cmd_move_page_down", "C-pgdn", "5"),
         MLE_KBINDING_DEF("cmd_move_to_line", "M-g"),
         MLE_KBINDING_DEF("cmd_move_to_offset", "M-G"),
         MLE_KBINDING_DEF_EX("cmd_move_relative", "M-y ## u", "up"),

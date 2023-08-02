@@ -53,6 +53,7 @@ static void _cmd_shell_apply_cmd(cmd_context_t *ctx, char *cmd);
 static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input);
 static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd);
 static int _cmd_get_char_param(cmd_context_t *ctx, char *ret_ch);
+static int _cmd_move_page_y(cmd_context_t *ctx, int default_y, int is_up);
 
 // Insert data
 int cmd_insert_data(cmd_context_t *ctx) {
@@ -241,16 +242,12 @@ int cmd_move_down(cmd_context_t *ctx) {
 
 // Move cursor one page up
 int cmd_move_page_up(cmd_context_t *ctx) {
-    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1 * ctx->bview->rect_buffer.h);
-    bview_zero_viewport_y(ctx->bview);
-    return MLE_OK;
+    return _cmd_move_page_y(ctx, ctx->bview->rect_buffer.h, 1);
 }
 
 // Move cursor one page down
 int cmd_move_page_down(cmd_context_t *ctx) {
-    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, ctx->bview->rect_buffer.h);
-    bview_zero_viewport_y(ctx->bview);
-    return MLE_OK;
+    return _cmd_move_page_y(ctx, ctx->bview->rect_buffer.h, 0);
 }
 
 // Move to specific line
@@ -2129,5 +2126,19 @@ static int _cmd_get_char_param(cmd_context_t *ctx, char *ret_ch) {
     } else {
         *ret_ch = '\0';
     }
+    return MLE_OK;
+}
+
+// Move cursor vertically
+static int _cmd_move_page_y(cmd_context_t *ctx, int default_y, int is_up) {
+    int y, tmp_y;
+    if (ctx->static_param && (tmp_y = atoi(ctx->static_param)) > 0) {
+        y = tmp_y;
+    } else {
+        y = default_y;
+    }
+    if (is_up) y *= -1;
+    MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, y);
+    bview_zero_viewport_y(ctx->bview);
     return MLE_OK;
 }
