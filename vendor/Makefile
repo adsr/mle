@@ -18,7 +18,7 @@ $(lua_objects): %.o: %.c
 clean:
 	rm -f lua/liblua5.4.a $(lua_objects)
 	rm -f pcre2/src/config.h.in~
-	-$(MAKE) -C pcre2 clean
+	-test -f pcre2/Makefile && $(MAKE) -C pcre2 clean
 
 .NOTPARALLEL:
 
