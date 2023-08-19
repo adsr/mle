@@ -50,7 +50,7 @@ Runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 
 ### Building
 
-    $ sudo apt install git build-essential libtool automake # or equivalent
+    $ sudo apt install git build-essential # install git, make, gcc, libc-dev
     $
     $ git clone --recursive https://github.com/adsr/mle.git
     $ cd mle
