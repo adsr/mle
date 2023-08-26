@@ -709,13 +709,6 @@ extern editor_t _editor;
 #define MLE_RE_WORD_FORWARD "((?<=\\w)\\W|$)"
 #define MLE_RE_WORD_BACK "((?<=\\W)\\w|^)"
 
-// TODO rename these inline
-#define tb_change_cell          tb_set_cell
-#define tb_put_cell(x, y, c)    tb_set_cell((x), (y), (c)
-#define tb_set_clear_attributes tb_set_clear_attrs
-#define tb_select_input_mode    tb_set_input_mode
-#define tb_select_output_mode   tb_set_output_mode
-
 /*
 TODO major changes
 [ ] delete lua api

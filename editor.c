@@ -466,7 +466,7 @@ int editor_debug_dump(editor_t *editor, FILE *fp) {
     return MLE_OK;
 }
 
-// Invoke tb_select_input_mode appropriately
+// Invoke tb_set_input_mode appropriately
 int editor_set_input_mode(editor_t *editor) {
     int input_mode;
     if (editor->headless_mode) {
@@ -476,7 +476,7 @@ int editor_set_input_mode(editor_t *editor) {
     if (editor->mouse_support) {
         input_mode |= TB_INPUT_MOUSE;
     }
-    tb_select_input_mode(input_mode);
+    tb_set_input_mode(input_mode);
     return MLE_OK;
 }
 
@@ -1080,7 +1080,7 @@ int editor_force_redraw(editor_t *editor) {
             // This used to use char 160 (non-breaking space) but that seems to
             // leave artifacts on my setup at least. I forget why I didn't use a
             // normal space to begin with.
-            tb_change_cell(x, y, ' ', 0, 0);
+            tb_set_cell(x, y, ' ', 0, 0);
         }
     }
     tb_present();

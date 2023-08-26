@@ -193,7 +193,7 @@ int bview_draw_cursor(bview_t *self, int set_real_cursor) {
             tb_set_cursor(screen_x, screen_y);
         } else {
             // Set fake cursor
-            tb_change_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | (cursor->is_asleep ? TB_RED : TB_CYAN)); // TODO configurable
+            tb_set_cell(screen_x, screen_y, cell->ch, cell->fg, cell->bg | (cursor->is_asleep ? TB_RED : TB_CYAN)); // TODO configurable
         }
         if (self->editor->highlight_bracket_pairs) {
             _bview_highlight_bracket_pair(self, mark);
@@ -1106,7 +1106,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
             } else {
                 tbg = bg;
             }
-            tb_change_cell(self->rect_buffer.x + rect_x + i, self->rect_buffer.y + rect_y, ch, fg, tbg);
+            tb_set_cell(self->rect_buffer.x + rect_x + i, self->rect_buffer.y + rect_y, ch, fg, tbg);
         }
         if (i < char_w) {
             // There was not enough width to draw
@@ -1117,7 +1117,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
                 char_w -= i;
                 // Draw remaining ch on next line
                 for (j = 0; j < char_w && rect_x + j < self->rect_buffer.w; j++) {
-                    tb_change_cell(self->rect_buffer.x + j, self->rect_buffer.y + rect_y, ch, fg, bg);
+                    tb_set_cell(self->rect_buffer.x + j, self->rect_buffer.y + rect_y, ch, fg, bg);
                 }
                 // Draw ellipsis for line num to indicate soft wrap
                 for (j = 0; j < self->linenum_width; j++) {
@@ -1170,7 +1170,7 @@ static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark) {
         // Out of bounds
         return;
     }
-    tb_change_cell(screen_x, screen_y, cell->ch, cell->fg | TB_UNDERLINE, cell->bg); // TODO configurable
+    tb_set_cell(screen_x, screen_y, cell->ch, cell->fg | TB_UNDERLINE, cell->bg); // TODO configurable
 }
 
 // Find screen coordinates for a mark

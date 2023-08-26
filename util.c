@@ -439,7 +439,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
                 }
             }
         }
-        tb_change_cell(x, y, uni, fg, bg);
+        tb_set_cell(x, y, uni, fg, bg);
         x++;
         c++;
     }
