@@ -618,7 +618,12 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...);
 extern editor_t _editor;
 
 // Macros
-#define MLE_VERSION "1.7.3-dev"
+#ifndef MLE_VERSION_APPEND
+#define MLE_VERSION_APPEND
+#endif
+#define MLE_XSTR(s) MLE_STR(s)
+#define MLE_STR(s) #s
+#define MLE_VERSION ("1.7.3-dev" MLE_XSTR(MLE_VERSION_APPEND))
 
 #define MLE_OK 0
 #define MLE_ERR 1

@@ -13,6 +13,7 @@ mle_unit_test_objects:=$(patsubst %.c,%.o,$(wildcard tests/unit/test_*.c))
 mle_unit_test_all:=tests/unit/test
 mle_vendor_deps:=
 mle_static_var:=
+mle_git_sha:=$(shell test -d .git && command -v git >/dev/null && git rev-parse --short HEAD)
 
 ifdef mle_static
   mle_static_var:=-static
@@ -24,6 +25,10 @@ ifdef mle_vendor
   mle_vendor_deps:=$(mle_static_libs)
 else
   mle_ldlibs:=$(mle_dynamic_libs) $(mle_ldlibs)
+endif
+
+ifneq ($(mle_git_sha),)
+  mle_cflags:=-DMLE_VERSION_APPEND=-$(mle_git_sha) $(mle_cflags)
 endif
 
 all: mle
