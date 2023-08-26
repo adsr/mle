@@ -10,7 +10,7 @@
     cursor_t *cursor; \
     DL_FOREACH((pcursor)->bview->cursors, cursor) { \
         if (cursor->is_asleep) continue; \
-        pfn(cursor->mark, ##__VA_ARGS__); \
+        pfn(cursor->mark, __VA_ARGS__); \
     } \
 } while(0)
 
