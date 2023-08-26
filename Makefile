@@ -43,7 +43,7 @@ $(mle_vendor_deps):
 	$(MAKE) -C vendor
 
 $(mle_unit_test_objects): %.o: %.c
-	$(CC) -DTEST_NAME=$(basename $(notdir $<)) -c $(mle_cflags) -rdynamic $< -o $@
+	$(CC) -DTEST_NAME=$(basename $(notdir $<)) -c $(mle_cflags) $< -o $@
 
 $(mle_unit_test_all): $(mle_objects_no_main) $(mle_unit_test_objects) $(mle_unit_test_all).c
 	$(CC) $(mle_cflags) -rdynamic $(mle_unit_test_all).c $(mle_objects_no_main) $(mle_unit_test_objects) $(mle_ldflags) $(mle_ldlibs) -ldl -o $@
