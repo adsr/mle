@@ -711,20 +711,18 @@ extern editor_t _editor;
 
 /*
 TODO major changes
-[ ] delete lua api
 [ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks; consolidate input_trail + pastebuf)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
 [ ] rewrite buffer_set_mmapped to avoid huge mallocs
-[ ] use wcwidth9 autc instead of relying on locale and wcwidth (tests/unit/test_bline_insert.c)
+TODO bugs
+[ ] buffer->byte_count != sum(bline->data_len), observed once and cannot repro
 TODO review
 [ ] review error checking, esp catch ENOSPC, malloc fail
-[ ] review compiler warnings
 TODO new features/improvements
 [ ] make color_col per bview
 [ ] save macro as flags
 [ ] nested macros
 [ ] add cmd_tabulate
-[ ] add ## param to page_up/down (by half/third etc)
 [ ] replace mark_set_pcre_capture with mark local
 [ ] use editor prompt history when bview prompt history is empty
 [ ] improve isearch kmap (next/prev history)
@@ -735,10 +733,12 @@ TODO new features/improvements
 [ ] review use of MLE_RETURN_ERR
 [ ] try to get rid of use_srules
 TODO maybe
+[ ] ?delete or replace lua api
 [ ] ?allow uscripts to preempt control, use shared uscriptfd
 [ ] ?add vim emulation mode
 [ ] ?make colors, status line, layout configurable
 [ ] ?add multi-level undo/redo
+[ ] ?use wcwidth9 autc instead of relying on locale and wcwidth (tests/unit/test_bline_insert.c)
 */
 
 #endif
