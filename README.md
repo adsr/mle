@@ -6,13 +6,11 @@ Runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 
 [![Build Status](https://travis-ci.org/adsr/mle.svg?branch=master)](https://travis-ci.org/adsr/mle)
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/mle.svg)](https://repology.org/project/mle/versions)
-
 ### Demos
 
 [![asciicast](https://i.imgur.com/PZocaOT.png)](https://asciinema.org/a/162536)
 
-* [Emacs-style jump](https://i.imgur.com/atS11HX.gif)
+* [AceJump-like movement](https://i.imgur.com/atS11HX.gif)
 * [Large file benchmark](http://i.imgur.com/VGGMmGg.gif)
 * [Older demos](http://imgur.com/a/ZBmmQ)
 
@@ -20,20 +18,20 @@ Runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 
 * Keep codebase small and hackable
 * Minimize build-time and run-time dependencies
+* Favor simplicity over correctness
 * Make extensible and configurable
-* Favor simplicity over portability
 * Use shell commands to enhance functionality (e.g., grep, tree)
 
 ### Features
 
-* Small codebase (~10k sloc)
+* Small codebase (~11k SLOC)
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
 * Extensible via [Lua](https://www.lua.org)
 * Scriptable rc file
 * Key macros
-* Multiple splittable windows
+* Window splitting
 * Regex search and replace
 * Large file support
 * Incremental search
@@ -89,6 +87,8 @@ mle may be available to install via your system's package manager.
     # port install mle  # macOS (MacPorts)
     # setup-x86.exe -q -P mle # Cygwin
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/mle.svg)](https://repology.org/project/mle/versions)
+
 ### Basic usage
 
     $ mle               # Open blank buffer
@@ -142,7 +142,7 @@ exist in `PATH`.
 * [readtags](https://github.com/universal-ctags/ctags) (ctags integration)
 * [tree](http://mama.indstate.edu/users/ice/tree/) (file browsing)
 
-Arbitrary shell commands can also be run via `cmd_shell` (M-e by default). If
+Arbitrary shell commands can also be run via `cmd_shell` (`M-e` by default). If
 any text is selected, it is sent to stdin of the command. Any resulting stdout
 is inserted into the text buffer.
 
