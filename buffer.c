@@ -742,6 +742,7 @@ int buffer_get_bline_col(buffer_t *self, bint_t offset, bline_t **ret_bline, bin
     bint_t remaining_chars;
     MLBUF_MAKE_GT_EQ0(offset);
 
+    // TODO convert to binary search for perf win
     remaining_chars = offset;
     for (tmp_line = self->first_line; tmp_line != NULL; tmp_line = tmp_line->next) {
         MLBUF_BLINE_ENSURE_CHARS(tmp_line);
@@ -767,6 +768,7 @@ int buffer_get_offset(buffer_t *self, bline_t *bline, bint_t col, bint_t *ret_of
     bint_t offset;
     MLBUF_MAKE_GT_EQ0(col);
 
+    // TODO cache for perf win
     offset = 0;
     for (tmp_line = self->first_line; tmp_line != bline->next; tmp_line = tmp_line->next) {
         MLBUF_BLINE_ENSURE_CHARS(tmp_line);
@@ -851,6 +853,7 @@ int buffer_set_tab_width(buffer_t *self, int tab_width) {
     if (tab_width < 1) {
         return MLBUF_ERR;
     }
+    // TODO invalidate by incrementing a version scalar or something
     self->tab_width = tab_width;
     for (tmp_line = self->first_line; tmp_line; tmp_line = tmp_line->next) {
         bline_count_chars(tmp_line);

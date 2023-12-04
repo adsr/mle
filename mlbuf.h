@@ -355,6 +355,11 @@ extern pcre2_match_data *pcre2_md;
     } \
 } while (0)
 
+// TODO replace is_chars_dirty with some sort of version check
+//      (e.g., b->v != b->buffer->v) so that we can invalidate by
+//      all blines by incrementing a single scalar (b->buffer->v)
+//      in buffer_set_tab_width
+// TODO replace with inline function
 #define MLBUF_BLINE_ENSURE_CHARS(b) do { \
     if ((b)->is_chars_dirty) { \
         bline_count_chars(b); \
