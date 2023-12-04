@@ -13,7 +13,7 @@
 static int _editor_set_macro_toggle_key(editor_t *editor, char *key);
 static int _editor_bview_exists(editor_t *editor, bview_t *bview);
 static int _editor_register_cmd_fn(editor_t *editor, char *name, int (*func)(cmd_context_t *ctx));
-static int _editor_should_skip_rc(char **argv);
+static int _editor_should_skip_rc(int argc, char **argv);
 static int _editor_close_bview_inner(editor_t *editor, bview_t *bview, int *optret_num_closed);
 static int _editor_destroy_cmd(editor_t *editor, cmd_t *cmd);
 static int _editor_prompt_input_submit(cmd_context_t *ctx);
@@ -125,7 +125,7 @@ int editor_init(editor_t *editor, int argc, char **argv) {
         _editor_init_syntaxes(editor);
 
         // Parse rc files
-        if (!_editor_should_skip_rc(argv)) {
+        if (!_editor_should_skip_rc(argc, argv)) {
             home_rc = NULL;
             if (getenv("HOME")) {
                 asprintf(&home_rc, "%s/%s", getenv("HOME"), ".mlerc");
@@ -606,19 +606,6 @@ int editor_destroy_observer(editor_t *editor, observer_t *observer) {
     free(observer->event_patt);
     free(observer);
     return MLE_OK;
-}
-
-// Return 1 if we should skip reading rc files
-static int _editor_should_skip_rc(char **argv) {
-    int skip = 0;
-    while (*argv) {
-        if (strcmp("-h", *argv) == 0 || strcmp("-N", *argv) == 0) {
-            skip = 1;
-            break;
-        }
-        argv++;
-    }
-    return skip;
 }
 
 // Close a bview
@@ -2407,7 +2394,8 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
     cur_kmap = NULL;
     cur_syntax = NULL;
     optind = 1;
-    while (rv == MLE_OK && (c = getopt(argc, argv, "ha:b:c:e:H:i:K:k:l:M:m:Nn:p:S:s:t:u:vw:x:y:z:Q:")) != -1) {
+    #define MLE_GETOPT_STR "ha:b:c:e:H:i:K:k:l:M:m:Nn:p:S:s:t:u:vw:x:y:z:Q:"
+    while (rv == MLE_OK && (c = getopt(argc, argv, MLE_GETOPT_STR)) != -1) {
         switch (c) {
             case 'h':
                 printf("mle version %s\n\n", MLE_VERSION);
@@ -2569,6 +2557,16 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
     }
 
     return rv;
+}
+
+// Return 1 if we should skip reading rc files
+static int _editor_should_skip_rc(int argc, char **argv) {
+    int c;
+    optind = 1;
+    while ((c = getopt(argc, argv, MLE_GETOPT_STR)) != -1) {
+        if (c == 'h' || c == 'N') return 1;
+    }
+    return 0;
 }
 
 // Init status bar
