@@ -13,6 +13,8 @@
 #include <utlist.h>
 #include "mle.h"
 
+static const unsigned char utf8_mask[6] = {0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01};
+
 // Run a shell command, optionally feeding stdin, collecting stdout
 // Specify timeout_s=-1 for no timeout
 int util_shell_exec(editor_t *editor, char *cmd, long timeout_s, char *input, size_t input_len, int setsid, char *opt_shell, char **optret_output, size_t *optret_output_len, int *optret_exit_code) {
@@ -397,18 +399,16 @@ int tb_printf_rect(bview_rect_t rect, int x, int y, uint16_t fg, uint16_t bg, co
 // reset that attribute.
 int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
     char bufo[4096];
-    char *buf;
-    int fg;
-    int bg;
-    int tfg;
-    int tbg;
-    int c;
+    char *buf, *bufstop;
+    int fg, bg, tfg, tbg, c, buflen;
     uint32_t uni;
 
     va_list vl;
     va_start(vl, fmt);
-    vsnprintf(bufo, sizeof(bufo), fmt, vl);
+    buflen = vsnprintf(bufo, sizeof(bufo), fmt, vl);
+    buflen = MLBUF_MIN(buflen, (int)(sizeof(bufo) - 1));
     va_end(vl);
+
 
     fg = rect.fg;
     bg = rect.bg;
@@ -417,15 +417,16 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
 
     c = 0;
     buf = bufo;
+    bufstop = buf + buflen;
     while (*buf) {
-        buf += utf8_char_to_unicode(&uni, buf, NULL);
+        buf += utf8_char_to_unicode(&uni, buf, bufstop);
         if (uni == '@') {
             if (!*buf) break;
-            utf8_char_to_unicode(&uni, buf, NULL);
+            utf8_char_to_unicode(&uni, buf, bufstop);
             if (uni != '@') {
                 tfg = strtol(buf, &buf, 10);
                 if (!*buf) break;
-                utf8_char_to_unicode(&uni, buf, NULL);
+                utf8_char_to_unicode(&uni, buf, bufstop);
                 if (uni == ',') {
                     buf++;
                     if (!*buf) break;
@@ -433,7 +434,7 @@ int tb_printf_attr(bview_rect_t rect, int x, int y, const char *fmt, ...) {
                     fg = tfg <= 0 ? rect.fg : tfg;
                     bg = tbg <= 0 ? rect.bg : tbg;
                     if (!*buf) break;
-                    utf8_char_to_unicode(&uni, buf, NULL);
+                    utf8_char_to_unicode(&uni, buf, bufstop);
                     if (uni == ';') buf++;
                     continue;
                 }
@@ -625,7 +626,7 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
             } else {
                 // Backref does not exist; append marker + whatever character it was
                 term = repl_backref;
-                term_stop = term + utf8_char_length(*(term+1));
+                term_stop = term + tb_utf8_char_length(*(term+1));
             }
         } else if (*(repl_backref+1) == 'n') {
             // $n; append newline
@@ -646,7 +647,7 @@ void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pc
         } else {
             // $* (not number or 'n'); append marker + whatever character it was
             term = repl_backref;
-            term_stop = term + utf8_char_length(*(term+1));
+            term_stop = term + tb_utf8_char_length(*(term+1));
         }
         str_append_stop(str, term, term_stop);
 
@@ -775,4 +776,39 @@ int aproc_drain_all(aproc_t *aprocs, int *ttyfd) {
     }
 
     return 1;
+}
+
+size_t utf8_str_length(char *data, size_t len) {
+    size_t slen;
+    char *data_stop, *c;
+    data_stop = data + len;
+    c = data;
+    slen = 0;
+    while (c < data_stop) {
+        c += tb_utf8_char_length(*c);
+        slen += 1;
+    }
+    return slen;
+}
+
+// Like tb_utf8_char_to_unicode but obeys `stop` and returns U+FFFD if invalid
+int utf8_char_to_unicode(uint32_t *out, const char *c, const char *stop) {
+    if (*c == '\0') return 0;
+
+    int i;
+    unsigned char len = tb_utf8_char_length(*c);
+    unsigned char mask = utf8_mask[len - 1];
+    uint32_t result = c[0] & mask;
+    for (i = 1; i < len && (c + i) < stop; ++i) {
+        result <<= 6;
+        result |= c[i] & 0x3f;
+    }
+
+    if (i != len) {
+        result = 0xfffd; // replace incomplete code point with replacement char
+        len = i;
+    }
+
+    *out = result;
+    return (int)len;
 }

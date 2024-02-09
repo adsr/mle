@@ -79,7 +79,7 @@ int cmd_insert_data(cmd_context_t *ctx) {
     for (i = -1; i == -1 || (size_t)i < ctx->pastebuf_len; i++) {
         input = i == -1 ? &ctx->input : &ctx->pastebuf[i];
         if (input->ch) {
-            len = utf8_unicode_to_char(insertbuf_cur, input->ch);
+            len = tb_utf8_unicode_to_char(insertbuf_cur, input->ch);
         } else if (input->key == TB_KEY_ENTER || input->key == TB_KEY_CTRL_J || input->key == TB_KEY_CTRL_M) {
             len = sprintf(insertbuf_cur, "\n");
         } else if (input->key >= 0x20 && input->key <= 0x7e) {
@@ -939,11 +939,11 @@ int cmd_quit_without_saving(cmd_context_t *ctx) {
 int cmd_apply_macro_by(cmd_context_t *ctx) {
     kmacro_t *macro;
     uint32_t ch;
-    char name[6] = { 0 };
+    char name[8] = { 0 };
     if (ctx->editor->macro_apply) MLE_RETURN_ERR(ctx->editor, "Cannot nest macros%s", "");
     ch = MLE_PARAM_WILDCARD(ctx, 0);
     if (!ch) return MLE_OK;
-    utf8_unicode_to_char(name, ch);
+    tb_utf8_unicode_to_char(name, ch);
     HASH_FIND_STR(ctx->editor->macro_map, name, macro);
     if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found with name '%s'", name);
     _cmd_apply_macro_set(ctx, macro);
@@ -983,10 +983,10 @@ int cmd_noop(cmd_context_t *ctx) {
 // Move forward til a certain char
 int cmd_move_until_forward(cmd_context_t *ctx) {
     uint32_t ch;
-    char str[6] = { 0 };
+    char str[8] = { 0 };
     ch = MLE_PARAM_WILDCARD(ctx, 0);
     if (!ch) return MLE_OK;
-    utf8_unicode_to_char(str, ch);
+    tb_utf8_unicode_to_char(str, ch);
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, str, strlen(str));
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;
@@ -995,10 +995,10 @@ int cmd_move_until_forward(cmd_context_t *ctx) {
 // Move back til a certain char
 int cmd_move_until_back(cmd_context_t *ctx) {
     uint32_t ch;
-    char str[6] = { 0 };
+    char str[8] = { 0 };
     ch = MLE_PARAM_WILDCARD(ctx, 0);
     if (!ch) return MLE_OK;
-    utf8_unicode_to_char(str, ch);
+    tb_utf8_unicode_to_char(str, ch);
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, str, strlen(str));
     bview_rectify_viewport(ctx->bview);
     return MLE_OK;

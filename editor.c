@@ -1569,7 +1569,7 @@ static int _editor_key_to_input(char *key, kinput_t *ret_input) {
 
     // Check for Unicode code point
     ch = 0;
-    if (utf8_char_to_unicode(&ch, key, NULL) != keylen || ch < 1) {
+    if (utf8_char_to_unicode(&ch, key, key + keylen) != keylen || ch < 1) {
         return MLE_ERR;
     }
     ret_input->ch = ch;
@@ -1592,7 +1592,7 @@ static int _editor_event_to_key(struct tb_event *ev, char *ret_keyname) {
         #include "keys.h"
     } else {
         memset(key, 0, sizeof(key));
-        utf8_unicode_to_char(key, ev->ch);
+        tb_utf8_unicode_to_char(key, ev->ch);
     }
     #undef MLE_KEY_DEF
     if (ev->mod & TB_MOD_CTRL) {

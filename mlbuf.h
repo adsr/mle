@@ -298,12 +298,6 @@ srule_t *srule_new_multi(char *re, bint_t re_len, char *re_end, bint_t re_end_le
 srule_t *srule_new_range(mark_t *range_a, mark_t *range_b, uint16_t fg, uint16_t bg);
 int srule_destroy(srule_t *srule);
 
-// utf8 functions
-int utf8_char_length(char c);
-int utf8_char_to_unicode(uint32_t *out, const char *c, const char *stop);
-int utf8_unicode_to_char(char *out, uint32_t c);
-size_t utf8_str_length(char *data, size_t len);
-
 // util functions
 void *recalloc(void *ptr, size_t orig_num, size_t new_num, size_t el_size);
 void _mark_mark_move_inner(mark_t *mark, bline_t *bline_target, bint_t col, int do_set_target);
@@ -322,6 +316,8 @@ void str_clear(str_t *str);
 void str_free(str_t *str);
 void str_sprintf(str_t *str, const char *fmt, ...);
 void str_append_replace_with_backrefs(str_t *str, char *subj, char *repl, int pcre_rc, PCRE2_SIZE *pcre_ovector, int pcre_ovecsize);
+size_t utf8_str_length(char *data, size_t len);
+int utf8_char_to_unicode(uint32_t *out, const char *c, const char *stop);
 
 // Globals
 extern pcre2_match_data *pcre2_md;
