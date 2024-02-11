@@ -34,7 +34,7 @@ static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx);
 static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx);
 static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx);
 static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx);
-static int _editor_debug_key_input();
+static int _editor_debug_key_input(void);
 static void _editor_refresh_cmd_context(editor_t *editor, cmd_context_t *cmd_ctx);
 static void _editor_notify_cmd_observers(cmd_context_t *ctx, int is_before);
 static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input);
@@ -984,7 +984,7 @@ static void _editor_loop(editor_t *editor, loop_context_t *loop_ctx) {
 }
 
 // Run debug routine to show key names as they input
-static int _editor_debug_key_input() {
+static int _editor_debug_key_input(void) {
     char key[MLE_MAX_KEYNAME_LEN + 1];
     struct tb_event ev;
     int y, h;

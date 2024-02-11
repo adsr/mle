@@ -166,7 +166,7 @@ struct srule_node_s {
 };
 
 // buffer functions
-buffer_t *buffer_new();
+buffer_t *buffer_new(void);
 buffer_t *buffer_new_open(char *path);
 mark_t *buffer_add_mark(buffer_t *self, bline_t *maybe_line, bint_t maybe_col);
 mark_t *buffer_add_mark_ex(buffer_t *self, char letter, bline_t *maybe_line, bint_t maybe_col);

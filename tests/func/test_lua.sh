@@ -16,7 +16,6 @@ declare -A expected
 expected[simple_data]='^hello from lua$'
 source 'test.sh'
 
-
 # mle.editor_open_bview
 macro='f11'
 cat >$lua_script <<"EOD"

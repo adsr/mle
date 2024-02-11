@@ -40,7 +40,7 @@ static int _baction_destroy(baction_t *action);
 static void _bline_advance_col(bline_t **self, bint_t *col);
 
 // Make a new buffer and return it
-buffer_t *buffer_new() {
+buffer_t *buffer_new(void) {
     buffer_t *buffer;
     bline_t *bline;
     buffer = calloc(1, sizeof(buffer_t));
