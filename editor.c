@@ -160,7 +160,8 @@ int editor_init(editor_t *editor, int argc, char **argv) {
         _editor_init_startup_macro(editor);
 
         // Init terminal
-        _editor_init_term(editor);
+        rv = _editor_init_term(editor);
+        if (rv != MLE_OK) break;
     } while(0);
 
     editor->is_in_init = 0;
@@ -2652,10 +2653,15 @@ static int _editor_init_startup_macro(editor_t *editor) {
 
 // Init terminal via termbox
 static int _editor_init_term(editor_t *editor) {
+    int rv;
     if (editor->headless_mode) {
         return MLE_OK;
     }
-    tb_init();
+    if ((rv = tb_init()) != TB_OK) {
+        MLE_LOG_ERR("Failed to init terminal: %s\n", tb_strerror(rv));
+        editor->exit_code = EXIT_FAILURE;
+        return MLE_ERR;
+    }
     editor_set_input_mode(editor);
     return MLE_OK;
 }
