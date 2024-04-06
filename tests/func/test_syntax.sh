@@ -38,7 +38,7 @@ bbb "aaa"          bbb "aaa"          bbb
 bbb "aaa \" aaa"   bbb "aaa \" aaa"   bbb
 bbb "aaa \" aaa\\" bbb "aaa \" aaa\\" bbb
 EOD
-extra_opts=(-y- $tmpf)
+extra_opts=(-yy $tmpf)
 macro=''
 declare -A expected
 declare -A not_expected
@@ -63,7 +63,7 @@ cat >$tmpf <<"EOD"
 /*bb"bb*/    "aa/*aa"
 /*bb"bb"bb*/ "aa/*aa*/aa"
 EOD
-extra_opts=(-y- $tmpf)
+extra_opts=(-yy $tmpf)
 macro=''
 declare -A expected
 declare -A not_expected
