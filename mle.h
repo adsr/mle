@@ -185,7 +185,6 @@ struct bview_s {
     buffer_t *buffer;
     bint_t viewport_x;
     bint_t viewport_x_vcol;
-    bint_t viewport_y;
     mark_t *viewport_mark;
     int viewport_scope_x;
     int viewport_scope_y;

@@ -849,12 +849,12 @@ static int _editor_prompt_isearch_prev(cmd_context_t *ctx) {
 
 // Invoked when user hits up in a prompt_isearch
 static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx) {
-    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_y - 5, 0);
+    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_mark->bline->line_index - 5, 0);
 }
 
 // Invoked when user hits up in a prompt_isearch
 static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx) {
-    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_y + 5, 0);
+    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_mark->bline->line_index + 5, 0);
 }
 
 // Drops a cursor on each isearch match

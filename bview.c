@@ -340,9 +340,8 @@ int bview_set_viewport_y(bview_t *self, bint_t y, int do_rectify) {
     } else if (y >= self->buffer->line_count) {
         y = self->buffer->line_count - 1;
     }
-    self->viewport_y = y;
+    mark_move_to(self->viewport_mark, y, 0);
     if (do_rectify) bview_rectify_viewport(self);
-    mark_move_to(self->viewport_mark, self->viewport_y, 0);
     return MLE_OK;
 }
 
@@ -370,17 +369,20 @@ int bview_max_viewport_y(bview_t *self) {
 // Rectify the viewport
 int bview_rectify_viewport(bview_t *self) {
     mark_t *mark;
+    bint_t viewport_y;
+
     mark = self->active_cursor->mark;
+    viewport_y = self->viewport_mark->bline->line_index;
 
     // Rectify each dimension of the viewport
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
     _bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x_vcol);
     bline_get_col_from_vcol(mark->bline, self->viewport_x_vcol, &(self->viewport_x));
 
-    if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &self->viewport_y)) {
+    if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &viewport_y)) {
         // TODO viewport_y_vrow (soft-wrapped lines, code folding, etc)
         // Adjust viewport_mark
-        mark_move_to(self->viewport_mark, self->viewport_y, 0);
+        mark_move_to(self->viewport_mark, viewport_y, 0);
     }
 
     return MLE_OK;
@@ -960,6 +962,7 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
     int fg_attr;
     int bg_attr;
     bline_t *bline;
+    bint_t viewport_y;
 
     // Handle split
     if (self->split_child) {
@@ -1008,15 +1011,16 @@ static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h) {
 
     // Render lines and margins
     bline = self->viewport_mark->bline;
+    viewport_y = bline->line_index;
     for (rect_y = 0; rect_y < self->rect_buffer.h; rect_y++) {
-        if (self->viewport_y + rect_y < 0 || self->viewport_y + rect_y >= self->buffer->line_count || !bline) { // "|| !bline" See TODOs below
+        if (viewport_y + rect_y < 0 || viewport_y + rect_y >= self->buffer->line_count) {
             // Draw pre/post blank
             tb_printf_rect(self->rect_lines, 0, rect_y, 0, 0, "%*c", self->linenum_width, '~');
             tb_printf_rect(self->rect_margin_left, 0, rect_y, 0, 0, "%c", ' ');
             tb_printf_rect(self->rect_margin_right, 0, rect_y, 0, 0, "%c", ' ');
             tb_printf_rect(self->rect_buffer, 0, rect_y, 0, 0, "%-*.*s", self->rect_buffer.w, self->rect_buffer.w, " ");
         } else {
-            // Draw bline at self->rect_buffer self->viewport_y + rect_y
+            // Draw bline at self->rect_buffer self->viewport_mark + rect_y
             _bview_draw_bline(self, bline, rect_y, &bline, &rect_y);
             bline = bline->next;
         }
@@ -1217,7 +1221,7 @@ int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, 
         && y >= self->rect_buffer.y
         && y < self->rect_buffer.y + self->rect_buffer.h
     ) {
-        line_index = self->viewport_y + (y - self->rect_buffer.y);
+        line_index = self->viewport_mark->bline->line_index + (y - self->rect_buffer.y);
         buffer_get_bline_w_hint(self->buffer, line_index, self->viewport_mark->bline, ret_bline);
         if (*ret_bline) {
             vcol = _bview_get_viewport_x(self, *ret_bline) + (x - self->rect_buffer.x);

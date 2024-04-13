@@ -331,7 +331,7 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
         search_mark_end = buffer_add_mark(cursor->bview->buffer, NULL, 0);
         mark_join(search_mark, cursor->mark);
         mark_join(orig_mark, cursor->mark);
-        orig_viewport_y = cursor->bview->viewport_y;
+        orig_viewport_y = cursor->bview->viewport_mark->bline->line_index;
         orig_mark->lefty = 1; // lefty==1 avoids moving when text is inserted at mark
         lo_mark->lefty = 1;
         if (cursor->is_anchored) {
