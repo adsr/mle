@@ -2562,12 +2562,18 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
 
 // Return 1 if we should skip reading rc files
 static int _editor_should_skip_rc(int argc, char **argv) {
-    int c;
+    int c, rv;
+    rv = 0;
     optind = 1;
+    opterr = 0; // Disable printing getopt errors for this call
     while ((c = getopt(argc, argv, MLE_GETOPT_STR)) != -1) {
-        if (c == 'h' || c == 'N') return 1;
+        if (c == 'h' || c == 'N') {
+            rv = 1;
+            break;
+        }
     }
-    return 0;
+    opterr = 1;
+    return rv;
 }
 
 // Init status bar
