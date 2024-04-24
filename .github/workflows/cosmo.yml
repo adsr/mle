@@ -1,0 +1,43 @@
+name: Build mle with Cosmopolitan Libc
+
+on:
+  workflow_dispatch:
+  release:
+    types: [created]
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+
+  release-cosmo:
+    permissions:
+      contents: write
+    name: Build release binaries for Cosmo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@master
+      - name: setup cosmocc
+        run: |
+          sudo mkdir -p /sc
+          sudo chmod -R 0777 /sc 
+          cd /sc
+          wget https://github.com/jart/cosmopolitan/releases/download/3.3.3/cosmocc-3.3.3.zip
+          mkdir cosmo
+          cd cosmo
+          unzip ../cosmocc-3.3.3.zip
+          sudo cp ./bin/ape-x86_64.elf /usr/bin/ape
+          sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
+      - name: build APE binary of mle
+        run: |
+          make -j AR="/sc/cosmo/bin/cosmoar" CC="/sc/cosmo/bin/cosmocc" mle_static=1 mle_vendor=1
+      - name: push binary to github
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            mle

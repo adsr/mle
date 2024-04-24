@@ -1,5 +1,9 @@
 lua_cflags:=-std=c99 -Wall -Wextra -g -O3 -DLUA_USE_POSIX $(CFLAGS)
-lua_objects:=$(patsubst lua/%.c,lua/%.o,$(filter-out lua/lua.c lua/onelua.c, $(wildcard lua/*.c)))
+lua_objects:=$(addprefix lua/,\
+	lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldblib.o\
+    ldebug.o ldo.o ldump.o lfunc.o lgc.o linit.o liolib.o llex.o lmathlib.o lmem.o\
+    loadlib.o lobject.o lopcodes.o loslib.o lparser.o lstate.o lstring.o lstrlib.o\
+    ltable.o ltablib.o ltests.o ltm.o lundump.o lutf8lib.o lvm.o lzio.o)
 
 pcre2_cflags:=-std=c99 -Wall -Wextra -g -O3 -DPCRE2_CODE_UNIT_WIDTH=8 -DSUPPORT_JIT -DHAVE_CONFIG_H $(CFLAGS)
 pcre2_objects:=$(addprefix pcre2/src/, \
