@@ -1102,13 +1102,19 @@ static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input) {
     return 1;
 }
 
-// Resize the editor
+// Resize the editor. A negative coordinate defaults to `tb_width`/`tb_height`.
+// In headless mode, fake to 80x24.
 static void _editor_resize(editor_t *editor, int w, int h) {
     bview_t *bview;
     bview_rect_t *bounds;
 
-    editor->w = w >= 0 ? w : tb_width();
-    editor->h = h >= 0 ? h : tb_height();
+    if (editor->headless_mode) {
+        editor->w = 80;
+        editor->h = 24;
+    } else {
+        editor->w = w >= 0 ? w : tb_width();
+        editor->h = h >= 0 ? h : tb_height();
+    }
 
     editor->rect_edit.x = 0;
     editor->rect_edit.y = 0;
