@@ -1056,7 +1056,7 @@ int editor_force_redraw(editor_t *editor) {
     int h;
     int x;
     int y;
-    (void)editor;
+    if (editor->headless_mode) return MLE_OK;
     if (tb_width() >= 0) tb_shutdown();
     tb_init();
     editor_set_input_mode(editor);
