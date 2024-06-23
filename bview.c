@@ -19,7 +19,7 @@ static void _bview_draw_status(bview_t *self);
 static void _bview_draw_edit(bview_t *self, int x, int y, int w, int h);
 static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t **optret_bline, int *optret_rect_y);
 static void _bview_highlight_bracket_pair(bview_t *self, mark_t *mark);
-static bint_t _bview_get_viewport_x(bview_t *self, bline_t *bline);
+static bint_t _bview_get_viewport_col(bview_t *self, bline_t *bline);
 static int _bview_is_cursor_line(bview_t *self, bline_t *bline);
 static int _bview_get_soft_wrap_type(bview_t *self, bline_t *bline);
 static int _bview_is_in_range(bline_t *bline, bint_t col, int is_block, srule_t **ret_srule);
@@ -376,8 +376,8 @@ int bview_rectify_viewport(bview_t *self) {
 
     // Rectify each dimension of the viewport
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
-    _bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_x_vcol);
-    bline_get_col_from_vcol(mark->bline, self->viewport_x_vcol, &(self->viewport_x));
+    _bview_rectify_viewport_dim(self, mark->bline, MLE_MARK_COL_TO_VCOL(mark), self->viewport_scope_x, self->rect_buffer.w, &self->viewport_vcol);
+    bline_get_col_from_vcol(mark->bline, self->viewport_vcol, &(self->viewport_col));
 
     if (_bview_rectify_viewport_dim(self, mark->bline, mark->bline->line_index, self->viewport_scope_y, self->rect_buffer.h, &viewport_y)) {
         // TODO viewport_y_vrow (soft-wrapped lines, code folding, etc)
@@ -1034,8 +1034,8 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
     int bg, tbg;
     uint32_t ch;
     int char_w;
-    bint_t viewport_x;
-    bint_t viewport_x_vcol;
+    bint_t viewport_col;
+    bint_t viewport_vcol;
     int i, j;
     int is_cursor_line;
     int soft_wrap_type;
@@ -1046,8 +1046,8 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
 
     is_cursor_line = _bview_is_cursor_line(self, bline);
     soft_wrap_type = _bview_get_soft_wrap_type(self, bline);
-    viewport_x = _bview_get_viewport_x(self, bline);
-    viewport_x_vcol = MLE_COL_TO_VCOL(bline, viewport_x);
+    viewport_col = _bview_get_viewport_col(self, bline);
+    viewport_vcol = MLE_COL_TO_VCOL(bline, viewport_col);
 
     // Render linenums and margins
     if (MLE_BVIEW_IS_EDIT(self)) {
@@ -1063,8 +1063,8 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
         } else if (self->editor->linenum_type == MLE_LINENUM_REL) {
             tb_printf_rect(self->rect_lines, 0, rect_y, linenum_fg, 0, "%*d", self->rel_linenum_width, (int)labs(bline->line_index - self->active_cursor->mark->bline->line_index));
         }
-        tb_printf_rect(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_x > 0 && bline->char_count > 0 ? '^' : ' ');
-        if (soft_wrap_type == MLE_SOFT_WRAP_NONE && bline->char_vwidth - viewport_x_vcol > self->rect_buffer.w) {
+        tb_printf_rect(self->rect_margin_left, 0, rect_y, 0, 0, "%c", viewport_col > 0 && bline->char_count > 0 ? '^' : ' ');
+        if (soft_wrap_type == MLE_SOFT_WRAP_NONE && bline->char_vwidth - viewport_vcol > self->rect_buffer.w) {
             tb_printf_rect(self->rect_margin_right, 0, rect_y, 0, 0, "%c", '$');
         }
     }
@@ -1072,7 +1072,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
     // Render 0 thru rect_buffer.w cell by cell
     orig_rect_y = rect_y;
     rect_x = 0;
-    char_col = viewport_x;
+    char_col = viewport_col;
     _bview_populate_isearch_ranges(self, bline);
     while (char_col < bline->char_count) {
         ch = bline->chars[char_col].ch;
@@ -1103,7 +1103,7 @@ static void _bview_draw_bline(bview_t *self, bline_t *bline, int rect_y, bline_t
         for (i = 0; i < char_w && rect_x + i < self->rect_buffer.w; i++) {
             if (MLE_BVIEW_IS_EDIT(self)
                 && rect_y == orig_rect_y // not a soft wrapped line
-                && self->editor->color_col == rect_x + i + viewport_x_vcol
+                && self->editor->color_col == rect_x + i + viewport_vcol
             ) {
                 // Apply color col style
                 tbg = bg | TB_RED;
@@ -1182,7 +1182,7 @@ int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y,
     int screen_x;
     int screen_y;
     int soft_wrap_type;
-    bint_t viewport_x;
+    bint_t viewport_col;
 
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
 
@@ -1192,8 +1192,8 @@ int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y,
         screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) % self->rect_buffer.w;
         screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_mark->bline->line_index) + (MLE_MARK_COL_TO_VCOL(mark) / self->rect_buffer.w);
     } else {
-        viewport_x = _bview_get_viewport_x(self, mark->bline);
-        screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, viewport_x);
+        viewport_col = _bview_get_viewport_col(self, mark->bline);
+        screen_x = self->rect_buffer.x + MLE_MARK_COL_TO_VCOL(mark) - MLE_COL_TO_VCOL(mark->bline, viewport_col);
         screen_y = self->rect_buffer.y + (mark->bline->line_index - self->viewport_mark->bline->line_index);
     }
     if (screen_x < self->rect_buffer.x || screen_x > self->rect_buffer.x + self->rect_buffer.w
@@ -1224,7 +1224,7 @@ int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, 
         line_index = self->viewport_mark->bline->line_index + (y - self->rect_buffer.y);
         buffer_get_bline_w_hint(self->buffer, line_index, self->viewport_mark->bline, ret_bline);
         if (*ret_bline) {
-            vcol = _bview_get_viewport_x(self, *ret_bline) + (x - self->rect_buffer.x);
+            vcol = _bview_get_viewport_col(self, *ret_bline) + (x - self->rect_buffer.x);
             bline_get_col_from_vcol(*ret_bline, vcol, ret_col);
             *ret_bview = self;
             return MLE_OK;
@@ -1237,15 +1237,15 @@ int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, 
 }
 
 
-static bint_t _bview_get_viewport_x(bview_t *self, bline_t *bline) {
-    // Use viewport_x only when
+static bint_t _bview_get_viewport_col(bview_t *self, bline_t *bline) {
+    // Use viewport_col only when
     // - vwidth >= buffer width (gte not gt to leave room for cursor)
     // - rendering current line
     // - not soft wrapping
     return bline->char_vwidth >= self->rect_buffer.w
         && _bview_is_cursor_line(self, bline)
         && _bview_get_soft_wrap_type(self, bline) == MLE_SOFT_WRAP_NONE
-        ? self->viewport_x : 0;
+        ? self->viewport_col : 0;
 }
 
 static int _bview_is_cursor_line(bview_t *self, bline_t *bline) {

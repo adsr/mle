@@ -183,8 +183,8 @@ struct bview_s {
     bview_rect_t rect_buffer;
     bview_rect_t rect_margin_right;
     buffer_t *buffer;
-    bint_t viewport_x;
-    bint_t viewport_x_vcol;
+    bint_t viewport_col;
+    bint_t viewport_vcol;
     mark_t *viewport_mark;
     int viewport_scope_x;
     int viewport_scope_y;
