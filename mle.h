@@ -724,6 +724,8 @@ TODO bugs
 TODO review
 [ ] review error checking, esp catch ENOSPC, malloc fail
 TODO new features/improvements
+[ ] delete MLE_LINENUM_REL, MLE_LINENUM_BOTH
+[ ] add MLE_LINENUM_NONE
 [ ] make color_col per bview
 [ ] save macro as flags
 [ ] nested macros

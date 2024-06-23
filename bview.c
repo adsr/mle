@@ -43,7 +43,6 @@ bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len,
     self->rect_lines.bg = TB_BLACK;
     self->rect_margin_left.fg = TB_RED;
     self->rect_margin_right.fg = TB_RED;
-    self->rect_buffer.h = 10; // TODO hack to fix _bview_set_linenum_width before bview_resize
     self->tab_width = editor->tab_width;
     self->tab_to_space = editor->tab_to_space;
     self->soft_wrap_type = editor->soft_wrap_type;
@@ -551,13 +550,21 @@ static void _bview_buffer_callback(buffer_t *buffer, baction_t *action, void *ud
 
 // Set linenum_width and return 1 if changed
 static int _bview_set_linenum_width(bview_t *self) {
-    int orig;
+    int orig, h;
     orig = self->linenum_width;
+    // There is a chicken-egg scenario in MLE_LINENUM_REL mode.
+    // Notice below that `rel_linenum_width` is a function of
+    // `rect_buffer.h`. `rect_buffer` is calculated in
+    // `bview_resize`, but that function needs `linenum_width` to
+    // calculate other values. Consider deprecating MLE_LINENUM_REL
+    // if no one is using it. MLE_LINENUM_ABS and MLE_LINENUM_NONE
+    // would be more useful options probably.
+    h = self->is_resized ? self->rect_buffer.h : 10;
     self->abs_linenum_width = MLE_MAX(1, (int)(floor(log10((double)self->buffer->line_count))) + 1);
     if (self->editor->linenum_type != MLE_LINENUM_ABS) {
         self->rel_linenum_width = MLE_MAX(
             self->editor->linenum_type == MLE_LINENUM_BOTH ? 1 : self->abs_linenum_width,
-            (int)(floor(log10((double)self->rect_buffer.h))) + 1
+            (int)(floor(log10((double)h))) + 1
         );
     } else {
         self->rel_linenum_width = 0;
