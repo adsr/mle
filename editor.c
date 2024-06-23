@@ -153,10 +153,10 @@ int editor_init(editor_t *editor, int argc, char **argv) {
         // Init bviews
         _editor_init_bviews(editor, argc, argv);
 
-        // Init startup macro
+        // Init headless mode
         _editor_init_headless_mode(editor);
 
-        // Init headless mode
+        // Init startup macro
         _editor_init_startup_macro(editor);
 
         // Init terminal
@@ -847,12 +847,12 @@ static int _editor_prompt_isearch_prev(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
-// Invoked when user hits up in a prompt_isearch
+// Invoked when user hits pgup in a prompt_isearch
 static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx) {
     return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_mark->bline->line_index - 5, 0);
 }
 
-// Invoked when user hits up in a prompt_isearch
+// Invoked when user hits pgdn in a prompt_isearch
 static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx) {
     return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_mark->bline->line_index + 5, 0);
 }
