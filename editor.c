@@ -103,7 +103,7 @@ int editor_init(editor_t *editor, int argc, char **argv) {
         editor->auto_indent = MLE_DEFAULT_AUTO_INDENT;
         editor->highlight_bracket_pairs = MLE_DEFAULT_HILI_BRACKET_PAIRS;
         editor->read_rc_file = MLE_DEFAULT_READ_RC_FILE;
-        editor->soft_wrap = MLE_DEFAULT_SOFT_WRAP;
+        editor->soft_wrap_type = MLE_DEFAULT_SOFT_WRAP;
         editor->coarse_undo = MLE_DEFAULT_COARSE_UNDO;
         editor->viewport_scope_x = -4;
         editor->viewport_scope_y = -1;
@@ -315,7 +315,7 @@ int editor_menu(editor_t *editor, cmd_func_t callback, char *opt_buf_data, int o
     bview_t *menu;
     editor_open_bview(editor, NULL, MLE_BVIEW_TYPE_EDIT, NULL, 0, 1, 0, 0, NULL, &menu);
     menu->is_menu = 1;
-    menu->soft_wrap = 0;
+    menu->soft_wrap_type = MLE_SOFT_WRAP_NONE;
     menu->menu_callback = callback;
     bview_push_kmap(menu, editor->kmap_menu);
     if (opt_aproc) {
@@ -2385,11 +2385,10 @@ static int _editor_init_from_rc(editor_t *editor, FILE *rc, char *rc_path) {
 
 // Parse cli args
 static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
-    int rv;
+    int rv, c, type;
     kmap_t *cur_kmap;
     syntax_t *cur_syntax;
     uscript_t *uscript;
-    int c;
     rv = MLE_OK;
 
     cur_kmap = NULL;
@@ -2525,7 +2524,8 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 rv = MLE_ERR;
                 break;
             case 'w':
-                editor->soft_wrap = atoi(optarg);
+                type = atoi(optarg);
+                editor->soft_wrap_type = MLE_SOFT_WRAP_TYPE(type);
                 break;
             case 'x':
                 if (!(uscript = uscript_run(editor, optarg))) {

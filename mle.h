@@ -110,7 +110,7 @@ struct editor_s {
     int read_rc_file;
     int highlight_bracket_pairs;
     int color_col;
-    int soft_wrap;
+    int soft_wrap_type;
     int coarse_undo;
     int mouse_support;
     int viewport_scope_x; // TODO cli option
@@ -206,7 +206,7 @@ struct bview_s {
     size_t isearch_ranges_cap;
     int tab_width;
     int tab_to_space;
-    int soft_wrap;
+    int soft_wrap_type;
     syntax_t *syntax;
     aproc_t *aproc;
     cmd_func_t menu_callback;
@@ -696,6 +696,11 @@ extern editor_t _editor;
 #define MLE_LINENUM_TYPE_ABS 0
 #define MLE_LINENUM_TYPE_REL 1
 #define MLE_LINENUM_TYPE_BOTH 2
+
+#define MLE_SOFT_WRAP_NONE 0
+#define MLE_SOFT_WRAP_SINGLE 1
+#define MLE_SOFT_WRAP_FULL 2
+#define MLE_SOFT_WRAP_TYPE(p) ((p) >= 0 && (p) <= 2 ? (p) : 0)
 
 #define MLE_PARAM_WILDCARD(pctx, pn) ( \
     (pn) < (pctx)->wildcard_params_len \

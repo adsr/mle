@@ -1090,7 +1090,7 @@ int cmd_set_opt(cmd_context_t *ctx) {
         bview_set_syntax(ctx->bview, val);
         buffer_apply_styles(ctx->bview->buffer, ctx->bview->buffer->first_line, ctx->bview->buffer->line_count);
     } else if (strcmp(ctx->static_param, "soft_wrap") == 0) {
-        ctx->bview->soft_wrap = vali ? 1 : 0;
+        ctx->bview->soft_wrap_type = MLE_SOFT_WRAP_TYPE(vali);
     } else if (strcmp(ctx->static_param, "coarse_undo") == 0) {
         ctx->editor->coarse_undo = vali ? 1 : 0;
     } else if (strcmp(ctx->static_param, "mouse_support") == 0) {
