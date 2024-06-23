@@ -372,7 +372,7 @@ int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt
     }
     if (linenum > 0) {
         mark_move_to(bview->active_cursor->mark, linenum - 1, 0);
-        bview_center_viewport_y(bview);
+        bview_viewport_center(bview);
     }
     if (optret_bview) {
         *optret_bview = bview;
@@ -413,7 +413,7 @@ int editor_set_active(editor_t *editor, bview_t *bview) {
         editor->active_edit = bview;
         editor->active_edit_root = bview_get_split_root(bview);
     }
-    bview_rectify_viewport(bview);
+    bview_viewport_rectify(bview);
     return MLE_OK;
 }
 
@@ -833,7 +833,7 @@ static int _editor_menu_cancel(cmd_context_t *ctx) {
 static int _editor_prompt_isearch_next(cmd_context_t *ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
         mark_move_next_cre_nudge(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
-        bview_center_viewport_y(ctx->editor->active_edit);
+        bview_viewport_center(ctx->editor->active_edit);
     }
     return MLE_OK;
 }
@@ -842,19 +842,19 @@ static int _editor_prompt_isearch_next(cmd_context_t *ctx) {
 static int _editor_prompt_isearch_prev(cmd_context_t *ctx) {
     if (ctx->editor->active_edit->isearch_rule) {
         mark_move_prev_cre(ctx->editor->active_edit->active_cursor->mark, ctx->editor->active_edit->isearch_rule->cre);
-        bview_center_viewport_y(ctx->editor->active_edit);
+        bview_viewport_center(ctx->editor->active_edit);
     }
     return MLE_OK;
 }
 
 // Invoked when user hits pgup in a prompt_isearch
 static int _editor_prompt_isearch_viewport_up(cmd_context_t *ctx) {
-    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_mark->bline->line_index - 5, 0);
+    return bview_viewport_set(ctx->editor->active_edit, ctx->editor->active_edit->viewport_wrow - 5, 0);
 }
 
 // Invoked when user hits pgdn in a prompt_isearch
 static int _editor_prompt_isearch_viewport_down(cmd_context_t *ctx) {
-    return bview_set_viewport_y(ctx->editor->active_edit, ctx->editor->active_edit->viewport_mark->bline->line_index + 5, 0);
+    return bview_viewport_set(ctx->editor->active_edit, ctx->editor->active_edit->viewport_wrow + 5, 0);
 }
 
 // Drops a cursor on each isearch match
@@ -881,7 +881,7 @@ static int _editor_prompt_isearch_drop_cursors(cmd_context_t *ctx) {
         bview_remove_cursor(bview, last_cursor);
     }
     bview->active_cursor = orig_cursor;
-    bview_center_viewport_y(bview);
+    bview_viewport_center(bview);
     ctx->loop_ctx->prompt_answer = NULL;
     ctx->loop_ctx->should_exit = 1;
     return MLE_OK;

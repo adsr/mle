@@ -749,11 +749,11 @@ static int _uscript_func_bview_add_cursor_asleep(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_bview_center_viewport_y(lua_State *L) {
+static int _uscript_func_bview_viewport_center(lua_State *L) {
     int rv;
     bview_t *self;
     self = (bview_t *)luaL_checkpointer(L, 1);
-    rv = bview_center_viewport_y(self);
+    rv = bview_viewport_center(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -829,11 +829,11 @@ static int _uscript_func_bview_get_split_root(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_bview_max_viewport_y(lua_State *L) {
+static int _uscript_func_bview_viewport_max(lua_State *L) {
     int rv;
     bview_t *self;
     self = (bview_t *)luaL_checkpointer(L, 1);
-    rv = bview_max_viewport_y(self);
+    rv = bview_viewport_max(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -886,11 +886,11 @@ static int _uscript_func_bview_open(lua_State *L) {
 // static int _uscript_func_bview_push_kmap(lua_State *L) {
 // }
 
-static int _uscript_func_bview_rectify_viewport(lua_State *L) {
+static int _uscript_func_bview_viewport_rectify(lua_State *L) {
     int rv;
     bview_t *self;
     self = (bview_t *)luaL_checkpointer(L, 1);
-    rv = bview_rectify_viewport(self);
+    rv = bview_viewport_rectify(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -965,15 +965,15 @@ static int _uscript_func_bview_set_syntax(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_bview_set_viewport_y(lua_State *L) {
+static int _uscript_func_bview_viewport_set(lua_State *L) {
     int rv;
     bview_t *self;
-    bint_t y;
+    bint_t wrow;
     int do_rectify;
     self = (bview_t *)luaL_checkpointer(L, 1);
-    y = (bint_t)luaL_checkinteger(L, 2);
+    wrow = (bint_t)luaL_checkinteger(L, 2);
     do_rectify = (int)luaL_checkinteger(L, 3);
-    rv = bview_set_viewport_y(self, y, do_rectify);
+    rv = bview_viewport_set(self, wrow, do_rectify);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -1016,11 +1016,11 @@ static int _uscript_func_bview_wake_sleeping_cursors(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_bview_zero_viewport_y(lua_State *L) {
+static int _uscript_func_bview_viewport_zero(lua_State *L) {
     int rv;
     bview_t *self;
     self = (bview_t *)luaL_checkpointer(L, 1);
-    rv = bview_zero_viewport_y(self);
+    rv = bview_viewport_zero(self);
     lua_createtable(L, 0, 1);
     lua_pushstring(L, "rv");
     lua_pushinteger(L, (lua_Integer)rv);
@@ -2596,26 +2596,26 @@ static const struct luaL_Reg mle_lib[] = {
     { "buffer_write_to_file", _uscript_func_buffer_write_to_file },
     { "bview_add_cursor", _uscript_func_bview_add_cursor },
     { "bview_add_cursor_asleep", _uscript_func_bview_add_cursor_asleep },
-    { "bview_center_viewport_y", _uscript_func_bview_center_viewport_y },
     { "bview_destroy", _uscript_func_bview_destroy },
     { "bview_draw", _uscript_func_bview_draw },
     { "bview_draw_cursor", _uscript_func_bview_draw_cursor },
     { "bview_get_active_cursor_count", _uscript_func_bview_get_active_cursor_count },
     { "bview_get_split_root", _uscript_func_bview_get_split_root },
-    { "bview_max_viewport_y", _uscript_func_bview_max_viewport_y },
     { "bview_new", _uscript_func_bview_new },
     { "bview_open", _uscript_func_bview_open },
     { "bview_pop_kmap", _uscript_func_bview_pop_kmap },
     { "bview_push_kmap", _uscript_func_bview_push_kmap },
-    { "bview_rectify_viewport", _uscript_func_bview_rectify_viewport },
     { "bview_remove_cursor", _uscript_func_bview_remove_cursor },
     { "bview_remove_cursors_except", _uscript_func_bview_remove_cursors_except },
     { "bview_resize", _uscript_func_bview_resize },
     { "bview_set_syntax", _uscript_func_bview_set_syntax },
-    { "bview_set_viewport_y", _uscript_func_bview_set_viewport_y },
     { "bview_split", _uscript_func_bview_split },
+    { "bview_viewport_center", _uscript_func_bview_viewport_center },
+    { "bview_viewport_max", _uscript_func_bview_viewport_max },
+    { "bview_viewport_rectify", _uscript_func_bview_viewport_rectify },
+    { "bview_viewport_set", _uscript_func_bview_viewport_set },
+    { "bview_viewport_zero", _uscript_func_bview_viewport_zero },
     { "bview_wake_sleeping_cursors", _uscript_func_bview_wake_sleeping_cursors },
-    { "bview_zero_viewport_y", _uscript_func_bview_zero_viewport_y },
     { "cursor_clone", _uscript_func_cursor_clone },
     { "cursor_cut_copy", _uscript_func_cursor_cut_copy },
     { "cursor_destroy", _uscript_func_cursor_destroy },

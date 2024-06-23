@@ -183,9 +183,8 @@ struct bview_s {
     bview_rect_t rect_buffer;
     bview_rect_t rect_margin_right;
     buffer_t *buffer;
-    bint_t viewport_col;
     bint_t viewport_vcol;
-    mark_t *viewport_mark;
+    bint_t viewport_wrow;
     int viewport_scope_x;
     int viewport_scope_y;
     bview_t *split_parent;
@@ -445,27 +444,28 @@ bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len,
 int bview_add_cursor_asleep(bview_t *self, bline_t *opt_bline, bint_t opt_col, cursor_t **optret_cursor);
 int bview_add_cursor(bview_t *self, bline_t *opt_bline, bint_t opt_col, cursor_t **optret_cursor);
 int bview_add_listener(bview_t *self, bview_listener_cb_t fn_callback, void *udata);
-int bview_center_viewport_y(bview_t *self);
 int bview_destroy(bview_t *self);
 int bview_destroy_listener(bview_t *self, bview_listener_t *listener);
 int bview_draw(bview_t *self);
 int bview_draw_cursor(bview_t *self, int set_real_cursor);
 int bview_get_active_cursor_count(bview_t *self);
 int bview_get_screen_coords(bview_t *self, mark_t *mark, int *ret_x, int *ret_y, struct tb_cell **optret_cell);
-int bview_max_viewport_y(bview_t *self);
+int bview_mark_move_rect(bview_t *self, mark_t *mark, int rx, int ry);
 int bview_open(bview_t *self, char *path, int path_len);
 int bview_pop_kmap(bview_t *bview, kmap_t **optret_kmap);
 int bview_push_kmap(bview_t *bview, kmap_t *kmap);
-int bview_rectify_viewport(bview_t *self);
+int bview_viewport_rectify(bview_t *self);
 int bview_remove_cursor(bview_t *self, cursor_t *cursor);
 int bview_remove_cursors_except(bview_t *self, cursor_t *one);
 int bview_resize(bview_t *self, int x, int y, int w, int h);
 int bview_screen_to_bline_col(bview_t *self, int x, int y, bview_t **ret_bview, bline_t **ret_bline, bint_t *ret_col);
 int bview_set_syntax(bview_t *self, char *opt_syntax);
-int bview_set_viewport_y(bview_t *self, bint_t y, int do_rectify);
 int bview_split(bview_t *self, int is_vertical, float factor, bview_t **optret_bview);
+int bview_viewport_center(bview_t *self);
+int bview_viewport_max(bview_t *self);
+int bview_viewport_set(bview_t *self, bint_t wrow, int do_rectify);
+int bview_viewport_zero(bview_t *self);
 int bview_wake_sleeping_cursors(bview_t *self);
-int bview_zero_viewport_y(bview_t *self);
 
 // cursor functions
 int cursor_clone(cursor_t *cursor, int use_srules, cursor_t **ret_clone);

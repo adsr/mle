@@ -187,56 +187,58 @@ int cmd_move_bol(cmd_context_t *ctx) {
         }
         mark_destroy(mark);
     }
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of line
 int cmd_move_eol(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_eol);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to beginning of buffer
 int cmd_move_beginning(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_beginning);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor to end of buffer
 int cmd_move_end(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(ctx->cursor, mark_move_end);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor left one char
 int cmd_move_left(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_by, -1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor right one char
 int cmd_move_right(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_by, 1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor up one line
 int cmd_move_up(cmd_context_t *ctx) {
+    // TODO Move by wrow in MLE_SOFT_WRAP_FULL
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, -1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move cursor down one line
 int cmd_move_down(cmd_context_t *ctx) {
+    // TODO Move by wrow in MLE_SOFT_WRAP_FULL
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, 1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
@@ -260,7 +262,7 @@ int cmd_move_to_line(cmd_context_t *ctx) {
     free(linestr);
     if (line < 1) line = 1;
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_to, line - 1, 0);
-    bview_center_viewport_y(ctx->bview);
+    bview_viewport_center(ctx->bview);
     return MLE_OK;
 }
 
@@ -274,7 +276,7 @@ int cmd_move_to_offset(cmd_context_t *ctx) {
     free(offsetstr);
     if (offset < 0) offset = 0;
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_offset, offset);
-    bview_center_viewport_y(ctx->bview);
+    bview_viewport_center(ctx->bview);
     return MLE_OK;
 }
 
@@ -299,28 +301,28 @@ int cmd_move_relative(cmd_context_t *ctx) {
 // Move one word forward
 int cmd_move_word_forward(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_next_re_nudge, MLE_RE_WORD_FORWARD, sizeof(MLE_RE_WORD_FORWARD)-1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move one word back
 int cmd_move_word_back(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_re, MLE_RE_WORD_BACK, sizeof(MLE_RE_WORD_BACK)-1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move to next open bracket
 int cmd_move_bracket_forward(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, "{", 1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
 // Move to prev open bracket
 int cmd_move_bracket_back(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, "{", 1);
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
@@ -331,7 +333,7 @@ int cmd_move_bracket_toggle(cmd_context_t *ctx) {
             mark_move_prev_re(cursor->mark, "[\\[\\(\\{]", strlen("[\\[\\(\\{]"));
         }
     }
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
@@ -474,7 +476,7 @@ int cmd_goto_lettered_mark(cmd_context_t *ctx) {
             mark_clone_w_letter(ctx->cursor->mark, other, &mark_tmp);
             mark_join(ctx->cursor->mark, mark);
         }
-        bview_rectify_viewport(ctx->bview);
+        bview_viewport_rectify(ctx->bview);
     } else {
         mark_clone_w_letter(ctx->cursor->mark, letter, &mark);
     }
@@ -514,37 +516,37 @@ int cmd_repeat(cmd_context_t *ctx) {
 
 // Redraw screen
 int cmd_redraw(cmd_context_t *ctx) {
-    bview_center_viewport_y(ctx->bview);
+    bview_viewport_center(ctx->bview);
     editor_force_redraw(ctx->editor);
     return MLE_OK;
 }
 
 // Zero viewport y
 int cmd_viewport_top(cmd_context_t *ctx) {
-    bview_zero_viewport_y(ctx->bview);
+    bview_viewport_zero(ctx->bview);
     return MLE_OK;
 }
 
 // Center viewport y
 int cmd_viewport_mid(cmd_context_t *ctx) {
-    bview_center_viewport_y(ctx->bview);
+    bview_viewport_center(ctx->bview);
     return MLE_OK;
 }
 
 // Max viewport y
 int cmd_viewport_bot(cmd_context_t *ctx) {
-    bview_max_viewport_y(ctx->bview);
+    bview_viewport_max(ctx->bview);
     return MLE_OK;
 }
 
 // Toggle between top and mid viewport y
 int cmd_viewport_toggle(cmd_context_t *ctx) {
-    bline_t *orig;
-    bline_t *mid;
-    bline_t *top;
-    orig = ctx->bview->viewport_mark->bline;
-    cmd_viewport_mid(ctx); mid  = ctx->bview->viewport_mark->bline;
-    cmd_viewport_top(ctx); top  = ctx->bview->viewport_mark->bline;
+    bint_t orig;
+    bint_t mid;
+    bint_t top;
+                           orig = ctx->bview->viewport_wrow;
+    cmd_viewport_mid(ctx); mid  = ctx->bview->viewport_wrow;
+    cmd_viewport_top(ctx); top  = ctx->bview->viewport_wrow;
     if (mid == orig) {
         cmd_viewport_top(ctx);
     } else if (top == orig) {
@@ -552,7 +554,7 @@ int cmd_viewport_toggle(cmd_context_t *ctx) {
     } else {
         cmd_viewport_mid(ctx);
     }
-    return MLE_OK;
+    return MLE_ERR;
 }
 
 // Find next occurence of word under cursor
@@ -637,7 +639,7 @@ int cmd_anchor_by(cmd_context_t *ctx) {
     MLE_FOREACH_CURSOR(ctx->cursor) {
         cursor_select_by(cursor, ctx->static_param, 1);
     }
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
@@ -797,7 +799,7 @@ int cmd_browse(cmd_context_t *ctx) {
     if (!aproc) return MLE_ERR;
     editor_menu(ctx->editor, _cmd_menu_browse_cb, ".", 1, aproc, &menu);
     mark_move_beginning(menu->active_cursor->mark);
-    bview_zero_viewport_y(menu);
+    bview_viewport_zero(menu);
     if (strncmp(browse_path, "./", 2) == 0) {
         browse_path += 2;
     } else if (strcmp(browse_path, ".") == 0) {
@@ -849,7 +851,7 @@ int cmd_blist(cmd_context_t *ctx) {
 
     editor_menu(ctx->editor, _cmd_menu_blist_cb, blist.data, blist.len, NULL, &menu);
     if (active_lineno >= 0) mark_move_to(menu->active_cursor->mark, active_lineno, 0);
-    bview_set_viewport_y(menu, 0, 1);
+    bview_viewport_set(menu, 0, 1);
 
     str_free(&blist);
     return MLE_OK;
@@ -988,7 +990,7 @@ int cmd_move_until_forward(cmd_context_t *ctx) {
     if (!ch) return MLE_OK;
     tb_utf8_unicode_to_char(str, ch);
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_next_str_nudge, str, strlen(str));
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
@@ -1000,7 +1002,7 @@ int cmd_move_until_back(cmd_context_t *ctx) {
     if (!ch) return MLE_OK;
     tb_utf8_unicode_to_char(str, ch);
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_prev_str, str, strlen(str));
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
@@ -1153,8 +1155,7 @@ int cmd_jump(cmd_context_t *ctx) {
     bline_t *bline;
     bint_t col;
     bint_t nchars;
-    bint_t stop_line_index;
-    mark_t *mark;
+    mark_t *mark, *mark_stop;
     mark_t *jumps;
     int jumpi, jumpt, screen_x, screen_y;
     char jumpa[3];
@@ -1166,12 +1167,14 @@ int cmd_jump(cmd_context_t *ctx) {
 
     // Set boundaries
     mark_clone(ctx->cursor->mark, &mark);
+    mark_clone(ctx->cursor->mark, &mark_stop);
     if (headless) {
         mark_move_bol(mark);
-        stop_line_index = mark->bline->line_index + 1;
+        mark_move_eol(mark_stop);
     } else {
-        mark_move_to_w_bline(mark, ctx->bview->viewport_mark->bline, 0);
-        stop_line_index = ctx->bview->viewport_mark->bline->line_index + ctx->bview->rect_buffer.h;
+        bview_mark_move_rect(ctx->bview, mark, 0, 0);
+        bview_mark_move_rect(ctx->bview, mark_stop, ctx->bview->rect_buffer.w - 1, ctx->bview->rect_buffer.h - 1);
+        return MLE_ERR;
     }
 
     // Make jump map
@@ -1181,7 +1184,7 @@ int cmd_jump(cmd_context_t *ctx) {
     do {
         // Loop for words
         while (jumpi < 26*26 && mark_move_next_re_ex(mark, "\\S{2,}", strlen("\\S{2,}"), &bline, &col, &nchars) == MLBUF_OK) {
-            if (bline->line_index >= stop_line_index) break;
+            if (mark_is_gt(mark, mark_stop)) break;
             jumps[jumpi].bline = bline;
             jumps[jumpi].col = col;
             mark_move_by(mark, MLE_MAX(0, nchars - 2));
@@ -1210,6 +1213,7 @@ int cmd_jump(cmd_context_t *ctx) {
     // Cleanup
     free(jumps);
     mark_destroy(mark);
+    mark_destroy(mark_stop);
     return MLE_OK;
 }
 
@@ -1318,7 +1322,7 @@ int cmd_less(cmd_context_t *ctx) {
             break;
         }
         mark_move_to(ctx->cursor->mark, (line_top) + ctx->bview->rect_buffer.h/2, 0);
-        bview_center_viewport_y(ctx->bview);
+        bview_viewport_center(ctx->bview);
     } while(0);
 
     if (tmp_buf_fd >= 0) {
@@ -1395,7 +1399,7 @@ int cmd_show_help(cmd_context_t *ctx) {
     buffer_insert(bview->buffer, 0, h.data, (bint_t)h.len, NULL);
     bview->buffer->is_unsaved = 0;
     mark_move_beginning(bview->active_cursor->mark);
-    bview_zero_viewport_y(bview);
+    bview_viewport_zero(bview);
 
     str_free(&h);
     return MLE_OK;
@@ -1667,7 +1671,7 @@ static int _cmd_search_next(bview_t *bview, cursor_t *cursor, mark_t *search_mar
     }
 
     // Rectify viewport if needed
-    if (rc == MLE_OK) bview_rectify_viewport(bview);
+    if (rc == MLE_OK) bview_viewport_rectify(bview);
 
     return rc;
 }
@@ -1707,7 +1711,7 @@ static int _cmd_find_word_ex(cmd_context_t *ctx, int is_prev) {
         }
     }
 
-    bview_rectify_viewport(ctx->bview);
+    bview_viewport_rectify(ctx->bview);
     return MLE_OK;
 }
 
@@ -1730,7 +1734,7 @@ static void _cmd_aproc_bview_passthru_cb(aproc_t *aproc, char *buf, size_t buf_l
     mark_move_end(ins_mark);
     mark_insert_before(ins_mark, buf, buf_len);
     mark_destroy(ins_mark);
-    bview_rectify_viewport(bview);
+    bview_viewport_rectify(bview);
 
     if (is_cursor_at_zero) mark_move_beginning(active_mark);
 }
@@ -1760,7 +1764,7 @@ static void _cmd_isearch_prompt_cb(bview_t *bview_prompt, baction_t *action, voi
 
     mark_move_next_cre(bview->active_cursor->mark, bview->isearch_rule->cre);
 
-    bview_center_viewport_y(bview);
+    bview_viewport_center(bview);
 }
 
 // Callback from cmd_grep
@@ -1826,7 +1830,7 @@ static int _cmd_menu_ctag_cb(cmd_context_t *ctx) {
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, fname, strlen(fname), 1, 0, 0, NULL, &bview);
     asprintf(&qre2, "^%s", qre);
     mark_move_next_re(bview->active_cursor->mark, qre2, qre_len+1);
-    bview_center_viewport_y(bview);
+    bview_viewport_center(bview);
     free(line);
     free(qre);
     free(qre2);
@@ -2138,7 +2142,7 @@ static int _cmd_move_page_y(cmd_context_t *ctx, int full_y, int is_up) {
     } else {
         y = full_y;
     }
-    viewport_fn = y < full_y ? bview_rectify_viewport : bview_zero_viewport_y;
+    viewport_fn = y < full_y ? bview_viewport_rectify : bview_viewport_zero;
     if (is_up) y *= -1;
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, y);
     viewport_fn(ctx->bview);

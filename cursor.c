@@ -290,7 +290,7 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
     bline_t *bline;
     bint_t col;
     bint_t char_count;
-    bint_t orig_viewport_y;
+    bint_t orig_viewport_wrow;
     int pcre_rc;
     PCRE2_SIZE pcre_ovector[30];
     str_t repl_backref = {0};
@@ -312,7 +312,7 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
     all = interactive ? 0 : 1;
     num_replacements = 0;
     mark_set_pcre_capture(&pcre_rc, pcre_ovector, 30);
-    orig_viewport_y = -1;
+    orig_viewport_wrow = -1;
 
     do {
         if (!interactive) {
@@ -331,7 +331,7 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
         search_mark_end = buffer_add_mark(cursor->bview->buffer, NULL, 0);
         mark_join(search_mark, cursor->mark);
         mark_join(orig_mark, cursor->mark);
-        orig_viewport_y = cursor->bview->viewport_mark->bline->line_index;
+        orig_viewport_wrow = cursor->bview->viewport_wrow;
         orig_mark->lefty = 1; // lefty==1 avoids moving when text is inserted at mark
         lo_mark->lefty = 1;
         if (cursor->is_anchored) {
@@ -358,7 +358,7 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
                 } else if (interactive) {
                     highlight = srule_new_range(search_mark, search_mark_end, 0, TB_REVERSE);
                     buffer_add_srule(cursor->bview->buffer, highlight);
-                    bview_rectify_viewport(cursor->bview);
+                    bview_viewport_rectify(cursor->bview);
                     bview_draw(cursor->bview);
                     editor_prompt(cursor->bview->editor, "replace: OK to replace? (y=yes, n=no, a=all, C-c=stop)",
                         &(editor_prompt_params_t) { .kmap = cursor->bview->editor->kmap_prompt_yna }, &yn
@@ -405,10 +405,10 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
 
     if (interactive) {
         MLE_SET_INFO(cursor->bview->editor, "replace: Replaced %d instance(s)", num_replacements);
-        if (orig_viewport_y >= 0) {
-            bview_set_viewport_y(cursor->bview, orig_viewport_y, 1);
+        if (orig_viewport_wrow >= 0) {
+            bview_viewport_set(cursor->bview, orig_viewport_wrow, 1);
         } else {
-            bview_rectify_viewport(cursor->bview);
+            bview_viewport_rectify(cursor->bview);
         }
         bview_draw(cursor->bview);
     }
