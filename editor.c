@@ -358,9 +358,6 @@ int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt
             opt_parent->split_child = bview;
         }
     }
-    if (make_active) {
-        editor_set_active(editor, bview);
-    }
     if (!found && !editor->is_in_init && !skip_resize) {
         switch (type) {
             case MLE_BVIEW_TYPE_STATUS: rect = &editor->rect_status; break;
@@ -369,6 +366,9 @@ int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt
             case MLE_BVIEW_TYPE_EDIT:   rect = &editor->rect_edit;   break;
         }
         bview_resize(bview, rect->x, rect->y, rect->w, rect->h);
+    }
+    if (make_active) {
+        editor_set_active(editor, bview);
     }
     if (linenum > 0) {
         mark_move_to(bview->active_cursor->mark, linenum - 1, 0);

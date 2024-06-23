@@ -373,6 +373,7 @@ int bview_rectify_viewport(bview_t *self) {
 
     mark = self->active_cursor->mark;
     viewport_y = self->viewport_mark->bline->line_index;
+    if (!self->is_resized) return MLE_OK;
 
     // Rectify each dimension of the viewport
     MLBUF_BLINE_ENSURE_CHARS(mark->bline);
