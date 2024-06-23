@@ -2471,8 +2471,8 @@ static int _editor_init_from_args(editor_t *editor, int argc, char **argv) {
                 }
                 break;
             case 'l':
-                editor->linenum_type = atoi(optarg);
-                if (editor->linenum_type < 0 || editor->linenum_type > 2) editor->linenum_type = 0;
+                type = atoi(optarg);
+                editor->linenum_type = MLE_LINENUM_TYPE(type);
                 break;
             case 'M':
                 if (_editor_add_macro_by_str(editor, optarg) != MLE_OK) {

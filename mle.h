@@ -693,9 +693,10 @@ extern editor_t _editor;
 #define MLE_KINPUT_SET_WILDCARD(pi)         MLE_KINPUT_SET_SPECIAL(pi, 0x80)
 #define MLE_KINPUT_COPY(pi, pj)             memcpy(&(pi), &(pj), sizeof(pi))
 
-#define MLE_LINENUM_TYPE_ABS 0
-#define MLE_LINENUM_TYPE_REL 1
-#define MLE_LINENUM_TYPE_BOTH 2
+#define MLE_LINENUM_ABS 0
+#define MLE_LINENUM_REL 1
+#define MLE_LINENUM_BOTH 2
+#define MLE_LINENUM_TYPE(p) ((p) >= 0 && (p) <= 2 ? (p) : 0)
 
 #define MLE_SOFT_WRAP_NONE 0
 #define MLE_SOFT_WRAP_SINGLE 1
