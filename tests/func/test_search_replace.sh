@@ -56,10 +56,17 @@ expected[rfind_cursor_line]='^bview.0.cursor.0.mark.line_index=1$'
 expected[rfind_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
-# cmd_isearch
+# cmd_isearch 1
 macro='a c t o r enter a p p l e enter a p p e t i t e enter a z u r e M-\ C-r a p p e enter'
 declare -A expected
 expected[isearch_cursor_line]='^bview.0.cursor.0.mark.line_index=2$'
+expected[iesarch_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
+source 'test.sh'
+
+# cmd_isearch 2
+macro='i enter a enter b enter a enter b M-\ C-r a enter C-r b enter C-r C-n C-n'
+declare -A expected
+expected[isearch_cursor_line]='^bview.0.cursor.0.mark.line_index=3$'
 expected[iesarch_cursor_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
 
