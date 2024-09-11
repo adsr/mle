@@ -89,3 +89,19 @@ declare -A expected
 expected[history_line]='^bview.0.cursor.0.mark.line_index=1$'
 expected[history_col ]='^bview.0.cursor.0.mark.col=0$'
 source 'test.sh'
+
+# cmd_replace_all (all)
+macro='1 a C-n 2 b C-n 3 c CM-t ( \ d ) ( \ w ) enter $ 2 $ 1 enter a'
+declare -A expected
+expected[replace_all_1_1]='^a1$'
+expected[replace_all_1_2]='^b2$'
+expected[replace_all_1_3]='^c3$'
+source 'test.sh'
+
+# cmd_replace_all (no, yes, cancel)
+macro='1 a C-n 2 b C-n 3 c CM-t ( \ d ) ( \ w ) enter $ 2 $ 1 enter n y C-c'
+declare -A expected
+expected[replace_all_2_1]='^1a$'
+expected[replace_all_2_2]='^b2$'
+expected[replace_all_2_3]='^3c$'
+source 'test.sh'

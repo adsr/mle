@@ -310,6 +310,21 @@ int editor_prompt(editor_t *editor, char *prompt, editor_prompt_params_t *params
     return MLE_OK;
 }
 
+// A printf version of editor_prompt
+int editor_prompt_fmt(editor_t *editor, editor_prompt_params_t *params, char **optret_answer, char *prompt_fmt, ...) {
+    char prompt[512];
+    va_list vl;
+    int rv;
+
+    va_start(vl, prompt_fmt);
+    rv = vsnprintf(prompt, sizeof(prompt), prompt_fmt, vl);
+    va_end(vl);
+
+    if (rv < 0 || rv >= (int)sizeof(prompt)) return MLE_ERR;
+
+    return editor_prompt(editor, prompt, params, optret_answer);
+}
+
 // Open dialog menu
 int editor_menu(editor_t *editor, cmd_func_t callback, char *opt_buf_data, int opt_buf_data_len, aproc_t *opt_aproc, bview_t **optret_menu) {
     bview_t *menu;
@@ -1729,6 +1744,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
     _editor_register_cmd_fn(editor, "cmd_repeat", cmd_repeat);
     _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
+    _editor_register_cmd_fn(editor, "cmd_replace_all", cmd_replace_all);
     _editor_register_cmd_fn(editor, "cmd_rfind_word", cmd_rfind_word);
     _editor_register_cmd_fn(editor, "cmd_rsearch", cmd_rsearch);
     _editor_register_cmd_fn(editor, "cmd_save_as", cmd_save_as);
@@ -1825,6 +1841,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_isearch", "C-r"),
         MLE_KBINDING_DEF("cmd_repeat", "f5"),
         MLE_KBINDING_DEF("cmd_replace", "C-t"),
+        MLE_KBINDING_DEF("cmd_replace_all", "CM-t"),
         MLE_KBINDING_DEF("cmd_cut", "C-k"),
         MLE_KBINDING_DEF("cmd_copy", "M-k"),
         MLE_KBINDING_DEF("cmd_uncut", "C-u"),

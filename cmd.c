@@ -506,6 +506,66 @@ int cmd_replace(cmd_context_t *ctx) {
     return cursor_replace(ctx->cursor, 1, NULL, NULL);
 }
 
+// Interactive search and replace on all buffers
+int cmd_replace_all(cmd_context_t *ctx) {
+    bview_t *bview, *bview_orig;
+    int num_bviews, do_replace_all, num_replacements, num_replacements_tmp;
+    int cancelled, buffer_done_i, i, already_done;
+    char *regex, *replacement;
+    buffer_t **buffer_done;
+
+    bview_orig = ctx->bview;
+    do_replace_all = 0;
+    num_replacements = 0;
+    cancelled = 0;
+    regex = NULL;
+    replacement = NULL;
+    num_bviews = 0;
+    CDL_COUNT2(ctx->editor->all_bviews, bview, num_bviews, all_next);
+    buffer_done = calloc(num_bviews, sizeof(buffer_t *));
+    buffer_done_i = 0;
+
+    do {
+        editor_prompt(ctx->editor, "replace_all: Search regex?", NULL, &regex);
+        if (!regex) break;
+        editor_prompt(ctx->editor, "replace_all: Replacement string?", NULL, &replacement);
+        if (!replacement) break;
+
+        CDL_FOREACH2(ctx->editor->all_bviews, bview, all_next) {
+            if (!MLE_BVIEW_IS_EDIT(bview)) continue;
+
+            // Check if buffer in done list
+            // TODO inefficient, could replace with hash
+            for (i = 0, already_done = 0; i < buffer_done_i; i++) {
+                if (buffer_done[i] == bview->buffer) {
+                    already_done = 1;
+                    break;
+                }
+            }
+            if (already_done) continue;
+
+            // Search and replace on this bview
+            editor_set_active(ctx->editor, bview);
+            cursor_replace_ex(bview->active_cursor, 1, regex, replacement, "replace_all", &do_replace_all, &num_replacements_tmp, &cancelled);
+            num_replacements += num_replacements_tmp;
+
+            // Add buffer to done list
+            buffer_done[buffer_done_i++] = bview->buffer;
+            if (cancelled) break;
+        }
+    } while (0);
+
+    editor_set_active(ctx->editor, bview_orig);
+
+    MLE_SET_INFO(ctx->editor, "replace_all: Replaced %d instance(s) in %d buffer(s)", num_replacements, buffer_done_i);
+
+    if (regex) free(regex);
+    if (replacement) free(replacement);
+    if (buffer_done) free(buffer_done);
+
+    return MLE_OK;
+}
+
 // Repeat last cmd
 int cmd_repeat(cmd_context_t *ctx) {
     // This is a special case in _editor_loop

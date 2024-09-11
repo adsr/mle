@@ -275,6 +275,11 @@ int cursor_uncut_last(cursor_t *cursor) {
 
 // Regex search and replace
 int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt_replacement) {
+    return cursor_replace_ex(cursor, interactive, opt_regex, opt_replacement, NULL, NULL, NULL, NULL);
+}
+
+// Regex search and replace (extended params)
+int cursor_replace_ex(cursor_t *cursor, int interactive, char *opt_regex, char *opt_replacement, char *opt_cmd_name, int *inout_all, int *optret_num_replacements, int *optret_cancelled) {
     char *regex;
     char *replacement;
     int wrapped;
@@ -295,8 +300,11 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
     PCRE2_SIZE pcre_ovector[30];
     str_t repl_backref = {0};
     int num_replacements;
+    char *cmd_name;
 
     if (!interactive && (!opt_regex || !opt_replacement)) {
+        return MLE_ERR;
+    } else if ((opt_regex && !opt_replacement) || (!opt_regex && opt_replacement)) {
         return MLE_ERR;
     }
 
@@ -309,19 +317,20 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
     search_mark = NULL;
     search_mark_end = NULL;
     anchored_before = 0;
-    all = interactive ? 0 : 1;
+    all = interactive ? (inout_all ? *inout_all : 0) : 1;
     num_replacements = 0;
     mark_set_pcre_capture(&pcre_rc, pcre_ovector, 30);
     orig_viewport_y = -1;
+    cmd_name = opt_cmd_name ? opt_cmd_name : "replace";
 
     do {
-        if (!interactive) {
+        if (!interactive || (opt_regex && opt_replacement)) {
             regex = strdup(opt_regex);
             replacement = strdup(opt_replacement);
         } else {
-            editor_prompt(cursor->bview->editor, "replace: Search regex?", NULL, &regex);
+            editor_prompt_fmt(cursor->bview->editor, NULL, &regex, "%s: Search regex?", cmd_name);
             if (!regex) break;
-            editor_prompt(cursor->bview->editor, "replace: Replacement string?", NULL, &replacement);
+            editor_prompt_fmt(cursor->bview->editor, NULL, &replacement, "%s: Replacement string?", cmd_name);
             if (!replacement) break;
         }
         orig_mark = buffer_add_mark(cursor->bview->buffer, NULL, 0);
@@ -360,14 +369,16 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
                     buffer_add_srule(cursor->bview->buffer, highlight);
                     bview_rectify_viewport(cursor->bview);
                     bview_draw(cursor->bview);
-                    editor_prompt(cursor->bview->editor, "replace: OK to replace? (y=yes, n=no, a=all, C-c=stop)",
-                        &(editor_prompt_params_t) { .kmap = cursor->bview->editor->kmap_prompt_yna }, &yn
+                    editor_prompt_fmt(cursor->bview->editor,
+                        &(editor_prompt_params_t) { .kmap = cursor->bview->editor->kmap_prompt_yna }, &yn,
+                        "%s: OK to replace? (y=yes, n=no, a=all, C-c=stop)", cmd_name
                     );
                     buffer_remove_srule(cursor->bview->buffer, highlight);
                     srule_destroy(highlight);
                     bview_draw(cursor->bview);
                 }
                 if (!yn) {
+                    if (optret_cancelled) *optret_cancelled = 1;
                     break;
                 } else if (0 == strcmp(yn, MLE_PROMPT_YES) || 0 == strcmp(yn, MLE_PROMPT_ALL)) {
                     str_append_replace_with_backrefs(&repl_backref, search_mark->bline->data, replacement, pcre_rc, pcre_ovector, 30);
@@ -404,7 +415,11 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
     if (search_mark_end) mark_destroy(search_mark_end);
 
     if (interactive) {
-        MLE_SET_INFO(cursor->bview->editor, "replace: Replaced %d instance(s)", num_replacements);
+        if (optret_num_replacements) {
+            *optret_num_replacements = num_replacements;
+        } else {
+            MLE_SET_INFO(cursor->bview->editor, "%s: Replaced %d instance(s)", cmd_name, num_replacements);
+        }
         if (orig_viewport_y >= 0) {
             bview_set_viewport_y(cursor->bview, orig_viewport_y, 1);
         } else {
@@ -412,6 +427,8 @@ int cursor_replace(cursor_t *cursor, int interactive, char *opt_regex, char *opt
         }
         bview_draw(cursor->bview);
     }
+
+    if (inout_all) *inout_all = all;
 
     return MLE_OK;
 }
