@@ -1024,13 +1024,34 @@ int cmd_apply_macro(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
-// Apply a macro
+// Apply the last applied macro
 int cmd_apply_macro_last(cmd_context_t *ctx) {
     kmacro_t *macro;
     if (!ctx->editor->macro_last) return MLE_OK;
     HASH_FIND_STR(ctx->editor->macro_map, ctx->editor->macro_last, macro);
     if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found%s", "");
     _cmd_apply_macro_set(ctx, macro);
+    return MLE_OK;
+}
+
+// Apply the last applied macro
+int cmd_print_macro(cmd_context_t *ctx) {
+    char *name;
+    kmacro_t *macro;
+    size_t i;
+    char key[MLE_MAX_KEYNAME_LEN + 1];
+    editor_prompt(ctx->editor, "print_macro: Name?", NULL, &name);
+    if (!name) return MLE_OK;
+    HASH_FIND_STR(ctx->editor->macro_map, name, macro);
+    free(name);
+    if (!macro) MLE_RETURN_ERR(ctx->editor, "Macro not found%s", "");
+    for (i = 0; i < macro->inputs_len; i++) {
+        editor_input_to_key(&macro->inputs[i], key);
+        MLE_FOREACH_CURSOR(ctx->cursor) {
+            mark_insert_before(cursor->mark, key, strlen(key));
+            mark_insert_before(cursor->mark, " ", 1);
+        }
+    }
     return MLE_OK;
 }
 

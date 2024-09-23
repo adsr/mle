@@ -1090,6 +1090,18 @@ int editor_force_redraw(editor_t *editor) {
     return MLE_OK;
 }
 
+// Return a key name given a kinput. `keyname` must be allocated to at least
+// `MLE_MAX_KEYNAME_LEN + 1`. Return `MLE_ERR` if `input` doesn't represent a
+// valid input.
+int editor_input_to_key(kinput_t *input, char *keyname) {
+    struct tb_event ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.mod = input->mod;
+    ev.ch = input->ch;
+    ev.key = input->key;
+    return _editor_event_to_key(&ev, keyname);
+}
+
 // If input == editor->macro_toggle_key, toggle macro mode and return 1. Else
 // return 0.
 static int _editor_maybe_toggle_macro(editor_t *editor, kinput_t *input) {
@@ -1595,34 +1607,34 @@ static int _editor_key_to_input(char *key, kinput_t *ret_input) {
 // Return a key name given a key event
 static int _editor_event_to_key(struct tb_event *ev, char *ret_keyname) {
     char key[MLE_MAX_KEYNAME_LEN + 1];
+    memset(key, 0, sizeof(key));
+
     #define MLE_KEY_DEF(pkname, pmodmin, pmodadd, pch, pkey) \
         } else if (                                          \
             (((pch) && ev->ch == (pch))                      \
             || (!(pch) && ev->key == (pkey)))                \
             && (((pmodmin) & ev->mod) == (pmodmin))          \
         ) {                                                  \
-            if ((pmodadd)) ev->mod &= ~(pmodadd);            \
-            sprintf(key, (pkname));
+            snprintf(key, sizeof(key), (pkname));
     if (0) {
         return MLE_ERR;
         #include "keys.h"
-    } else {
-        memset(key, 0, sizeof(key));
+    } else if (ev->ch <= 0x10ffff && !(ev->ch >= 0xd800 && ev->ch <= 0xdfff)) {
+        if (ev->ch == 0) return MLE_ERR; // TODO: Support null-char input?
         tb_utf8_unicode_to_char(key, ev->ch);
+    } else {
+        return MLE_ERR; // No match for key and ch is not a valid codepoint
     }
     #undef MLE_KEY_DEF
-    if (ev->mod & TB_MOD_CTRL) {
-        *ret_keyname++ = 'C';
-    }
-    if (ev->mod & TB_MOD_ALT) {
-        *ret_keyname++ = 'M';
-    }
-    if (ev->mod & TB_MOD_SHIFT) {
-        *ret_keyname++ = 'S';
-    }
-    if (ev->mod & TB_MOD_CTRL || ev->mod & TB_MOD_ALT || ev->mod & TB_MOD_SHIFT) {
+
+    if (ev->mod & TB_MOD_CTRL)  *ret_keyname++ = 'C';
+    if (ev->mod & TB_MOD_ALT)   *ret_keyname++ = 'M';
+    if (ev->mod & TB_MOD_SHIFT) *ret_keyname++ = 'S';
+
+    if (ev->mod & (TB_MOD_CTRL | TB_MOD_ALT | TB_MOD_SHIFT)) {
         *ret_keyname++ = '-';
     }
+
     sprintf(ret_keyname, "%s", key);
     return MLE_OK;
 }
@@ -1736,6 +1748,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_perl", cmd_perl);
     _editor_register_cmd_fn(editor, "cmd_pop_kmap", cmd_pop_kmap);
     _editor_register_cmd_fn(editor, "cmd_prev", cmd_prev);
+    _editor_register_cmd_fn(editor, "cmd_print_macro", cmd_print_macro);
     _editor_register_cmd_fn(editor, "cmd_push_kmap", cmd_push_kmap);
     _editor_register_cmd_fn(editor, "cmd_quit", cmd_quit);
     _editor_register_cmd_fn(editor, "cmd_quit_without_saving", cmd_quit_without_saving);
@@ -1743,8 +1756,8 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_redraw", cmd_redraw);
     _editor_register_cmd_fn(editor, "cmd_remove_extra_cursors", cmd_remove_extra_cursors);
     _editor_register_cmd_fn(editor, "cmd_repeat", cmd_repeat);
-    _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
     _editor_register_cmd_fn(editor, "cmd_replace_all", cmd_replace_all);
+    _editor_register_cmd_fn(editor, "cmd_replace", cmd_replace);
     _editor_register_cmd_fn(editor, "cmd_rfind_word", cmd_rfind_word);
     _editor_register_cmd_fn(editor, "cmd_rsearch", cmd_rsearch);
     _editor_register_cmd_fn(editor, "cmd_save_as", cmd_save_as);
@@ -1896,6 +1909,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("cmd_apply_macro", "M-Z"),
         MLE_KBINDING_DEF("cmd_apply_macro_by", "M-M **"),
         MLE_KBINDING_DEF("cmd_apply_macro_last", "f6"),
+        MLE_KBINDING_DEF("cmd_print_macro", "M-<"),
         MLE_KBINDING_DEF("cmd_next", "M-n"),
         MLE_KBINDING_DEF("cmd_prev", "M-p"),
         MLE_KBINDING_DEF("cmd_last", "M-0"),

@@ -439,6 +439,7 @@ int editor_display(editor_t *editor);
 int editor_debug_dump(editor_t *editor, FILE *fp);
 int editor_force_redraw(editor_t *editor);
 int editor_set_input_mode(editor_t *editor);
+int editor_input_to_key(kinput_t *input, char *keyname);
 
 // bview functions
 bview_t *bview_get_split_root(bview_t *self);
@@ -558,6 +559,7 @@ int cmd_outdent(cmd_context_t *ctx);
 int cmd_perl(cmd_context_t *ctx);
 int cmd_pop_kmap(cmd_context_t *ctx);
 int cmd_prev(cmd_context_t *ctx);
+int cmd_print_macro(cmd_context_t *ctx);
 int cmd_push_kmap(cmd_context_t *ctx);
 int cmd_quit(cmd_context_t *ctx);
 int cmd_quit_without_saving(cmd_context_t *ctx);
@@ -565,8 +567,8 @@ int cmd_redo(cmd_context_t *ctx);
 int cmd_redraw(cmd_context_t *ctx);
 int cmd_remove_extra_cursors(cmd_context_t *ctx);
 int cmd_repeat(cmd_context_t *ctx);
-int cmd_replace(cmd_context_t *ctx);
 int cmd_replace_all(cmd_context_t *ctx);
+int cmd_replace(cmd_context_t *ctx);
 int cmd_rfind_word(cmd_context_t *ctx);
 int cmd_rsearch(cmd_context_t *ctx);
 int cmd_save_as(cmd_context_t *ctx);
