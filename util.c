@@ -275,7 +275,6 @@ int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *
     num_repls = 0;
     subj_len = strlen(subj);
     subj_offset = 0;
-    subj_offset_z = 0;
     subj_look_offset = 0;
     last_look_offset = 0;
     while (subj_offset < subj_len) {
