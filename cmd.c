@@ -1896,8 +1896,8 @@ static int _cmd_menu_ctag_cb(cmd_context_t *ctx) {
     }
     re += 2; // Skip leading `/^`
     re_len -= 2;
-    re[re_len-4] = '\0'; // Trunc trailing `$/;"`
     re_len -= 4;
+    re[re_len] = '\0'; // Trunc trailing `$/;"`
     util_pcre_replace("([\\.\\\\\\+\\*\\?\\^\\$\\[\\]\\(\\)\\{\\}\\=\\!\\>\\<\\|\\:\\-])", re, "\\\\$1", &qre, &qre_len);
     editor_close_bview(ctx->editor, ctx->bview, NULL);
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, fname, strlen(fname), 1, 0, 0, NULL, &bview);
