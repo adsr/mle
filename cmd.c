@@ -1618,7 +1618,6 @@ static int _cmd_save(editor_t *editor, bview_t *bview, int save_as) {
     struct stat st;
     bint_t nbytes;
 
-    fname_changed = 0;
     do {
         if (!bview->buffer->path || save_as) {
             // Prompt for name
