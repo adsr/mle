@@ -520,7 +520,6 @@ int cmd_replace_all(cmd_context_t *ctx) {
     cancelled = 0;
     regex = NULL;
     replacement = NULL;
-    num_bviews = 0;
     CDL_COUNT2(ctx->editor->all_bviews, bview, num_bviews, all_next);
     buffer_done = calloc(num_bviews, sizeof(buffer_t *));
     buffer_done_i = 0;
@@ -1619,7 +1618,6 @@ static int _cmd_save(editor_t *editor, bview_t *bview, int save_as) {
     struct stat st;
     bint_t nbytes;
 
-    fname_changed = 0;
     do {
         if (!bview->buffer->path || save_as) {
             // Prompt for name
@@ -1900,8 +1898,8 @@ static int _cmd_menu_ctag_cb(cmd_context_t *ctx) {
     }
     re += 2; // Skip leading `/^`
     re_len -= 2;
-    re[re_len-4] = '\0'; // Trunc trailing `$/;"`
     re_len -= 4;
+    re[re_len] = '\0'; // Trunc trailing `$/;"`
     util_pcre_replace("([\\.\\\\\\+\\*\\?\\^\\$\\[\\]\\(\\)\\{\\}\\=\\!\\>\\<\\|\\:\\-])", re, "\\\\$1", &qre, &qre_len);
     editor_close_bview(ctx->editor, ctx->bview, NULL);
     editor_open_bview(ctx->editor, NULL, MLE_BVIEW_TYPE_EDIT, fname, strlen(fname), 1, 0, 0, NULL, &bview);

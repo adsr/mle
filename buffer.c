@@ -56,9 +56,8 @@ buffer_t *buffer_new(void) {
 // Wrapper for buffer_new + buffer_open
 buffer_t *buffer_new_open(char *path) {
     buffer_t *self;
-    int rc;
     self = buffer_new();
-    if ((rc = buffer_open(self, path)) != MLBUF_OK) {
+    if (buffer_open(self, path) != MLBUF_OK) {
         buffer_destroy(self);
         return NULL;
     }
@@ -1481,7 +1480,6 @@ static int _buffer_apply_styles_all(bline_t *bline, bint_t min_nlines) {
     open_rule = bline->prev ? bline->prev->eol_rule : NULL;
     styled_nlines = 0;
     col = 0;
-    eol_rule_changed = 0;
 
     _buffer_bline_reset_styles(bline);
 
