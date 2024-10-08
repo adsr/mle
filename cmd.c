@@ -521,7 +521,6 @@ int cmd_replace_all(cmd_context_t *ctx) {
     cancelled = 0;
     regex = NULL;
     replacement = NULL;
-    num_bviews = 0;
     CDL_COUNT2(ctx->editor->all_bviews, bview, num_bviews, all_next);
     buffer_done = calloc(num_bviews, sizeof(buffer_t *));
     buffer_done_i = 0;
