@@ -1481,7 +1481,6 @@ static int _buffer_apply_styles_all(bline_t *bline, bint_t min_nlines) {
     open_rule = bline->prev ? bline->prev->eol_rule : NULL;
     styled_nlines = 0;
     col = 0;
-    eol_rule_changed = 0;
 
     _buffer_bline_reset_styles(bline);
 
