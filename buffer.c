@@ -56,9 +56,8 @@ buffer_t *buffer_new(void) {
 // Wrapper for buffer_new + buffer_open
 buffer_t *buffer_new_open(char *path) {
     buffer_t *self;
-    int rc;
     self = buffer_new();
-    if ((rc = buffer_open(self, path)) != MLBUF_OK) {
+    if (buffer_open(self, path) != MLBUF_OK) {
         buffer_destroy(self);
         return NULL;
     }
