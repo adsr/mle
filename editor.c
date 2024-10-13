@@ -1504,6 +1504,10 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
     }
 
     // Look for input
+    if (!node) {
+        return NULL;
+    }
+
     HASH_FIND(hh, node->children, input, sizeof(kinput_t), binding);
     if (binding) {
         return binding;
