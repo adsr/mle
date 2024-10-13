@@ -702,6 +702,10 @@ int buffer_get_bline_w_hint(buffer_t *self, bint_t line_index, bline_t *opt_hint
 
     if (!opt_hint) {
         opt_hint = self->first_line;
+        if (!opt_hint) { // Satisfy scan-build lint
+            *ret_bline = NULL;
+            return MLBUF_ERR;
+        }
     }
 
     fwd = opt_hint;
@@ -1406,10 +1410,12 @@ static int _buffer_redo(buffer_t *self, int by_group) {
         // Get line to perform undo on
         bline = NULL;
         buffer_get_bline(self, action_to_redo->start_line_index, &bline);
-        MLBUF_BLINE_ENSURE_CHARS(bline);
         if (!bline) {
             return MLBUF_ERR;
-        } else if (action_to_redo->start_col > bline->char_count) {
+        }
+
+        MLBUF_BLINE_ENSURE_CHARS(bline);
+        if (action_to_redo->start_col > bline->char_count) {
             return MLBUF_ERR;
         }
 
