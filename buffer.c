@@ -701,7 +701,8 @@ int buffer_get_bline_w_hint(buffer_t *self, bint_t line_index, bline_t *opt_hint
     MLBUF_MAKE_GT_EQ0(line_index);
 
     if (!opt_hint) {
-        opt_hint = self->first_line;
+        *ret_bline = NULL;
+        return MLBUF_ERR;
     }
 
     fwd = opt_hint;
@@ -1406,6 +1407,11 @@ static int _buffer_redo(buffer_t *self, int by_group) {
         // Get line to perform undo on
         bline = NULL;
         buffer_get_bline(self, action_to_redo->start_line_index, &bline);
+
+        if (!bline){
+            return MLBUF_ERR;
+        }
+
         MLBUF_BLINE_ENSURE_CHARS(bline);
         if (!bline) {
             return MLBUF_ERR;
