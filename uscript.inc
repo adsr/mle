@@ -1353,21 +1353,6 @@ static int _uscript_func_editor_close_bview(lua_State *L) {
     return 1;
 }
 
-static int _uscript_func_editor_count_bviews_by_buffer(lua_State *L) {
-    int rv;
-    editor_t *editor;
-    buffer_t *buffer;
-    editor = (editor_t *)luaL_checkpointer(L, 1);
-    buffer = (buffer_t *)luaL_checkpointer(L, 2);
-    rv = editor_count_bviews_by_buffer(editor, buffer);
-    lua_createtable(L, 0, 1);
-    lua_pushstring(L, "rv");
-    lua_pushinteger(L, (lua_Integer)rv);
-    lua_settable(L, -3);
-    lua_pushvalue(L, -1);
-    return 1;
-}
-
 static int _uscript_func_editor_destroy_observer(lua_State *L) {
     int rv;
     editor_t *editor;
@@ -2636,7 +2621,6 @@ static const struct luaL_Reg mle_lib[] = {
     { "cursor_uncut", _uscript_func_cursor_uncut },
     { "editor_bview_edit_count", _uscript_func_editor_bview_edit_count },
     { "editor_close_bview", _uscript_func_editor_close_bview },
-    { "editor_count_bviews_by_buffer", _uscript_func_editor_count_bviews_by_buffer },
     { "editor_destroy_observer", _uscript_func_editor_destroy_observer },
     { "editor_display", _uscript_func_editor_display },
     { "editor_force_redraw", _uscript_func_editor_force_redraw },

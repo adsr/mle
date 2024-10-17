@@ -521,17 +521,6 @@ int editor_bview_edit_count(editor_t *editor) {
     return count;
 }
 
-// Return number of bviews displaying buffer
-int editor_count_bviews_by_buffer(editor_t *editor, buffer_t *buffer) {
-    int count;
-    bview_t *bview;
-    count = 0;
-    CDL_FOREACH2(editor->all_bviews, bview, all_next) {
-        if (bview->buffer == buffer) count += 1;
-    }
-    return count;
-}
-
 // Register a command
 static int _editor_register_cmd_fn(editor_t *editor, char *name, int (*func)(cmd_context_t *ctx)) {
     cmd_t cmd = {0};

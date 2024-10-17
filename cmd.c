@@ -54,6 +54,7 @@ static void _cmd_get_input(cmd_context_t *ctx, kinput_t *ret_input);
 static int _cmd_fsearch_inner(cmd_context_t *ctx, char *shell_cmd);
 static int _cmd_get_char_param(cmd_context_t *ctx, char *ret_ch);
 static int _cmd_move_page_y(cmd_context_t *ctx, int full_y, int is_up);
+static int _cmd_pre_close_ok_to_close_bview(editor_t *editor, bview_t *bview);
 
 // Insert data
 int cmd_insert_data(cmd_context_t *ctx) {
@@ -1567,7 +1568,6 @@ static int _cmd_indent_line(bline_t *bline, int use_tabs, int outdent) {
     return MLE_OK;
 }
 
-
 // Recursively close bviews, prompting to save unsaved changes. Return MLE_OK if
 // it's OK to continue closing, or MLE_ERR if the action was cancelled.
 static int _cmd_quit_inner(editor_t *editor, bview_t *bview) {
@@ -1589,9 +1589,7 @@ static int _cmd_pre_close(editor_t *editor, bview_t *bview) {
         MLE_RETURN_ERR(editor, "Cannot close non-edit bview %p", (void*)bview);
     } else if (editor->loop_depth > 1) {
         MLE_RETURN_ERR(editor, "Cannot close bview %p when loop_depth > 1", (void*)bview);
-    } else if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)
-        || editor_count_bviews_by_buffer(editor, bview->buffer) > 1
-    ) {
+    } else if (_cmd_pre_close_ok_to_close_bview(editor, bview)) {
         return MLE_OK;
     }
 
@@ -2224,4 +2222,19 @@ static int _cmd_move_page_y(cmd_context_t *ctx, int full_y, int is_up) {
     MLE_FOREACH_CURSOR_MARK_FN(ctx->cursor, mark_move_vert, y);
     viewport_fn(ctx->bview);
     return MLE_OK;
+}
+
+// Return 1 if OK to close bview immediately without prompting to save
+static int _cmd_pre_close_ok_to_close_bview(editor_t *editor, bview_t *bview) {
+    bview_t *tmp;
+    if (!bview->buffer->is_unsaved || MLE_BVIEW_IS_MENU(bview)) {
+        return 1; // OK to close saved bviews, and menus
+    }
+    tmp = bview->split_parent;
+    while (tmp) {
+        // OK to close if a split_parent has buffer open
+        if (tmp->buffer == bview->buffer) return 1;
+        tmp = tmp->split_parent;
+    }
+    return 0;
 }

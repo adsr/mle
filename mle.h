@@ -429,7 +429,6 @@ int editor_open_bview(editor_t *editor, bview_t *opt_parent, int type, char *opt
 int editor_close_bview(editor_t *editor, bview_t *bview, int *optret_num_closed);
 int editor_set_active(editor_t *editor, bview_t *bview);
 int editor_bview_edit_count(editor_t *editor);
-int editor_count_bviews_by_buffer(editor_t *editor, buffer_t *buffer);
 int editor_register_cmd(editor_t *editor, cmd_t *cmd);
 int editor_register_observer(editor_t *editor, char *event_patt, void *udata, observer_func_t fn_callback, observer_t **optret_observer);
 int editor_notify_observers(editor_t *editor, char *event_name, void *event_data);
