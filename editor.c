@@ -647,7 +647,9 @@ static int _editor_close_bview_inner(editor_t *editor, bview_t *bview, int *optr
     if (!bview->split_parent) {
         DL_DELETE2(editor->top_bviews, bview, top_prev, top_next);
     }
-    CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
+    if (bview->all_next && bview->all_prev) {
+        CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
+    }
     bview_destroy(bview);
     if (optret_num_closed) *optret_num_closed += 1;
     return MLE_OK;
