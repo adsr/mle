@@ -2276,7 +2276,13 @@ static void _editor_init_syntax_add_rule(syntax_t *syntax, srule_def_t *def) {
     } else {
         node->srule = srule_new_single(def->re, strlen(def->re), 0, def->fg, def->bg);
     }
-    if (node->srule) DL_APPEND(syntax->srules, node);
+
+    if (node->srule){ 
+        DL_APPEND(syntax->srules, node);
+        return;
+    }
+
+    free(node);
 }
 
 // Proxy for _editor_init_syntax_add_rule with str in format '<start>,<end>,<fg>,<bg>' or '<regex>,<fg>,<bg>'
