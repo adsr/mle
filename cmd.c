@@ -522,6 +522,7 @@ int cmd_replace_all(cmd_context_t *ctx) {
     regex = NULL;
     replacement = NULL;
     CDL_COUNT2(ctx->editor->all_bviews, bview, num_bviews, all_next);
+    if (num_bviews <= 0) return MLE_OK;
     buffer_done = calloc(num_bviews, sizeof(buffer_t *));
     buffer_done_i = 0;
 
