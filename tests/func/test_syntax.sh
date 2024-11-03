@@ -73,3 +73,20 @@ expected[style_sc_b]='<ch=98 fg=7\b'
 not_expected[style_sc_not_a]='<ch=97 fg=(0|7)\b'
 not_expected[style_sc_not_b]='<ch=98 fg=(0|260)\b'
 source 'test.sh'
+
+cat >$tmpf <<"EOD"
+aaa "bbb" // ccc "ccc"
+aaa "bbb" # ccc "ccc"
+EOD
+extra_opts=(-yy $tmpf)
+macro=''
+declare -A expected
+declare -A not_expected
+# a==97 b==98 c==99
+expected[style_a]='<ch=97 fg=0\b'
+expected[style_b]='<ch=98 fg=260\b'
+expected[style_c]='<ch=99 fg=7\b'
+not_expected[style_not_a]='<ch=97 fg=(260|7)\b'
+not_expected[style_not_b]='<ch=98 fg=(0|7)\b'
+not_expected[style_not_c]='<ch=99 fg=(0|260)\b'
+source 'test.sh'
