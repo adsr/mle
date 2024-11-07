@@ -275,7 +275,6 @@ int util_pcre_replace(char *re, char *subj, char *repl, char **ret_result, int *
     num_repls = 0;
     subj_len = strlen(subj);
     subj_offset = 0;
-    subj_offset_z = 0;
     subj_look_offset = 0;
     last_look_offset = 0;
     while (subj_offset < subj_len) {
@@ -533,9 +532,9 @@ void str_sprintf(str_t *str, const char *fmt, ...) {
 void str_put_len(str_t *str, char *data, size_t data_len, int is_prepend) {
     size_t req_cap;
     req_cap = str->len + data_len + 1;
-    if (req_cap > str->cap) {
-        str_ensure_cap(str, req_cap);
-    }
+
+    str_ensure_cap(str, req_cap);
+
     if (is_prepend) {
         memmove(str->data + data_len, str->data, str->len);
         memcpy(str->data, data, data_len);
@@ -548,7 +547,7 @@ void str_put_len(str_t *str, char *data, size_t data_len, int is_prepend) {
 
 // Ensure space in str
 void str_ensure_cap(str_t *str, size_t cap) {
-    if (cap > str->cap) {
+    if (!str->data || cap > str->cap) {
         if (str->inc >= 0) {
             // If inc is positive, grow linearly
             cap = MLBUF_MAX(cap, str->cap + (str->inc > 0 ? str->inc : 128));

@@ -636,7 +636,9 @@ static int _editor_close_bview_inner(editor_t *editor, bview_t *bview, int *optr
     if (!bview->split_parent) {
         DL_DELETE2(editor->top_bviews, bview, top_prev, top_next);
     }
-    CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
+    if (bview->all_next && bview->all_prev) {
+        CDL_DELETE2(editor->all_bviews, bview, all_prev, all_next);
+    }
     bview_destroy(bview);
     if (optret_num_closed) *optret_num_closed += 1;
     return MLE_OK;
@@ -1503,8 +1505,14 @@ static kbinding_t *_editor_get_kbinding_node(kbinding_t *node, kinput_t *input, 
         }
     }
 
+    
     // Look for input
+    if (!node){
+        return NULL;
+    }
+
     HASH_FIND(hh, node->children, input, sizeof(kinput_t), binding);
+
     if (binding) {
         return binding;
     }
@@ -2257,7 +2265,13 @@ static void _editor_init_syntax_add_rule(syntax_t *syntax, srule_def_t *def) {
     } else {
         node->srule = srule_new_single(def->re, strlen(def->re), 0, def->fg, def->bg);
     }
-    if (node->srule) DL_APPEND(syntax->srules, node);
+
+    if (node->srule){ 
+        DL_APPEND(syntax->srules, node);
+        return;
+    }
+
+    free(node);
 }
 
 // Proxy for _editor_init_syntax_add_rule with str in format '<start>,<end>,<fg>,<bg>' or '<regex>,<fg>,<bg>'

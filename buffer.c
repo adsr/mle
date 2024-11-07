@@ -56,9 +56,8 @@ buffer_t *buffer_new(void) {
 // Wrapper for buffer_new + buffer_open
 buffer_t *buffer_new_open(char *path) {
     buffer_t *self;
-    int rc;
     self = buffer_new();
-    if ((rc = buffer_open(self, path)) != MLBUF_OK) {
+    if (buffer_open(self, path) != MLBUF_OK) {
         buffer_destroy(self);
         return NULL;
     }
@@ -702,7 +701,8 @@ int buffer_get_bline_w_hint(buffer_t *self, bint_t line_index, bline_t *opt_hint
     MLBUF_MAKE_GT_EQ0(line_index);
 
     if (!opt_hint) {
-        opt_hint = self->first_line;
+        *ret_bline = NULL;
+        return MLBUF_ERR;
     }
 
     fwd = opt_hint;
@@ -1407,6 +1407,11 @@ static int _buffer_redo(buffer_t *self, int by_group) {
         // Get line to perform undo on
         bline = NULL;
         buffer_get_bline(self, action_to_redo->start_line_index, &bline);
+
+        if (!bline){
+            return MLBUF_ERR;
+        }
+
         MLBUF_BLINE_ENSURE_CHARS(bline);
         if (!bline) {
             return MLBUF_ERR;
@@ -1481,7 +1486,6 @@ static int _buffer_apply_styles_all(bline_t *bline, bint_t min_nlines) {
     open_rule = bline->prev ? bline->prev->eol_rule : NULL;
     styled_nlines = 0;
     col = 0;
-    eol_rule_changed = 0;
 
     _buffer_bline_reset_styles(bline);
 
