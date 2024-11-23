@@ -1998,6 +1998,7 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF("_editor_prompt_input_submit", "C-c"),
         MLE_KBINDING_DEF("_editor_prompt_input_submit", "C-x"),
         MLE_KBINDING_DEF("_editor_prompt_input_submit", "M-c"),
+        MLE_KBINDING_DEF("_editor_prompt_history_up", "C-r"),
         MLE_KBINDING_DEF("_editor_prompt_history_up", "C-p"),
         MLE_KBINDING_DEF("_editor_prompt_history_down", "C-n"),
         MLE_KBINDING_DEF(NULL, NULL)
