@@ -75,6 +75,7 @@ not_expected[style_sc_not_b]='<ch=98 fg=(0|260)\b'
 source 'test.sh'
 
 cat >$tmpf <<"EOD"
+# ccc
 aaa "bbb" // ccc "ccc"
 aaa "bbb" # ccc "ccc"
 EOD

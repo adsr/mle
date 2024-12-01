@@ -2187,7 +2187,7 @@ static void _editor_init_syntaxes(editor_t *editor) {
         { "`([^`\\\\]|\\\\.)*`",                       NULL,              TB_YELLOW | TB_BOLD,     TB_DEFAULT },
         { "/\\*",                                      "\\*/",            TB_CYAN,                 TB_DEFAULT },
         { "//.*$",                                     NULL,              TB_CYAN,                 TB_DEFAULT },
-        { "(?<=\\s)#\\s.*$",                           NULL,              TB_CYAN,                 TB_DEFAULT },
+        { "(?<=(\\s|^))#\\s.*$",                       NULL,              TB_CYAN,                 TB_DEFAULT },
         { "^#!/.*$",                                   NULL,              TB_CYAN,                 TB_DEFAULT },
         { "[(){}<>\\[\\].,;:?!+=/\\\\%^*-]",           NULL,              TB_RED | TB_BOLD,        TB_DEFAULT },
         { "(?<!\\w)[\\%@$][a-zA-Z_$][a-zA-Z0-9_]*\\b", NULL,              TB_GREEN,                TB_DEFAULT },
