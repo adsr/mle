@@ -55,10 +55,10 @@ test: mle $(mle_unit_tests)
 	./mle -v && export MLE=$$(pwd)/mle && $(MAKE) -C tests
 
 sloc:
-	find . -name '*.c' -or -name '*.h' | \
-		grep -Pv '(termbox|test|ut|lua)' | \
-		xargs -rn1 cat | \
-		wc -l
+	find . -maxdepth 1 \
+		'(' -name '*.c' -or -name '*.h' ')' \
+		-not -name 'termbox2.h' \
+		-exec cat {} ';' | wc -l
 
 install: mle
 	install -v -d $(DESTDIR)$(prefix)/bin

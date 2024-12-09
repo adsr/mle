@@ -24,7 +24,7 @@ Runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 
 ### Features
 
-* Small codebase (~11k SLOC)
+* Small codebase (~12k SLOC)
 * Full UTF-8 support
 * Syntax highlighting
 * Stackable key maps (modes)
