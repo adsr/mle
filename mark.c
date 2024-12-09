@@ -17,7 +17,7 @@ static char *mark_find_prev_cre_matchfn(char *haystack, bint_t haystack_len, bin
 pcre2_match_data *pcre2_md = NULL;
 static PCRE2_SIZE *pcre_ovector = NULL;
 static int pcre_ovector_size = 0;
-static int *pcre_rc;
+static int *pcre_rc = NULL;
 static char bracket_pairs[8] = {
     '[', ']',
     '(', ')',
@@ -600,7 +600,7 @@ int mark_is_at_word_bound(mark_t *self, int side) {
 // Set ovector for capturing substrs
 int mark_set_pcre_capture(int *rc, PCRE2_SIZE *ovector, int ovector_size) {
     if (rc == NULL || ovector == NULL || ovector_size == 0) {
-        rc = NULL;
+        pcre_rc = NULL;
         pcre_ovector = NULL;
         pcre_ovector_size = 0;
         return MLBUF_OK;
