@@ -466,7 +466,7 @@ int mark_destroy(mark_t *self) {
         return MLBUF_OK; \
     } \
     return rc; \
-} while(0)
+} while (0)
 
 #define MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(mark, findfn, ...) do { \
     int rc; \
@@ -477,7 +477,7 @@ int mark_destroy(mark_t *self) {
         _mark_mark_move_inner((mark), line, col, 1); \
     } \
     return rc; \
-} while(0)
+} while (0)
 
 #define MLBUF_MARK_IMPLEMENT_NUDGE_VIA_FIND(mark, findfn, ...) do { \
     int rc; \
@@ -492,7 +492,7 @@ int mark_destroy(mark_t *self) {
     } \
     mark_destroy(tmark); \
     return rc; \
-} while(0)
+} while (0)
 
 int mark_move_next_str(mark_t *self, char *str, bint_t str_len) {
     MLBUF_MARK_IMPLEMENT_MOVE_VIA_FIND(self, mark_find_next_str, str, str_len);

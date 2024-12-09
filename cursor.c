@@ -396,7 +396,7 @@ int cursor_replace_ex(cursor_t *cursor, int interactive, char *opt_regex, char *
                 break;
             }
         }
-    } while(0);
+    } while (0);
 
     if (cursor->is_anchored && lo_mark && hi_mark) {
         mark_join(cursor->mark, anchored_before ? hi_mark : lo_mark);

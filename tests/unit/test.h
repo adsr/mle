@@ -24,4 +24,4 @@ extern void test(buffer_t *buf, mark_t *cur);
         printf("  \x1b[31mERR \x1b[0m %s expected=%" PRIdPTR " observed=%" PRIdPTR "\n", (testname), (intptr_t)(expected), (intptr_t)(observed)); \
         exit(EXIT_FAILURE); \
     } \
-} while(0);
+} while (0);

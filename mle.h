@@ -690,7 +690,7 @@ extern editor_t _editor;
     (pi).mod = (pmod); \
     (pi).ch = (pch); \
     (pi).key = (pkey); \
-} while(0)
+} while (0)
 #define MLE_KINPUT_SET(pi, pmod, pch, pkey) MLE_KINPUT_SET_EX(pi, 0x00, pmod, pch, pkey)
 #define MLE_KINPUT_SET_SPECIAL(pi, pmod)    MLE_KINPUT_SET_EX(pi, 0xff, pmod, 0xffffffff, 0xffff)
 #define MLE_KINPUT_SET_NUMERIC(pi)          MLE_KINPUT_SET_SPECIAL(pi, 0x40)

@@ -108,7 +108,7 @@ int buffer_open(buffer_t *self, char *path) {
             }
         }
         self->is_in_open = 0;
-    } while(0);
+    } while (0);
 
     if (fd >= 0) close(fd);
 
@@ -184,7 +184,7 @@ int buffer_write_to_fd(buffer_t *self, int fd, size_t *optret_nbytes) {
             return MLBUF_ERR; \
         } \
         nbytes += write_rc; \
-    } while(0)
+    } while (0)
     for (bline = self->first_line; bline; bline = bline->next) {
         if (bline->data_len > 0) MLBUF_BUFFER_WRITE_CHECK(bline->data, bline->data_len);
         if (bline->next)         MLBUF_BUFFER_WRITE_CHECK("\n", 1);

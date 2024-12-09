@@ -162,7 +162,7 @@ int editor_init(editor_t *editor, int argc, char **argv) {
         // Init terminal
         rv = _editor_init_term(editor);
         if (rv != MLE_OK) break;
-    } while(0);
+    } while (0);
 
     editor->is_in_init = 0;
     return rv;

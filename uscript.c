@@ -7,7 +7,7 @@
     lua_getglobal((pl), MLE_USCRIPT_KEY); \
     (pu) = luaL_optpointer((pl), -1, NULL); \
     if (!(pu)) return 0; \
-} while(0)
+} while (0)
 
 #define luaL_pushkey(pL, pt, pk, pv) do { \
     lua_pushstring((pL), (pk)); \

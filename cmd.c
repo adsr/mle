@@ -12,7 +12,7 @@
         if (cursor->is_asleep) continue; \
         pfn(cursor->mark, __VA_ARGS__); \
     } \
-} while(0)
+} while (0)
 
 #define MLE_FOREACH_CURSOR_MARK_FN_NO_ARGS(pcursor, pfn) do { \
     cursor_t *cursor; \
@@ -20,7 +20,7 @@
         if (cursor->is_asleep) continue; \
         pfn(cursor->mark); \
     } \
-} while(0)
+} while (0)
 
 #define MLE_FOREACH_CURSOR_EX(pcursor, pctmp) \
     DL_FOREACH((pcursor)->bview->cursors, (pctmp)) \
@@ -1287,7 +1287,7 @@ int cmd_jump(cmd_context_t *ctx) {
         if (jumpt >= 0 && jumpt < jumpi) {
             mark_move_to_w_bline(ctx->cursor->mark, jumps[jumpt].bline, jumps[jumpt].col);
         }
-    } while(0);
+    } while (0);
 
     // Cleanup
     free(jumps);
@@ -1401,7 +1401,7 @@ int cmd_less(cmd_context_t *ctx) {
         }
         mark_move_to(ctx->cursor->mark, (line_top) + ctx->bview->rect_buffer.h/2, 0);
         bview_center_viewport_y(ctx->bview);
-    } while(0);
+    } while (0);
 
     if (tmp_buf_fd >= 0) {
         close(tmp_buf_fd);
@@ -2092,7 +2092,7 @@ static void _cmd_insert_auto_indent_closing_bracket(cmd_context_t *ctx) {
             // Outdent one tab
             bline_delete(ctx->cursor->mark->bline, 0, 1);
         }
-    } while(0);
+    } while (0);
     mark_insert_before(ctx->cursor->mark, "}", 1);
     if (this_line) free(this_line);
     if (prev_line) free(prev_line);
