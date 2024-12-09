@@ -717,18 +717,14 @@ TODO major changes
 [ ] rewrite kmap (complex/unreadable; ** and ## sucks; kinput as hash key sucks; consolidate input_trail + pastebuf)
 [ ] rewrite/generalize aproc+menu (too tightly coupled; a better solution possibly supersedes dte's errorfmt/compile)
 [ ] rewrite buffer_set_mmapped to avoid huge mallocs
-TODO bugs
-[ ] buffer->byte_count != sum(bline->data_len), observed once and cannot repro
 TODO review
 [ ] review error checking, esp catch ENOSPC, malloc fail
 TODO new features/improvements
 [ ] make color_col per bview
-[ ] save macro as flags
 [ ] nested macros
 [ ] add cmd_tabulate
 [ ] replace mark_set_pcre_capture with mark local
 [ ] use editor prompt history when bview prompt history is empty
-[ ] improve isearch kmap (next/prev history)
 [ ] add last cmd status indicator
 [ ] check if buffer exists by inode instead of path
 [ ] move single-use macros out of mle.h
