@@ -72,15 +72,11 @@ int mark_replace(mark_t *self, bint_t num_chars, char *data, bint_t data_len) {
 
 // Replace data between marks
 int mark_replace_between(mark_t *self, mark_t *other, char *data, bint_t data_len) {
-    bint_t offset_a;
-    bint_t offset_b;
-    // TODO More efficient buffer_replace_w_bline_and_end
-    buffer_get_offset(self->bline->buffer, self->bline, self->col, &offset_a);
-    buffer_get_offset(other->bline->buffer, other->bline, other->col, &offset_b);
-    if (offset_a < offset_b) {
-        return buffer_replace(self->bline->buffer, offset_a, offset_b - offset_a, data, data_len);
-    }
-    return buffer_replace(self->bline->buffer, offset_b, offset_a - offset_b, data, data_len);
+    bint_t nchars;
+    mark_t *a, *b;
+    mark_cmp(self, other, &a, &b);
+    mark_get_nchars_between(a, b, &nchars);
+    return bline_replace(a->bline, a->col, nchars, data, data_len);
 }
 
 // Move mark to bline:col
@@ -364,17 +360,11 @@ int mark_find_bracket_pair(mark_t *self, bint_t max_chars, bline_t **ret_line, b
 
 // Delete data between self and other
 int mark_delete_between(mark_t *self, mark_t *other) {
-    bint_t offset_a;
-    bint_t offset_b;
-    // TODO More efficient buffer_replace_w_bline_and_end
-    buffer_get_offset(self->bline->buffer, self->bline, self->col, &offset_a);
-    buffer_get_offset(other->bline->buffer, other->bline, other->col, &offset_b);
-    if (offset_a == offset_b) {
-        return MLBUF_OK;
-    } else if (offset_a > offset_b) {
-        return buffer_delete(self->bline->buffer, offset_b, offset_a - offset_b);
-    }
-    return buffer_delete(self->bline->buffer, offset_a, offset_b - offset_a);
+    bint_t nchars;
+    mark_t *a, *b;
+    mark_cmp(self, other, &a, &b);
+    mark_get_nchars_between(a, b, &nchars);
+    return bline_delete(a->bline, a->col, nchars);
 }
 
 // Return data between self and other
