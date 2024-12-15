@@ -353,6 +353,7 @@ int cursor_replace_ex(cursor_t *cursor, int interactive, char *opt_regex, char *
         }
         while (1) {
             pcre_rc = 0;
+            // TODO compile regex
             if (mark_find_next_re(search_mark, regex, strlen(regex), &bline, &col, &char_count) == MLBUF_OK
                 && (mark_move_to(search_mark, bline->line_index, col) == MLBUF_OK)
                 && (mark_is_gte(search_mark, lo_mark))
@@ -377,14 +378,19 @@ int cursor_replace_ex(cursor_t *cursor, int interactive, char *opt_regex, char *
                     srule_destroy(highlight);
                     bview_draw(cursor->bview);
                 }
+                // TODO can be more efficient
                 if (!yn) {
                     if (optret_cancelled) *optret_cancelled = 1;
                     break;
                 } else if (0 == strcmp(yn, MLE_PROMPT_YES) || 0 == strcmp(yn, MLE_PROMPT_ALL)) {
                     str_append_replace_with_backrefs(&repl_backref, search_mark->bline->data, replacement, pcre_rc, pcre_ovector, 30);
-                    mark_replace_between(search_mark, search_mark_end, repl_backref.data, repl_backref.len);
+                    if (mark_is_eq(search_mark, search_mark_end) && repl_backref.len <= 0) {
+                        mark_move_by(search_mark, 1);
+                    } else {
+                        mark_replace_between(search_mark, search_mark_end, repl_backref.data, repl_backref.len);
+                        num_replacements += 1;
+                    }
                     str_free(&repl_backref);
-                    num_replacements += 1;
                     if (0 == strcmp(yn, MLE_PROMPT_ALL)) all = 1;
                 } else {
                     mark_move_by(search_mark, 1);

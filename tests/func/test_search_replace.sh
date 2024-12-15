@@ -112,3 +112,9 @@ expected[replace_all_2_1]='^1a$'
 expected[replace_all_2_2]='^b2$'
 expected[replace_all_2_3]='^3c$'
 source 'test.sh'
+
+# cmd_replace_all (avoid infinite replacement)
+macro='a enter C-t ^ enter enter a'
+declare -A expected
+expected[replace_no_inf_loop]='^a$'
+source 'test.sh'
