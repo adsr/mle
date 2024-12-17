@@ -5,7 +5,7 @@ mle_ldflags:=$(LDFLAGS)
 mle_dynamic_libs:=-lpcre2-8 -llua5.4
 mle_static_libs:=vendor/pcre2/libpcre2-8.a vendor/lua/liblua5.4.a
 mle_ldlibs:=-lm $(LDLIBS)
-mle_objects:=$(patsubst %.c,%.o,$(wildcard *.c))
+mle_objects:=$(patsubst %.c,%.o,$(filter-out %.inc.c,$(wildcard *.c)))
 mle_objects_no_main:=$(filter-out main.o,$(mle_objects))
 mle_func_tests:=$(wildcard tests/func/test_*.sh))
 mle_unit_tests:=$(patsubst %.c,%,$(wildcard tests/unit/test_*.c))
@@ -65,7 +65,7 @@ install: mle
 	install -v -m 755 mle $(DESTDIR)$(prefix)/bin/mle
 
 uscript:
-	php uscript.inc.php >uscript.inc
+	php uscript.inc.php >uscript.inc.c
 
 clean_quick:
 	rm -f mle $(mle_objects) $(mle_unit_test_objects) $(mle_unit_tests) $(mle_unit_test_all)

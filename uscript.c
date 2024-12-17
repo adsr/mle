@@ -47,7 +47,7 @@ static void lua_pushpointer(lua_State *L, void *ptr);
 static int luaL_checkfunction(lua_State *L, int arg);
 static int luaopen_mle(lua_State *L);
 
-#include "uscript.inc"
+#include "uscript.inc.c"
 
 // Run uscript
 uscript_t *uscript_run(editor_t *editor, char *path) {
