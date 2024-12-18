@@ -1778,11 +1778,11 @@ int tb_extend_cell(int x, int y, uint32_t ch) {
     if_err_return(rv, cellbuf_get(&global.back, x, y, &cell));
     if (cell->nech > 0) { // append to ech
         nech = cell->nech + 1;
-        if_err_return(rv, cell_reserve_ech(cell, nech));
+        if_err_return(rv, cell_reserve_ech(cell, nech + 1));
         cell->ech[nech - 1] = ch;
     } else { // make new ech
         nech = 2;
-        if_err_return(rv, cell_reserve_ech(cell, nech));
+        if_err_return(rv, cell_reserve_ech(cell, nech + 1));
         cell->ech[0] = cell->ch;
         cell->ech[1] = ch;
     }
@@ -1869,7 +1869,7 @@ int tb_print(int x, int y, uintattr_t fg, uintattr_t bg, const char *str) {
 
 int tb_print_ex(int x, int y, uintattr_t fg, uintattr_t bg, size_t *out_w,
     const char *str) {
-    int rv, w, ix;
+    int rv, w, ix, x_prev;
     uint32_t uni;
 
     if_not_init_return();
@@ -1879,6 +1879,7 @@ int tb_print_ex(int x, int y, uintattr_t fg, uintattr_t bg, size_t *out_w,
     }
 
     ix = x;
+    x_prev = x;
     if (out_w) *out_w = 0;
 
     while (*str) {
@@ -1895,6 +1896,7 @@ int tb_print_ex(int x, int y, uintattr_t fg, uintattr_t bg, size_t *out_w,
 
         if (uni == '\n') { // TODO: \r, \t, \v, \f, etc?
             x = ix;
+            x_prev = x;
             y += 1;
             continue;
         } else if (!iswprint((wint_t)uni)) {
@@ -1905,17 +1907,17 @@ int tb_print_ex(int x, int y, uintattr_t fg, uintattr_t bg, size_t *out_w,
         if (w < 0) {
             return TB_ERR;   // shouldn't happen if iswprint
         } else if (w == 0) { // combining character
-            if (cellbuf_in_bounds(&global.back, x - 1, y)) {
-                if_err_return(rv, tb_extend_cell(x - 1, y, uni));
+            if (cellbuf_in_bounds(&global.back, x_prev, y)) {
+                if_err_return(rv, tb_extend_cell(x_prev, y, uni));
             }
         } else {
             if (cellbuf_in_bounds(&global.back, x, y)) {
                 if_err_return(rv, tb_set_cell(x, y, uni, fg, bg));
             }
+            x_prev = x;
+            x += w;
+            if (out_w) *out_w += w;
         }
-
-        x += w;
-        if (out_w) *out_w += w;
     }
 
     return TB_OK;
@@ -2220,8 +2222,8 @@ static int cap_trie_add(const char *cap, uint16_t key, uint8_t mod) {
         if (!next) {
             // We need to add a new child to node
             node->nchildren += 1;
-            node->children =
-                tb_realloc(node->children, sizeof(*node) * node->nchildren);
+            node->children = (struct cap_trie_t *)tb_realloc(node->children,
+                sizeof(*node) * node->nchildren);
             if (!node->children) {
                 return TB_ERR_MEM;
             }
@@ -2361,7 +2363,7 @@ static int update_term_size_via_esc(void) {
 #define TB_RESIZE_FALLBACK_MS 1000
 #endif
 
-    char *move_and_report = "\x1b[9999;9999H\x1b[6n";
+    char move_and_report[] = "\x1b[9999;9999H\x1b[6n";
     ssize_t write_rv =
         write(global.wfd, move_and_report, strlen(move_and_report));
     if (write_rv != (ssize_t)strlen(move_and_report)) {
@@ -2430,7 +2432,10 @@ static int tb_deinit(void) {
         }
     }
 
-    sigaction(SIGWINCH, &(struct sigaction){.sa_handler = SIG_DFL}, NULL);
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = SIG_DFL;
+    sigaction(SIGWINCH, &sa, NULL);
     if (global.resize_pipefd[0] >= 0) close(global.resize_pipefd[0]);
     if (global.resize_pipefd[1] >= 0) close(global.resize_pipefd[1]);
 
@@ -2537,7 +2542,7 @@ static int read_terminfo_path(const char *path) {
     }
 
     size_t fsize = st.st_size;
-    char *data = tb_malloc(fsize);
+    char *data = (char *)tb_malloc(fsize);
     if (!data) {
         fclose(fp);
         return TB_ERR;
@@ -2848,7 +2853,7 @@ static int extract_esc_cap(struct tb_event *event) {
 static int extract_esc_mouse(struct tb_event *event) {
     struct bytebuf_t *in = &global.in;
 
-    enum type { TYPE_VT200 = 0, TYPE_1006, TYPE_1015, TYPE_MAX };
+    enum { TYPE_VT200 = 0, TYPE_1006, TYPE_1015, TYPE_MAX };
 
     const char *cmp[TYPE_MAX] = {//
         // X10 mouse encoding, the simplest one
@@ -2860,7 +2865,7 @@ static int extract_esc_mouse(struct tb_event *event) {
         // urxvt: \x1b [ Cb ; Cx ; Cy M
         [TYPE_1015] = "\x1b["};
 
-    enum type type = 0;
+    int type = 0;
     int ret = TB_ERR;
 
     // Unrolled at compile-time (probably)
@@ -3319,7 +3324,7 @@ static int cell_set(struct tb_cell *cell, uint32_t *ch, size_t nch,
     } else {
         int rv;
         if_err_return(rv, cell_reserve_ech(cell, nch + 1));
-        memcpy(cell->ech, ch, sizeof(ch) * nch);
+        memcpy(cell->ech, ch, sizeof(*ch) * nch);
         cell->ech[nch] = '\0';
         cell->nech = nch;
     }
@@ -3358,7 +3363,7 @@ static int cell_free(struct tb_cell *cell) {
 }
 
 static int cellbuf_init(struct cellbuf_t *c, int w, int h) {
-    c->cells = tb_malloc(sizeof(struct tb_cell) * w * h);
+    c->cells = (struct tb_cell *)tb_malloc(sizeof(struct tb_cell) * w * h);
     if (!c->cells) {
         return TB_ERR_MEM;
     }
@@ -3491,9 +3496,9 @@ static int bytebuf_reserve(struct bytebuf_t *b, size_t sz) {
     }
     char *newbuf;
     if (b->buf) {
-        newbuf = tb_realloc(b->buf, newcap);
+        newbuf = (char *)tb_realloc(b->buf, newcap);
     } else {
-        newbuf = tb_malloc(newcap);
+        newbuf = (char *)tb_malloc(newcap);
     }
     if (!newbuf) {
         return TB_ERR_MEM;
