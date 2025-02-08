@@ -64,7 +64,7 @@ struct buffer_s {
     int is_in_open;
     int is_in_callback;
     int is_style_disabled;
-    int _is_in_undo;
+    int is_in_undo;
     int last_errno;
 };
 

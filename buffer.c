@@ -1287,7 +1287,7 @@ static int _buffer_baction_do(buffer_t *self, bline_t *bline, baction_t *action,
     int rc;
     bint_t col;
     bint_t offset;
-    self->_is_in_undo = 1;
+    self->is_in_undo = 1;
     col = opt_repeat_offset ? *opt_repeat_offset : action->start_col;
     buffer_get_offset(self, bline, col, &offset);
     if ((action->type == MLBUF_BACTION_TYPE_DELETE && is_redo)
@@ -1297,7 +1297,7 @@ static int _buffer_baction_do(buffer_t *self, bline_t *bline, baction_t *action,
     } else {
         rc = buffer_insert(self, offset, action->data, action->data_len, NULL);
     }
-    self->_is_in_undo = 0;
+    self->is_in_undo = 0;
     return rc;
 }
 
@@ -1336,7 +1336,7 @@ static int _buffer_update(buffer_t *self, baction_t *action) {
     }
 
     // Handle undo stack
-    if (self->_is_in_undo) {
+    if (self->is_in_undo) {
         _baction_destroy(action);
     } else {
         _buffer_add_to_undo_stack(self, action);
