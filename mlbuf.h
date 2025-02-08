@@ -65,6 +65,7 @@ struct buffer_s {
     int is_in_callback;
     int is_style_disabled;
     int _is_in_undo;
+    int last_errno;
 };
 
 // bline_t
@@ -167,7 +168,7 @@ struct srule_node_s {
 
 // buffer functions
 buffer_t *buffer_new(void);
-buffer_t *buffer_new_open(char *path);
+buffer_t *buffer_new_open(char *path, int *optret_errno);
 mark_t *buffer_add_mark(buffer_t *self, bline_t *maybe_line, bint_t maybe_col);
 mark_t *buffer_add_mark_ex(buffer_t *self, char letter, bline_t *maybe_line, bint_t maybe_col);
 int buffer_get_lettered_mark(buffer_t *self, char letter, mark_t **ret_mark);

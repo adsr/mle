@@ -10,6 +10,7 @@
 #include <utlist.h>
 #include <inttypes.h>
 #include <wchar.h>
+#include <errno.h>
 #include "mlbuf.h"
 
 static int _buffer_open_mmap(buffer_t *self, int fd, size_t size);
@@ -54,10 +55,11 @@ buffer_t *buffer_new(void) {
 }
 
 // Wrapper for buffer_new + buffer_open
-buffer_t *buffer_new_open(char *path) {
+buffer_t *buffer_new_open(char *path, int *optret_errno) {
     buffer_t *self;
     self = buffer_new();
     if (buffer_open(self, path) != MLBUF_OK) {
+        if (optret_errno) *optret_errno = self->last_errno;
         buffer_destroy(self);
         return NULL;
     }
@@ -81,12 +83,14 @@ int buffer_open(buffer_t *self, char *path) {
 
         // Open file for reading
         if ((fd = open(path, O_RDONLY)) < 0) {
+            self->last_errno = errno;
             rc = MLBUF_ERR;
             break;
         }
 
         // Stat file
         if (fstat(fd, &st) < 0) {
+            self->last_errno = errno;
             rc = MLBUF_ERR;
             break;
         }
@@ -1199,6 +1203,7 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
     sprintf(tmppath, "%s", "/tmp/mle-XXXXXX");
     tmpfd = mkstemp(tmppath);
     if (tmpfd < 0) {
+        self->last_errno = errno;
         return MLBUF_ERR;
     }
     unlink(tmppath);
@@ -1207,10 +1212,12 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
         if (nread == 0) {
             break;
         } else if (nread < 0) {
+            self->last_errno = errno;
             close(tmpfd);
             return MLBUF_ERR;
         }
         if (write(tmpfd, readbuf, nread) != nread) {
+            if (errno != 0) self->last_errno = errno;
             close(tmpfd);
             return MLBUF_ERR;
         }
@@ -1219,6 +1226,7 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
     // Now mmap tmp file
     mmap_buf = mmap(NULL, size, PROT_READ, MAP_PRIVATE, tmpfd, 0);
     if (mmap_buf == MAP_FAILED) {
+        self->last_errno = errno;
         return MLBUF_ERR;
     } else if (buffer_set_mmapped(self, mmap_buf, (bint_t)size) != MLBUF_OK) {
         return MLBUF_ERR;
@@ -1241,6 +1249,7 @@ static int _buffer_open_read(buffer_t *self, int fd, size_t size) {
     }
     rc = MLBUF_OK;
     if (size != (size_t)read(fd, buf, size)) {
+        if (errno != 0) self->last_errno = errno;
         rc = MLBUF_ERR;
     } else if (buffer_set(self, buf, (bint_t)size) != MLBUF_OK) {
         rc = MLBUF_ERR;

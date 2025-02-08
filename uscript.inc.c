@@ -317,11 +317,15 @@ static int _uscript_func_buffer_new(lua_State *L) {
 static int _uscript_func_buffer_new_open(lua_State *L) {
     buffer_t *rv;
     char *path;
+    int optret_errno = 0;
     path = (char *)luaL_checkstring(L, 1);
-    rv = buffer_new_open(path);
-    lua_createtable(L, 0, 1);
+    rv = buffer_new_open(path, &optret_errno);
+    lua_createtable(L, 0, 2);
     lua_pushstring(L, "rv");
     lua_pushpointer(L, (void*)rv);
+    lua_settable(L, -3);
+    lua_pushstring(L, "optret_errno");
+    lua_pushinteger(L, (lua_Integer)optret_errno);
     lua_settable(L, -3);
     lua_pushvalue(L, -1);
     return 1;

@@ -772,12 +772,10 @@ _bview_fix_path_ret:
 // Open a buffer with an optional path to load, otherwise empty
 static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_len) {
     buffer_t *buffer;
-    int has_path;
-    char *fix_path;
-    char *exp_path;
-    int fix_path_len;
-    int exp_path_len;
+    int has_path, fix_path_len, exp_path_len;
+    char *fix_path, *exp_path;
     bint_t startup_line_num;
+    int buffer_errno = 0;
 
     buffer = NULL;
     has_path = opt_path && opt_path_len > 0 ? 1 : 0;
@@ -785,15 +783,16 @@ static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_
     if (has_path) {
         util_expand_tilde(opt_path, opt_path_len, &exp_path, &exp_path_len);
         _bview_fix_path(self, exp_path, exp_path_len, &fix_path, &fix_path_len, &startup_line_num);
-        buffer = buffer_new_open(fix_path);
+        buffer = buffer_new_open(fix_path, &buffer_errno);
         if (buffer) self->startup_linenum = startup_line_num;
         free(fix_path);
         free(exp_path);
     }
     if (!buffer) {
         buffer = buffer_new();
-        if (has_path) {
-            buffer->path = strndup(opt_path, opt_path_len);
+        if (has_path) buffer->path = strndup(opt_path, opt_path_len);
+        if (buffer_errno != 0) {
+            MLE_SET_ERR(self->editor, "_bview_open_buffer: %s", strerror(buffer_errno));
         }
     }
     buffer_set_callback(buffer, _bview_buffer_callback, self);
