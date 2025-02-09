@@ -1198,6 +1198,7 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
     char readbuf[1024];
     ssize_t nread;
     char *mmap_buf;
+    size_t nread_total = 0;
 
     // Copy fd to tmp file
     sprintf(tmppath, "%s", "/tmp/mle-XXXXXX");
@@ -1207,7 +1208,7 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
         return MLBUF_ERR;
     }
     unlink(tmppath);
-    while (1) {
+    while (nread_total < size) {
         nread = read(fd, &readbuf, 1024);
         if (nread == 0) {
             break;
@@ -1221,6 +1222,7 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
             close(tmpfd);
             return MLBUF_ERR;
         }
+        nread_total += nread;
     }
 
     // Now mmap tmp file
@@ -1242,7 +1244,9 @@ static int _buffer_open_mmap(buffer_t *self, int fd, size_t size) {
 static int _buffer_open_read(buffer_t *self, int fd, size_t size) {
     int rc;
     char *buf;
-    if (size <= PTRDIFF_MAX) {
+    if (size <= 0) {
+        return buffer_set(self, "", 0);
+    } else if (size <= PTRDIFF_MAX) {
         buf = malloc(size);
     } else {
         return MLBUF_ERR;
