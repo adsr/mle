@@ -791,7 +791,7 @@ static buffer_t *_bview_open_buffer(bview_t *self, char *opt_path, int opt_path_
     if (!buffer) {
         buffer = buffer_new();
         if (has_path) buffer->path = strndup(opt_path, opt_path_len);
-        if (buffer_errno != 0) {
+        if (buffer_errno != 0 && buffer_errno != ENOENT) {
             MLE_SET_ERR(self->editor, "_bview_open_buffer: %s", strerror(buffer_errno));
         }
     }
