@@ -30,6 +30,7 @@ void test(buffer_t *buf, mark_t *cur) {
         ASSERT("line2fg_m", (i == 0 || i == 1 ? 3 : 0), buf->first_line->next->chars[i].style.fg);
         ASSERT("line2bg_m", (i == 0 || i == 1 ? 4 : 0), buf->first_line->next->chars[i].style.bg);
     }
+    buffer_remove_srule(buf, srule2);
 
     srule_destroy(srule1);
     srule_destroy(srule2);

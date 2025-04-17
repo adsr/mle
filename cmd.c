@@ -67,7 +67,7 @@ int cmd_insert_data(cmd_context_t *ctx) {
     int (*mark_insert_func)(mark_t *, char *, bint_t);
 
     // Ensure space in insertbuf
-    insert_size = MLE_MAX(6, ctx->bview->buffer->tab_width) * (ctx->pastebuf_len + 1);
+    insert_size = MLE_MAX(6, ctx->bview->buffer->tab_width) * (ctx->pastebuf_len + 2);
     if (ctx->editor->insertbuf_size < insert_size) {
         ctx->editor->insertbuf = realloc(ctx->editor->insertbuf, insert_size);
         memset(ctx->editor->insertbuf, 0, insert_size);
@@ -1179,6 +1179,7 @@ int cmd_set_opt(cmd_context_t *ctx) {
         ctx->editor->mouse_support = vali ? 1 : 0;
         editor_set_input_mode(ctx->editor);
     }
+    free(val);
     return MLE_OK;
 }
 

@@ -12,4 +12,5 @@ void test(buffer_t *buf, mark_t *cur) {
     mark_get_between(cur, other, &str, &str_len);
     ASSERT("len", 11, str_len);
     ASSERT("eq", 0, strncmp(str, "hello\nworld", str_len));
+    free(str);
 }

@@ -30,4 +30,5 @@ void test(buffer_t *buf, mark_t *cur) {
     }
     ASSERT("zerod", 1, is_all_zero);
 
+    free(things);
 }

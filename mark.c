@@ -764,6 +764,7 @@ static int mark_block_x_between(mark_t *self, mark_t *other, int del, char **opt
             } else {
                 buffer_substr(bline->buffer, bline, start_col, bline, end_col_adj, &s, &slen, &ig);
                 if (slen > 0) str_append_len(&buf, s, slen);
+                if (s) free(s);
             }
         }
         if (!del && bline != b->bline->next) {

@@ -1,7 +1,7 @@
 #include "test.h"
 
 #define NUM_KINPUTS 256
-#define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
+#define OFFSETOF(PTR, ELEMENT) ((ptrdiff_t)&(((PTR))->ELEMENT) - (ptrdiff_t)(PTR))
 
 char *str = "";
 
@@ -11,10 +11,11 @@ void test(buffer_t *buf, mark_t *cur) {
     int result;
     size_t i, j;
     size_t offsetof_mod, offsetof_ch, offsetof_key;
+    kinput_t *input_ptr = &input;
 
-    offsetof_mod = OFFSETOF(kinput_t, mod);
-    offsetof_ch  = OFFSETOF(kinput_t, ch);
-    offsetof_key = OFFSETOF(kinput_t, key);
+    offsetof_mod = OFFSETOF(input_ptr, mod);
+    offsetof_ch  = OFFSETOF(input_ptr, ch);
+    offsetof_key = OFFSETOF(input_ptr, key);
 
     // Fill weird_input values
     for (i = 0; i < sizeof(kinput_t) * NUM_KINPUTS; i++) {

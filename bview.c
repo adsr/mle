@@ -36,7 +36,7 @@ bview_t *bview_new(editor_t *editor, int type, char *opt_path, int opt_path_len,
     self = calloc(1, sizeof(bview_t));
     self->editor = editor;
     self->type = type;
-    self->path = strndup(opt_path, opt_path_len);
+    if (opt_path) self->path = strndup(opt_path, opt_path_len);
     self->rect_caption.fg = TB_WHITE;
     self->rect_caption.bg = TB_BLACK;
     self->rect_lines.fg = TB_YELLOW;

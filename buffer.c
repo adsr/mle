@@ -1754,7 +1754,8 @@ static void _buffer_bline_replace(bline_t *bline, bint_t start_col, char *data, 
     }
 
     // Store del_data
-    str_append_len(del_data, bline->data + start_index, bline->data_len - start_index);
+    bint_t del_data_len = bline->data_len - start_index;
+    if (del_data_len > 0) str_append_len(del_data, bline->data + start_index, del_data_len);
 
     // Copy data into slot and update chars
     memmove(bline->data + start_index, data, (size_t)data_len);
