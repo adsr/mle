@@ -850,9 +850,11 @@ int cmd_browse(cmd_context_t *ctx) {
     bview_t *menu;
     aproc_t *aproc;
     char *cmd;
-    char *browse_path;
+    char *browse_path, *browse_path_esc;
     browse_path = ctx->static_param ? ctx->static_param : "./";
-    asprintf(&cmd, "cd %s && tree --charset C -n -f -L 2 2>/dev/null", browse_path);
+    browse_path_esc = util_escape_shell_arg(browse_path, strlen(browse_path));
+    asprintf(&cmd, "cd %s && tree --charset C -n -f -L 2 2>/dev/null", browse_path_esc);
+    free(browse_path_esc);
     aproc = aproc_new(ctx->editor, ctx->bview, &(ctx->bview->aproc), cmd, 0, _cmd_aproc_bview_passthru_cb);
     free(cmd);
     if (!aproc) return MLE_ERR;
