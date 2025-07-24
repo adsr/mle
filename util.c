@@ -762,8 +762,8 @@ int aproc_drain_all(aproc_t *aprocs, int *ttyfd) {
             if (FD_ISSET(aproc->rfd, &readfds)) {
                 nbytes = read(aproc->rfd, &buf, 1024);
                 buf[nbytes] = '\0';
-                aproc->callback(aproc, buf, nbytes);
                 if (nbytes == 0) aproc->is_done = 1;
+                aproc->callback(aproc, buf, nbytes);
             }
             // Destroy on eof.
             // Not sure if ferror and feof have any effect here given we're not
