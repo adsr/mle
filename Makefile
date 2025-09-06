@@ -64,6 +64,9 @@ install: mle
 	install -v -d $(DESTDIR)$(prefix)/bin
 	install -v -m 755 mle $(DESTDIR)$(prefix)/bin/mle
 
+uninstall:
+	rm $(DESTDIR)$(prefix)/bin/mle
+
 uscript:
 	php uscript.inc.php >uscript.inc.c
 
