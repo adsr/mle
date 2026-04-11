@@ -13,6 +13,7 @@ jobs:
           - { runner: ubuntu-latest,    cc: musl-gcc, extra: 'mle_static=1' }
           - { runner: ubuntu-24.04-arm, cc: musl-gcc, extra: 'mle_static=1' }
           - { runner: macos-latest,     cc: cc,       extra: ''             }
+          - { runner: ubuntu-latest,    cc: cosmocc,  extra: 'AR=cosmoar'   }
 
     runs-on: ${{ matrix.runner }}
 
@@ -26,6 +27,14 @@ jobs:
         if: matrix.cc == 'musl-gcc'
         run: sudo apt-get install -y musl-tools
 
+      - name: install_cosmo
+        if: matrix.cc == 'cosmocc'
+        run: |
+          wget -q -O cosmocc.zip 'https://cosmo.zip/pub/cosmocc/cosmocc.zip'
+          mkdir -vp ~/cosmocc
+          unzip cosmocc.zip -d ~/cosmocc
+          echo "$HOME/cosmocc/bin" >>"$GITHUB_PATH"
+
       - name: build
         run: make mle_vendor=1 CC=${{ matrix.cc }} ${{ matrix.extra }} && ./mle -v
 
@@ -34,6 +43,7 @@ jobs:
         run: |
           vers=$(./mle -v | awk '{print $NF}')
           os_arch="$(uname -s | tr A-Z a-z)_$(uname -m)"
+          test ${{ matrix.cc }} != cosmocc || os_arch=cosmo
           name="mle_${vers}_${os_arch}"
           mv -v mle "$name"
           echo "name=$name" >>"$GITHUB_OUTPUT"
