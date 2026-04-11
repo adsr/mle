@@ -580,6 +580,7 @@ int cmd_shell(cmd_context_t *ctx);
 int cmd_show_help(cmd_context_t *ctx);
 int cmd_split_horizontal(cmd_context_t *ctx);
 int cmd_split_vertical(cmd_context_t *ctx);
+int cmd_split_adjust(cmd_context_t *ctx);
 int cmd_suspend(cmd_context_t *ctx);
 int cmd_swap_anchor(cmd_context_t *ctx);
 int cmd_toggle_anchor(cmd_context_t *ctx);

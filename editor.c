@@ -1765,6 +1765,7 @@ static void _editor_register_cmds(editor_t *editor) {
     _editor_register_cmd_fn(editor, "cmd_show_help", cmd_show_help);
     _editor_register_cmd_fn(editor, "cmd_split_horizontal", cmd_split_horizontal);
     _editor_register_cmd_fn(editor, "cmd_split_vertical", cmd_split_vertical);
+    _editor_register_cmd_fn(editor, "cmd_split_adjust", cmd_split_adjust);
     _editor_register_cmd_fn(editor, "cmd_suspend", cmd_suspend);
     _editor_register_cmd_fn(editor, "cmd_swap_anchor", cmd_swap_anchor);
     _editor_register_cmd_fn(editor, "cmd_toggle_anchor", cmd_toggle_anchor);
@@ -1919,6 +1920,8 @@ static void _editor_init_kmaps(editor_t *editor) {
         MLE_KBINDING_DEF_EX("cmd_goto", "M-9", "9"),
         MLE_KBINDING_DEF("cmd_split_vertical", "M-v"),
         MLE_KBINDING_DEF("cmd_split_horizontal", "M-h"),
+        MLE_KBINDING_DEF_EX("cmd_split_adjust", "M-K", "shrink"),
+        MLE_KBINDING_DEF_EX("cmd_split_adjust", "M-L", "expand"),
         MLE_KBINDING_DEF("cmd_grep", "M-q"),
         MLE_KBINDING_DEF("cmd_fsearch", "C-p"),
         MLE_KBINDING_DEF("cmd_browse", "C-b"),

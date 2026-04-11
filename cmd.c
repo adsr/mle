@@ -771,6 +771,32 @@ int cmd_split_horizontal(cmd_context_t *ctx) {
     return MLE_OK;
 }
 
+// Adjust the size of a split
+int cmd_split_adjust(cmd_context_t *ctx) {
+    float factor;
+    bview_t *bview;
+
+    if (ctx->bview->split_parent) {
+        bview = ctx->bview->split_parent;
+    } else if (ctx->bview->split_child) {
+        bview = ctx->bview;
+    } else {
+        return MLE_ERR;
+    }
+
+    int is_shrink = ctx->static_param && strcmp(ctx->static_param, "shrink") == 0 ? 1 : 0;
+
+    factor = bview->split_factor;
+    factor += 0.0625 * (is_shrink ? -1.f : 1.f);
+
+    if      (factor >= 0.9375) factor = 0.9375;
+    else if (factor <= 0.0625) factor = 0.0625;
+
+    bview->split_factor = factor;
+
+    return bview_resize(bview, bview->x, bview->y, bview->w, bview->h);
+}
+
 // Fuzzy path search via fzf
 int cmd_fsearch(cmd_context_t *ctx) {
     return _cmd_fsearch_inner(ctx, "fzf");
