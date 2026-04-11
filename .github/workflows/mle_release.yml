@@ -3,6 +3,7 @@ name: mle_release
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   mle_release_job:
@@ -38,15 +39,7 @@ jobs:
           mv -v mle "$name"
           echo "name=$name" >>"$GITHUB_OUTPUT"
 
-      - name: upload_pr_artifact
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.name.outputs.name }}
-          path: ${{ steps.name.outputs.name }}
-
       - name: upload_release
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.name.outputs.name }}
