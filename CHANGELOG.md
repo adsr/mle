@@ -1,5 +1,51 @@
 # Changelog
 
+## [1.8.1] - 2026-04-11
+
+### changed
+
+- upgrade pcre2 to 10.46 ([`c88af56`](https://github.com/adsr/mle/commit/c88af56))
+- upgrade lua to 5.4.8 ([`6250303`](https://github.com/adsr/mle/commit/6250303))
+- upgrade termbox2 to commit cac1901 ([`c9f8be6`](https://github.com/adsr/mle/commit/c9f8be6))
+- improve perf of mark functions ([`4c2e0d3`](https://github.com/adsr/mle/commit/4c2e0d3))
+- change syntax shortcut from `-y-` to `-yy` ([`d180016`](https://github.com/adsr/mle/commit/d180016))
+- avoid zeroing the viewport when paging less than screen height ([`8cbb5bd`](https://github.com/adsr/mle/commit/8cbb5bd))
+
+### added
+
+- include cosmopolitan libc build ([`9c2bd33`](https://github.com/adsr/mle/commit/9c2bd33)) (Gautham)
+- include pre-compiled binaries in releases ([`8df7766`](https://github.com/adsr/mle/commit/8df7766))
+- add `cmd_split_adjust` ([`c59b71a`](https://github.com/adsr/mle/commit/c59b71a))
+- add uninstall make target ([`8a974bc`](https://github.com/adsr/mle/commit/8a974bc), [`2453c1c`](https://github.com/adsr/mle/commit/2453c1c)) (Spenser Truex)
+- display error on buffer open failure ([`6e85f17`](https://github.com/adsr/mle/commit/6e85f17), [`47d6207`](https://github.com/adsr/mle/commit/47d6207))
+- add `cmd_print_macro` ([`bd777c7`](https://github.com/adsr/mle/commit/bd777c7))
+- add isearch conveniences ([`58f29e4`](https://github.com/adsr/mle/commit/58f29e4), [`6ff6caf`](https://github.com/adsr/mle/commit/6ff6caf))
+- add `cmd_replace_all` ([`8f32163`](https://github.com/adsr/mle/commit/8f32163))
+- parameterize page up and down ([`e361185`](https://github.com/adsr/mle/commit/e361185))
+- add `cmd_macro_apply_last` ([`8ff1123`](https://github.com/adsr/mle/commit/8ff1123))
+
+### fixed
+
+- fix order of aproc callback ([`affc20c`](https://github.com/adsr/mle/commit/affc20c)) (Kevin Hovsäter)
+- fix browse bug ([`2939ec6`](https://github.com/adsr/mle/commit/2939ec6))
+- clean up via sanitizers ([`f86ef1c`](https://github.com/adsr/mle/commit/f86ef1c))
+- avoid reading non-regular files ([`5d00b52`](https://github.com/adsr/mle/commit/5d00b52))
+- fix infinite loop in replace ([`9e94716`](https://github.com/adsr/mle/commit/9e94716))
+- clean up via static analysis ([`1b6d788`](https://github.com/adsr/mle/commit/1b6d788), etc) (Hoorad Farrokh)
+- fix bug preventing save prompt when closing split ([`b85098f`](https://github.com/adsr/mle/commit/b85098f))
+- fix viewport bug ([`4813b79`](https://github.com/adsr/mle/commit/4813b79))
+- fatal if terminal init fails ([`6339749`](https://github.com/adsr/mle/commit/6339749))
+- fix `-N` bugs ([`2ecb087`](https://github.com/adsr/mle/commit/2ecb087), [`a1bd910`](https://github.com/adsr/mle/commit/a1bd910))
+- clear compiler warnings ([`e5982bf`](https://github.com/adsr/mle/commit/e5982bf), [`8f8004b`](https://github.com/adsr/mle/commit/8f8004b))
+- harden build ([`4f625ea`](https://github.com/adsr/mle/commit/4f625ea), [`c29533c`](https://github.com/adsr/mle/commit/c29533c), [`9a7ecc3`](https://github.com/adsr/mle/commit/9a7ecc3), [`8ce8f5d`](https://github.com/adsr/mle/commit/8ce8f5d))
+- fix color_col bug ([`1ce4556`](https://github.com/adsr/mle/commit/1ce4556))
+- fix isearch bug ([`8ebcf56`](https://github.com/adsr/mle/commit/8ebcf56))
+- honor `CPPFLAGS` ([`a65d82f`](https://github.com/adsr/mle/commit/a65d82f)) (Mo Zhou)
+- fix paste in `-Qi` mode ([`6f514a4`](https://github.com/adsr/mle/commit/6f514a4))
+- fix cursor bugs ([`76ac1f8`](https://github.com/adsr/mle/commit/76ac1f8), [`f843a4b`](https://github.com/adsr/mle/commit/f843a4b))
+- fix mouse bug after force redraw ([`0a509e0`](https://github.com/adsr/mle/commit/0a509e0))
+- fix compat issues in tests ([`5387732`](https://github.com/adsr/mle/commit/5387732), [`f84cadd`](https://github.com/adsr/mle/commit/f84cadd))
+
 ## [1.7.2] - 2023-05-24
 
 ### changed
@@ -116,7 +162,7 @@
 
 ## [1.1] - 2017-03-29
 
-_[initial release](https://lists.suckless.org/dev/1703/31240.html)_
+- _[initial release](https://lists.suckless.org/dev/1703/31240.html)_
 
 [1.7.2]: https://github.com/adsr/mle/releases/tag/v1.7.2
 [1.5.0]: https://github.com/adsr/mle/releases/tag/v1.5.0
