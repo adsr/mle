@@ -627,7 +627,7 @@ extern editor_t _editor;
 #endif
 #define MLE_XSTR(s) MLE_STR(s)
 #define MLE_STR(s) #s
-#define MLE_VERSION ("1.8.1" MLE_XSTR(MLE_VERSION_APPEND))
+#define MLE_VERSION ("1.8.2-dev" MLE_XSTR(MLE_VERSION_APPEND))
 
 #define MLE_OK 0
 #define MLE_ERR 1
