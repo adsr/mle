@@ -1,0 +1,52 @@
+name: mle_release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  mle_release_job:
+
+    strategy:
+      matrix:
+        include:
+          - { runner: ubuntu-latest,    cc: musl-gcc, extra: 'mle_static=1' }
+          - { runner: ubuntu-24.04-arm, cc: musl-gcc, extra: 'mle_static=1' }
+          - { runner: macos-latest,     cc: cc,       extra: ''             }
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: install_musl
+        if: matrix.cc == 'musl-gcc'
+        run: sudo apt-get install -y musl-tools
+
+      - name: build
+        run: make mle_vendor=1 CC=${{ matrix.cc }} ${{ matrix.extra }} && ./mle -v
+
+      - name: name_binary
+        id: name
+        run: |
+          vers=$(./mle -v | awk '{print $NF}')
+          os_arch="$(uname -s | tr A-Z a-z)_$(uname -m)"
+          name="mle_${vers}_${os_arch}"
+          mv -v mle "$name"
+          echo "name=$name" >>"$GITHUB_OUTPUT"
+
+      - name: upload_pr_artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.name }}
+          path: ${{ steps.name.outputs.name }}
+
+      - name: upload_release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.name.outputs.name }}
