@@ -3,7 +3,6 @@ name: mle_release
 on:
   release:
     types: [published]
-  workflow_dispatch:
 
 jobs:
   mle_release_job:
