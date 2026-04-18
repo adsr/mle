@@ -12,12 +12,12 @@ pcre2_objects:=$(addprefix pcre2/src/, \
 	pcre2_substring.o pcre2_tables.o pcre2_ucd.o pcre2_valid_utf.o \
 	pcre2_xclass.o)
 
-all: uthash/src/utlist.h pcre2/libpcre2-8.a lua/liblua5.4.a
+all: uthash/src/utlist.h pcre2/libpcre2-8.a lua/liblua5.5.a
 
 uthash/src/utlist.h:
 	command -v git && git submodule update --init --recursive
 
-lua/liblua5.4.a: $(lua_objects)
+lua/liblua5.5.a: $(lua_objects)
 	$(AR) rcs $@ $(lua_objects)
 
 $(lua_objects): %.o: %.c
@@ -42,7 +42,7 @@ $(pcre2_objects:.o=.c): pcre2/src/pcre2.h pcre2/src/config.h
 
 clean:
 	rm -f pcre2/libpcre2-8.a pcre2/src/pcre2.h pcre2/src/config.h pcre2/src/pcre2_chartables.c $(pcre2_objects)
-	rm -f lua/liblua5.4.a $(lua_objects)
+	rm -f lua/liblua5.5.a $(lua_objects)
 
 .NOTPARALLEL:
 
