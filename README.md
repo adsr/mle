@@ -42,7 +42,7 @@ Runs on Linux, Windows (Cygwin or WSL), FreeBSD, macOS, and more.
 * Navigation via [ctags](https://github.com/universal-ctags/ctags)
 * Movement via [less](https://www.gnu.org/software/less/)
 * Fuzzy file search via [fzf](https://github.com/junegunn/fzf)
-* File browsing via [tree](http://mama.indstate.edu/users/ice/tree/)
+* File browsing via [tree](https://oldmanprogrammer.net/source.php?dir=projects/tree)
 * File grep via [grep](https://www.gnu.org/software/grep/)
 * String manip via [perl](https://www.perl.org/)
 
@@ -140,7 +140,7 @@ exist in `PATH`.
 * [less](https://www.gnu.org/software/less/) (less integration)
 * [perl](https://www.perl.org/) (perl 1-liners)
 * [readtags](https://github.com/universal-ctags/ctags) (ctags integration)
-* [tree](http://mama.indstate.edu/users/ice/tree/) (file browsing)
+* [tree](https://oldmanprogrammer.net/source.php?dir=projects/tree) (file browsing)
 
 Arbitrary shell commands can also be run via `cmd_shell` (`M-e` by default). If
 any text is selected, it is sent to stdin of the command. Any resulting stdout
