@@ -1,0 +1,2 @@
+Test-Command: mle -v && mle -N -H1 -M 'a h i enter' -p a
+Depends: @

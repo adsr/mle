@@ -1,0 +1,20 @@
+Source: mle
+Section: editors
+Maintainer: Adam Saponara <as@php.net>
+Build-Depends: debhelper-compat (= 13), libpcre2-dev, uthash-dev, liblua5.4-dev
+Standards-Version: 4.7.4
+Vcs-Git: https://github.com/adsr/mle.git
+Vcs-Browser: https://github.com/adsr/mle
+Homepage: https://github.com/adsr/mle
+
+Package: mle
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: fzf, tree
+Suggests: less, universal-ctags, perl
+Description: flexible terminal-based editor
+ mle is a small, flexible, terminal-based text editor
+ written in C. Notable features include: full Unicode
+ support, syntax highlighting, scriptable rc file, macros,
+ search and replace (PCRE), window splitting, multiple
+ cursors, and integration with various shell commands.
