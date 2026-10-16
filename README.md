@@ -124,7 +124,7 @@ executable `~/.mlerc` bash(1) script:
     fi
 
     # Set default kmap
-    echo '-n test'
+    echo '-ntest'
 
 This overrides the built-in grep command with `git grep` if `.git` exists in
 the current working directory.
